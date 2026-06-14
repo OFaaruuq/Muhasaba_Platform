@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}استبياناتي - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4"><i class="bi bi-clipboard-check"></i> استبياناتي</h2>
+
+    <div class="row g-4">
+        {% for q in questionnaires %}
+        {% set c = completion_map.get(q.id, {}) %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="badge bg-light text-dark">{{ category_labels.get(q.category, q.category or '—') }}</span>
+                        {% if c.complete %}
+                        <span class="badge bg-success">{{ ui_labels.complete }}</span>
+                        {% elif c.answered %}
+                        <span class="badge bg-warning text-dark">{{ ui_labels.partial }}</span>
+                        {% else %}
+                        <span class="badge bg-primary">{{ ui_labels.new }}</span>
+                        {% endif %}
+                    </div>
+                    <h5>{{ q.title_ar or q.title }}</h5>
+                    {% if q.description %}<p class="text-muted small">{{ q.description }}</p>{% endif %}
+                    <p class="small mb-2">
+                        <i class="bi bi-calendar"></i>
+                        {% if q.due_date %}استحقاق: {{ q.due_date }}{% else %}بدون موعد نهائي{% endif %}
+                    </p>
+                    <div class="progress mb-3" style="height:6px">
+                        <div class="progress-bar" style="width:{{ c.percent or 0 }}%"></div>
+                    </div>
+                    <small class="text-muted">{{ c.answered or 0 }}/{{ c.total or 0 }} سؤال</small>
+                </div>
+                <div class="card-footer bg-white border-0 pt-0">
+                    {% if not c.complete %}
+                    <a href="{{ url_for('questionnaires.take', questionnaire_id=q.id) }}" class="btn btn-success w-100">
+                        {% if c.answered %}متابعة الإجابة{% else %}بدء الإجابة{% endif %}
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('questionnaires.detail', questionnaire_id=q.id) }}" class="btn btn-outline-primary w-100">عرض التفاصيل</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12"><div class="alert alert-info">لا توجد استبيانات متاحة لفصلك حالياً.</div></div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

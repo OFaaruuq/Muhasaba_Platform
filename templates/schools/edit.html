@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}تعديل مدرسة - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-pencil-square"></i> تعديل: {{ school.name_ar }}</h2>
+        <a href="{{ request.args.get('next') or url_for('schools.detail', school_id=school.id) }}" class="btn btn-outline-secondary">العودة</a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">الاسم عربي <span class="text-danger">*</span></label>
+                        <input name="name_ar" class="form-control" value="{{ school.name_ar }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">الاسم إنجليزي <span class="text-danger">*</span></label>
+                        <input name="name" class="form-control" value="{{ school.name }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">الرمز</label>
+                        {% if current_user.is_platform_admin %}
+                        <input name="code" class="form-control" value="{{ school.code }}" required>
+                        {% else %}
+                        <input class="form-control" value="{{ school.code }}" disabled>
+                        <div class="form-text">يتم تعديل الرمز من قبل {{ org_labels.central_administration }} فقط.</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">المنطقة</label>
+                        <input name="region" class="form-control" value="{{ school.region or '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">المقاطعة</label>
+                        <input name="district" class="form-control" value="{{ school.district or '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">اسم المدير</label>
+                        <input name="principal_name" class="form-control" value="{{ school.principal_name or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">الهاتف</label>
+                        <input name="phone" class="form-control" value="{{ school.phone or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">البريد</label>
+                        <input name="email" type="email" class="form-control" value="{{ school.email or '' }}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">العنوان</label>
+                        <textarea name="address" class="form-control" rows="2">{{ school.address or '' }}</textarea>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> حفظ التعديلات
+                    </button>
+                    <a href="{{ request.args.get('next') or url_for('schools.detail', school_id=school.id) }}" class="btn btn-outline-secondary">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

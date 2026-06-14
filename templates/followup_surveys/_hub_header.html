@@ -1,0 +1,29 @@
+{# active_page: 'surveys' | 'analytics' #}
+<div class="followup-hub-header mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                <h2 class="mb-0">
+                    <i class="bi bi-{% if active_page == 'analytics' %}graph-up-arrow{% else %}clipboard-data{% endif %}"></i>
+                    {% if active_page == 'analytics' %}تحليلات المتابعة الشهرية{% else %}استبيانات المتابعة الشهرية{% endif %}
+                </h2>
+                {% if period_ctx and period_ctx.is_current_period %}
+                <span class="badge bg-primary"><i class="bi bi-calendar-check"></i> الشهر الحالي</span>
+                {% endif %}
+            </div>
+            <p class="text-muted mb-0 small">{{ hub_subtitle }}</p>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="btn-group followup-mode-switch shadow-sm" role="group">
+                <a href="{{ url_for('followup_surveys.index', year=period_year, month=period_month, tab=hub_tab|default('family')) }}"
+                    class="btn btn-sm {% if active_page == 'surveys' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class="bi bi-clipboard-data"></i> التعبئة
+                </a>
+                <a href="{{ url_for('followup_surveys.analytics_index', year=period_year, month=period_month, tab=hub_analytics_tab|default('overview')) }}"
+                    class="btn btn-sm {% if active_page == 'analytics' %}btn-info text-white{% else %}btn-outline-info{% endif %}">
+                    <i class="bi bi-graph-up-arrow"></i> التحليلات
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,29 @@
+{% from "followup_surveys/_macros.html" import yes_no %}
+{# expects: survey, program_sections, id_prefix (optional) #}
+{% set p = id_prefix or '' %}
+
+<div class="alert alert-light border mb-4">
+    <strong>متابعة تقرير البرنامج التربوي</strong> — البرنامج التربوي العام للرجال والنساء
+</div>
+
+{% for code, title, subtitle, fields in program_sections %}
+<div class="card mb-4">
+    <div class="card-header">
+        <strong>{{ title }}</strong>
+        {% if subtitle %}<br><small class="text-muted fw-normal">{{ subtitle }}</small>{% endif %}
+    </div>
+    <div class="card-body">
+        {% for field, label in fields %}
+        {{ yes_no(field, label, survey|attr(field) if survey else none, p) }}
+        {% endfor %}
+        {% if code == 'latecomers' %}
+        <div class="mb-3">
+            <label class="form-label">ملاحظات إضافية حول التعامل مع المتأخرين</label>
+            <textarea name="latecomers_notes" class="form-control" rows="3">{{ survey.latecomers_notes if survey else '' }}</textarea>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+<p class="text-muted small text-center mb-0">وآخر دعوانا أن الحمد لله رب العالمين</p>

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}إنشاء مستخدم - المشرف الأعلى{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">إنشاء مستخدم جديد</h2>
+    <div class="card col-lg-6"><div class="card-body">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-2"><label>اسم المستخدم</label><input name="username" class="form-control" required></div>
+            <div class="mb-2"><label>الاسم</label><input name="full_name_ar" class="form-control" required></div>
+            <div class="mb-2"><label>البريد</label><input name="email" type="email" class="form-control" required></div>
+            <div class="mb-2"><label>الهاتف</label><input name="phone" class="form-control"></div>
+            <div class="mb-2"><label>كلمة المرور</label><input name="password" type="password" class="form-control" required></div>
+            <div class="mb-2"><label>الدور</label>
+                <select name="role_id" class="form-select" required>
+                    {% for r in roles %}<option value="{{ r.id }}">{{ r.name_ar }} ({{ r.name }})</option>{% endfor %}
+                </select>
+            </div>
+            <div class="mb-3"><label>المدرسة</label>
+                <select name="school_id" class="form-select">
+                    <option value="">— بدون —</option>
+                    {% for s in schools %}<option value="{{ s.id }}">{{ s.name_ar }}</option>{% endfor %}
+                </select>
+            </div>
+            <button class="btn btn-primary">حفظ</button>
+            <a href="{{ url_for('super_admin.users') }}" class="btn btn-outline-secondary">إلغاء</a>
+        </form>
+    </div></div>
+</div>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}عرض استبيان الأسرة - {{ student.full_name_ar }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-house-heart"></i> الأسرة — مسؤول المتابعة في الحي من خلال مسؤولي المجموعات</h2>
+        <div>
+            {% if can_fill_family %}
+            <a href="{{ url_for('followup_surveys.family_form', student_id=student.id, year=period_year, month=period_month) }}"
+                class="btn btn-primary btn-sm"><i class="bi bi-pencil"></i> تعديل</a>
+            {% endif %}
+            <a href="{{ url_for('followup_surveys.index', tab='family', year=period_year, month=period_month) }}"
+                class="btn btn-outline-secondary btn-sm">رجوع</a>
+        </div>
+    </div>
+    <p class="text-muted">{{ student.full_name_ar }} — {{ period_month }}/{{ period_year }}</p>
+
+    {% if not survey %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        لم يُعبَّأ استبيان الأسرة لهذا الشهر بعد. سيتم تعبئته من معلم المجموعة المسؤول.
+    </div>
+    {% else %}
+    <div class="card mb-3">
+        <div class="card-header">بيانات الأسرة</div>
+        <div class="card-body">
+            <p><strong>الاسم الكريم:</strong> {{ survey.family_name }}</p>
+            <p><strong>المرحلة الدراسية:</strong>
+                {% if survey.stage_primary %}<span class="badge bg-light text-dark">الابتدائي</span>{% endif %}
+                {% if survey.stage_middle %}<span class="badge bg-light text-dark">الإعدادي</span>{% endif %}
+                {% if survey.stage_secondary %}<span class="badge bg-light text-dark">الثانوي</span>{% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">اللقاء الأسري</div>
+        <div class="card-body">
+            <p><strong>برنامج مستمر للقاء الأسري:</strong> {{ bool_label(survey.has_regular_family_meeting) }}</p>
+            <p><strong>عدد اللقاءات الأسبوعية:</strong> {{ weekly_meetings_label(survey.weekly_meetings_count) }}</p>
+            {% if survey.weekly_meetings_one_reason %}
+            <p><strong>سبب لقاء واحد:</strong> {{ survey.weekly_meetings_one_reason }}</p>
+            {% endif %}
+            {% if survey.weekly_meetings_other %}
+            <p><strong>أخرى:</strong> {{ survey.weekly_meetings_other }}</p>
+            {% endif %}
+            {% if survey.family_meeting_notes %}
+            <p><strong>ملاحظات:</strong> {{ survey.family_meeting_notes }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">منهج التربية</div>
+        <div class="card-body">
+            <p><strong>وصل كتاب منهج التربية:</strong> {{ bool_label(survey.received_curriculum_book) }}</p>
+            <p><strong>قرأته:</strong> {{ bool_label(survey.read_curriculum_book) }}</p>
+            <p><strong>تدارسته في البيت:</strong> {{ bool_label(survey.studied_curriculum_at_home) }}</p>
+            {% if survey.curriculum_notes %}
+            <p><strong>ملاحظات:</strong> {{ survey.curriculum_notes }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">مقررات الأبناء</div>
+        <div class="card-body">
+            <p><strong>مقرر الحديث في المنزل:</strong> {{ bool_label(survey.hadith_at_home) }}</p>
+            <p><strong>مقرر الفقه في المنزل:</strong> {{ bool_label(survey.fiqh_at_home) }}</p>
+            {% if survey.curricula_obstacles %}
+            <p><strong>العوائق:</strong> {{ survey.curricula_obstacles }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">برنامج رياض الصالحين</div>
+        <div class="card-body">
+            <p><strong>استماع مستمر:</strong> {{ bool_label(survey.listens_riyadh_saliheen) }}</p>
+            {% if survey.riyadh_progress %}
+            <p><strong>التقدم:</strong> {{ survey.riyadh_progress }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">الترفيه والمشاهدة</div>
+        <div class="card-body">
+            <p><strong>وصلت النسخة الصحيحة للأفلام:</strong> {{ bool_label(survey.received_approved_films) }}</p>
+            <p><strong>الالتزام بالأفلام المسموحة:</strong> {{ bool_label(survey.watches_approved_only) }}</p>
+            <p><strong>برنامج ترفيهي خارج البيت:</strong> {{ bool_label(survey.outdoor_entertainment) }}</p>
+        </div>
+    </div>
+
+    <small class="text-muted">
+        آخر تحديث: {{ survey.updated_at.strftime('%Y-%m-%d %H:%M') if survey.updated_at else '—' }}
+    </small>
+    {% endif %}
+</div>
+{% endblock %}

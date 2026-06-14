@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}مؤشرات الأبناء - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">مؤشرات أداء الأبناء</h2>
+    {% for item in children_kpi %}
+    <div class="card mb-4">
+        <div class="card-header">{{ item.student.full_name_ar }} — {{ item.overall }}%</div>
+        <div class="card-body">
+            {% for s in item.scores %}
+            <div class="mb-2">
+                <div class="d-flex justify-content-between">
+                    <span>{{ s.kpi.name_ar }}</span>
+                    <span>{{ s.score }}%</span>
+                </div>
+                <div class="progress" style="height:6px">
+                    <div class="progress-bar" style="width:{{ s.score }}%"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

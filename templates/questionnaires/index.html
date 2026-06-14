@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}الاستبيانات - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-question-circle"></i> الاستبيانات</h2>
+            <p class="text-muted mb-0">إنشاء ومتابعة استبيانات الطلاب وتحليل الإجابات</p>
+        </div>
+        {% if current_user.is_teacher or current_user.is_school_manager or current_user.is_platform_admin %}
+        <a href="{{ url_for('questionnaires.create') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> إنشاء استبيان
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 bg-primary text-white">
+                <div class="card-body py-3">
+                    <div class="small opacity-75">إجمالي الاستبيانات</div>
+                    <div class="fs-4 fw-bold">{{ questionnaires|length }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 bg-success text-white">
+                <div class="card-body py-3">
+                    <div class="small opacity-75">{{ ui_labels.active_feminine }}</div>
+                    <div class="fs-4 fw-bold">{{ questionnaires|selectattr('is_active')|list|length }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>العنوان</th>
+                        <th>التصنيف</th>
+                        <th>الفصل</th>
+                        <th>الأسئلة</th>
+                        <th>الاستحقاق</th>
+                        <th>نسبة الإكمال</th>
+                        <th>الحالة</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for q in questionnaires %}
+                    {% set s = summaries.get(q.id, {}) %}
+                    <tr class="{% if not q.is_active %}table-secondary{% endif %}">
+                        <td>
+                            <strong>{{ q.title_ar or q.title }}</strong>
+                            {% if q.description %}<br><small class="text-muted">{{ q.description[:60] }}{% if q.description|length > 60 %}…{% endif %}</small>{% endif %}
+                        </td>
+                        <td><span class="badge bg-light text-dark">{{ category_labels.get(q.category, q.category or '—') }}</span></td>
+                        <td>{{ q.class_.name if q.class_ else 'كل الفصول' }}</td>
+                        <td>{{ q.questions.count() }}</td>
+                        <td>
+                            {% if q.due_date %}
+                            {{ q.due_date }}
+                            {% if q.due_date < today %}<span class="badge bg-warning text-dark ms-1">{{ ui_labels.expired }}</span>{% endif %}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height:6px;min-width:60px">
+                                    <div class="progress-bar" style="width:{{ s.rate or 0 }}%"></div>
+                                </div>
+                                <small>{{ s.completed or 0 }}/{{ s.eligible or 0 }}</small>
+                            </div>
+                        </td>
+                        <td>
+                            {% if q.is_active %}<span class="badge bg-success">{{ ui_labels.active }}</span>
+                            {% else %}<span class="badge bg-secondary">{{ ui_labels.inactive }}</span>{% endif %}
+                        </td>
+                        <td class="text-nowrap">
+                            <a href="{{ url_for('questionnaires.detail', questionnaire_id=q.id) }}" class="btn btn-sm btn-outline-primary">عرض</a>
+                            <a href="{{ url_for('questionnaires.results', questionnaire_id=q.id) }}" class="btn btn-sm btn-outline-secondary">نتائج</a>
+                            {% if can_manage_fn(q) %}
+                            <a href="{{ url_for('questionnaires.edit', questionnaire_id=q.id) }}" class="btn btn-sm btn-outline-warning">تعديل</a>
+                            <form method="POST" action="{{ url_for('questionnaires.toggle', questionnaire_id=q.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-sm btn-outline-dark">تبديل</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">لا توجد استبيانات. أنشئ أول استبيان للبدء.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

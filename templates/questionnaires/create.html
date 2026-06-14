@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}{% if questionnaire %}تعديل استبيان{% else %}إنشاء استبيان{% endif %} - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{% if questionnaire %}تعديل استبيان{% else %}إنشاء استبيان جديد{% endif %}</h2>
+        <a href="{{ url_for('questionnaires.index') }}" class="btn btn-outline-secondary">العودة</a>
+    </div>
+
+    <form method="POST" id="qForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="card mb-4">
+            <div class="card-header">معلومات الاستبيان</div>
+            <div class="card-body row g-3">
+                <div class="col-md-5">
+                    <label class="form-label">العنوان بالعربية</label>
+                    <input name="title_ar" class="form-control" required
+                        value="{{ questionnaire.title_ar if questionnaire else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">العنوان بالإنجليزية</label>
+                    <input name="title" class="form-control" required
+                        value="{{ questionnaire.title if questionnaire else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">التصنيف</label>
+                    <select name="category" class="form-select">
+                        {% for value, label in categories %}
+                        <option value="{{ value }}" {% if questionnaire and questionnaire.category == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">الفصل المستهدف</label>
+                    <select name="class_id" class="form-select">
+                        <option value="">كل الفصول</option>
+                        {% for c in classes %}
+                        <option value="{{ c.id }}" {% if questionnaire and questionnaire.class_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">تاريخ الاستحقاق</label>
+                    <input name="due_date" type="date" class="form-control"
+                        value="{{ questionnaire.due_date if questionnaire and questionnaire.due_date else '' }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="form-check">
+                        <input type="checkbox" name="is_active" class="form-check-input" id="isActive"
+                            {% if not questionnaire or questionnaire.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="isActive">{{ ui_labels.active }}</label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">الوصف</label>
+                    <textarea name="description" class="form-control" rows="2">{{ questionnaire.description if questionnaire else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0">الأسئلة</h5>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addQuestion()">+ إضافة سؤال</button>
+        </div>
+        <div id="questions"></div>
+
+        <button type="submit" class="btn btn-primary btn-lg mt-3">
+            {% if questionnaire %}حفظ التعديلات{% else %}حفظ الاستبيان{% endif %}
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const questionTypes = {{ question_types | tojson }};
+const boolChoices = {{ bool_choices | tojson }};
+const seedQuestions = {{ questions_data | default([]) | tojson }};
+
+function typeOptions(selected) {
+    return questionTypes.map(([v, l]) =>
+        `<option value="${v}" ${selected === v ? 'selected' : ''}>${l}</option>`
+    ).join('');
+}
+
+function addQuestion(data) {
+    data = data || {};
+    const div = document.createElement('div');
+    div.className = 'card mb-3 question-card';
+    div.innerHTML = `
+        <div class="card-body">
+            <div class="row g-2 align-items-start">
+                <div class="col-md-5">
+                    <label class="form-label small">نص السؤال</label>
+                    <input name="question_text[]" class="form-control" placeholder="اكتب السؤال..." required
+                        value="${data.text || ''}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">نوع السؤال</label>
+                    <select name="question_type[]" class="form-select q-type" onchange="toggleChoices(this)">
+                        ${typeOptions(data.type || 'text')}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">إلزامي</label>
+                    <select name="question_required[]" class="form-select required-select">
+                        ${boolChoices.map(([v, l]) => `<option value="${v}" ${data.required === false && v === '0' ? 'selected' : data.required !== false && v === '1' ? 'selected' : ''}>${l}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="col-md-2 text-end">
+                    <button type="button" class="btn btn-sm btn-outline-danger mt-4" onclick="this.closest('.question-card').remove()">حذف</button>
+                </div>
+                <div class="col-12 choices-wrap" style="display:none">
+                    <label class="form-label small">خيارات الاختيار المتعدد (افصل بـ |)</label>
+                    <input name="choices[]" class="form-control choices-input"
+                        placeholder="مثال: خيار أ | خيار ب | خيار ج"
+                        value="${data.choices || ''}">
+                </div>
+            </div>
+        </div>`;
+    document.getElementById('questions').appendChild(div);
+    const sel = div.querySelector('.q-type');
+    toggleChoices(sel);
+}
+
+function toggleChoices(sel) {
+    const wrap = sel.closest('.question-card').querySelector('.choices-wrap');
+    wrap.style.display = sel.value === 'multiple_choice' ? 'block' : 'none';
+}
+
+if (seedQuestions.length) {
+    seedQuestions.forEach(q => addQuestion(q));
+} else {
+    addQuestion();
+}
+</script>
+{% endblock %}

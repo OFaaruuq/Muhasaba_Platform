@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}إجابة استبيان - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="mb-4">
+        <h2>{{ questionnaire.title_ar or questionnaire.title }}</h2>
+        {% if questionnaire.description %}<p class="text-muted">{{ questionnaire.description }}</p>{% endif %}
+        {% if questionnaire.due_date %}
+        <p class="small"><i class="bi bi-calendar"></i> تاريخ الاستحقاق: <strong>{{ questionnaire.due_date }}</strong></p>
+        {% endif %}
+        <div class="progress mb-2" style="height:8px">
+            <div class="progress-bar bg-success" style="width:{{ completion.percent or 0 }}%"></div>
+        </div>
+        <small class="text-muted">{{ completion.answered }}/{{ completion.total }} سؤال مُجاب</small>
+    </div>
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% for q in questions %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <label class="form-label fw-bold">
+                    {{ loop.index }}. {{ q.text_ar or q.text }}
+                    {% if q.is_required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                {% if q.id in answered_ids %}
+                <p class="text-success mb-0"><i class="bi bi-check-circle"></i> تم الإجابة مسبقاً</p>
+                {% elif q.question_type == 'yes_no' %}
+                <select name="q_{{ q.id }}" class="form-select" {% if q.is_required %}required{% endif %}>
+                    <option value="">— اختر —</option>
+                    {% for code, label in yes_no_choices %}
+                    <option value="{{ code }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+                {% elif q.question_type == 'rating' %}
+                <select name="q_{{ q.id }}" class="form-select" {% if q.is_required %}required{% endif %}>
+                    <option value="">— اختر —</option>
+                    {% for code, label in rating_scale_choices %}
+                    <option value="{{ code }}">{{ code }} — {{ label }}</option>
+                    {% endfor %}
+                </select>
+                {% elif q.question_type == 'multiple_choice' %}
+                <select name="q_{{ q.id }}" class="form-select" {% if q.is_required %}required{% endif %}>
+                    <option value="">— اختر —</option>
+                    {% for c in q.choices %}
+                    <option value="{{ c.id }}">{{ c.text_ar or c.text }}</option>
+                    {% endfor %}
+                </select>
+                {% else %}
+                <textarea name="q_{{ q.id }}" class="form-control" rows="3" {% if q.is_required %}required{% endif %}></textarea>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-send"></i> إرسال الإجابات
+        </button>
+        <a href="{{ url_for('questionnaires.index') }}" class="btn btn-outline-secondary btn-lg">إلغاء</a>
+    </form>
+</div>
+{% endblock %}

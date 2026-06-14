@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}تعديل بياناتي - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="mb-0"><i class="bi bi-pencil-square"></i> تعديل بياناتي</h2>
+        <a href="{{ url_for('students.profile', student_id=student.id) }}" class="btn btn-outline-secondary btn-sm">رجوع</a>
+    </div>
+    <div class="alert alert-info">
+        يمكنك تحديث بيانات التواصل والموقع فقط. لتغيير الفصل أو المستوى تواصل مع مدير المدرسة.
+    </div>
+    <form method="POST" class="card shadow-sm">
+        <div class="card-body">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">الهاتف</label>
+                    <label class="form-label">الهاتف <span class="text-muted">(اختياري)</span></label>
+                    <input name="phone" class="form-control" value="{{ student.phone or '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">المنطقة</label>
+                    <input name="region" class="form-control" value="{{ student.region }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">الحي</label>
+                    <input name="district" class="form-control" value="{{ student.district }}" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">العنوان التفصيلي</label>
+                    <textarea name="address" class="form-control" rows="2" required>{{ student.address }}</textarea>
+                </div>
+            </div>
+            <button class="btn btn-primary mt-3"><i class="bi bi-save"></i> حفظ</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

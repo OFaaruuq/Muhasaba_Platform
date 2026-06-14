@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}مؤشراتي - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>مؤشرات الأداء الديناميكية: <span class="badge bg-primary fs-4">{{ overall }}%</span></h2>
+        <div class="btn-group">
+            {% for code, label in kpi_period_choices %}
+            <a href="{{ url_for('kpi.index', period=code) }}" class="btn btn-sm {% if period == code %}btn-primary{% else %}btn-outline-primary{% endif %}">{{ label }}</a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-5">
+            <div class="card"><div class="card-header">توزيع المؤشرات</div>
+            <div class="card-body"><canvas id="kpiChart" height="260"></canvas></div></div>
+        </div>
+        <div class="col-md-7">
+            <div class="card"><div class="card-header">تفاصيل الحساب التلقائي</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>المؤشر</th><th>الدرجة</th><th>الوزن</th><th>المصدر</th><th>البيانات</th></tr></thead>
+                    <tbody>
+                        {% for b in breakdown %}
+                        <tr>
+                            <td>{{ b.kpi.name_ar }}</td>
+                            <td><strong>{{ b.score }}%</strong></td>
+                            <td>{{ b.kpi.weight }}%</td>
+                            <td><small class="text-muted">{{ b.detail.source }}</small></td>
+                            <td>
+                                {% if b.has_data %}<small>{{ b.detail.detail }} ({{ b.detail.records }} سجل)</small>
+                                {% else %}<small class="text-warning">لا بيانات بعد</small>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        {% for b in breakdown %}
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <strong>{{ b.kpi.name_ar }}</strong>
+                        <span>{{ b.score }}%</span>
+                    </div>
+                    <div class="progress" style="height:12px">
+                        <div class="progress-bar" style="width:{{ b.score }}%"></div>
+                    </div>
+                    <small class="text-muted">يُحسب تلقائياً من: {{ b.detail.source }}</small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+new Chart(document.getElementById('kpiChart'), {
+    type: 'radar',
+    data: {
+        labels: [{% for b in breakdown %}'{{ b.kpi.name_ar }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'مؤشرات الأداء %',
+            data: [{% for b in breakdown %}{{ b.score }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: 'rgba(26, 82, 118, 0.2)',
+            borderColor: '#1a5276',
+        }]
+    },
+    options: { scales: { r: { min: 0, max: 100 } } }
+});
+</script>
+{% endblock %}

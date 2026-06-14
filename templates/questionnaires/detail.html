@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ questionnaire.title_ar }} - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h2>{{ questionnaire.title_ar or questionnaire.title }}</h2>
+            <p class="text-muted mb-1">{{ questionnaire.description or '' }}</p>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+                <span class="badge bg-light text-dark">{{ category_labels.get(questionnaire.category, questionnaire.category or '—') }}</span>
+                <span class="badge bg-info text-dark">{{ questionnaire.class_.name if questionnaire.class_ else 'كل الفصول' }}</span>
+                {% if questionnaire.is_active %}<span class="badge bg-success">{{ ui_labels.active }}</span>{% else %}<span class="badge bg-secondary">{{ ui_labels.inactive }}</span>{% endif %}
+                {% if questionnaire.due_date %}<span class="badge bg-warning text-dark">{{ ui_labels.due_date }}: {{ questionnaire.due_date }}</span>{% endif %}
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            {% if current_user.is_student and student_completion and not student_completion.complete %}
+            <a href="{{ url_for('questionnaires.take', questionnaire_id=questionnaire.id) }}" class="btn btn-success">إجابة الاستبيان</a>
+            {% endif %}
+            {% if can_manage %}
+            <a href="{{ url_for('questionnaires.edit', questionnaire_id=questionnaire.id) }}" class="btn btn-outline-warning">تعديل</a>
+            {% endif %}
+            {% if current_user.is_teacher or current_user.is_school_manager or current_user.is_platform_admin %}
+            <a href="{{ url_for('questionnaires.results', questionnaire_id=questionnaire.id) }}" class="btn btn-primary">النتائج والتحليل</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-3"><div class="card text-center"><div class="card-body">
+            <div class="text-muted small">الأسئلة</div><div class="fs-4 fw-bold">{{ questions|length }}</div>
+        </div></div></div>
+        <div class="col-md-3"><div class="card text-center"><div class="card-body">
+            <div class="text-muted small">المؤهلون</div><div class="fs-4 fw-bold">{{ summary.eligible }}</div>
+        </div></div></div>
+        <div class="col-md-3"><div class="card text-center"><div class="card-body">
+            <div class="text-muted small">أكملوا</div><div class="fs-4 fw-bold text-success">{{ summary.completed }}</div>
+        </div></div></div>
+        <div class="col-md-3"><div class="card text-center"><div class="card-body">
+            <div class="text-muted small">نسبة الإكمال</div><div class="fs-4 fw-bold">{{ summary.rate }}%</div>
+        </div></div></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">معاينة الأسئلة</div>
+        <div class="card-body">
+            <ol class="mb-0">
+                {% for q in questions %}
+                <li class="mb-3">
+                    <strong>{{ q.text_ar or q.text }}</strong>
+                    <span class="badge bg-light text-dark ms-1">{{ type_labels.get(q.question_type, q.question_type) }}</span>
+                    {% if not q.is_required %}<span class="badge bg-secondary">{{ ui_labels.optional }}</span>{% endif %}
+                    {% if q.question_type == 'multiple_choice' and q.choices.count() %}
+                    <ul class="mt-1 text-muted small">
+                        {% for c in q.choices %}<li>{{ c.text_ar or c.text }}</li>{% endfor %}
+                    </ul>
+                    {% endif %}
+                </li>
+                {% else %}
+                <li class="text-muted">لا توجد أسئلة.</li>
+                {% endfor %}
+            </ol>
+        </div>
+    </div>
+
+    {% if student_completion %}
+    <div class="alert alert-info mt-3">
+        تقدمك: {{ student_completion.answered }}/{{ student_completion.total }}
+        {% if student_completion.complete %} — <strong>{{ ui_labels.complete }}</strong>{% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

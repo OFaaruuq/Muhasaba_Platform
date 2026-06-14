@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}أداء الاختبار - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">{{ exam.title_ar }}</h2>
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% for q in questions %}
+        <div class="card mb-3"><div class="card-body">
+            <p class="fw-bold">{{ loop.index }}. {{ q.text_ar }} ({{ q.marks }} درجة)</p>
+            {% if q.question_type == 'mcq' and q.options %}
+            <select name="q_{{ q.id }}" class="form-select" required>
+                {% for opt in q.options %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+            </select>
+            {% elif q.question_type == 'true_false' %}
+            <select name="q_{{ q.id }}" class="form-select" required>
+                {% for code, label in true_false_choices %}
+                <option value="{{ code }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+            {% else %}
+            <input name="q_{{ q.id }}" class="form-control" required>
+            {% endif %}
+        </div></div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary btn-lg">تسليم الاختبار</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}مستخدم جديد - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">إنشاء مستخدم</h2>
+    <div class="card"><div class="card-body">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-md-6"><label class="form-label">الاسم</label><input name="full_name_ar" class="form-control" required></div>
+                <div class="col-md-6"><label class="form-label">اسم المستخدم</label><input name="username" class="form-control" required></div>
+                <div class="col-md-6"><label class="form-label">البريد</label><input name="email" type="email" class="form-control" required></div>
+                <div class="col-md-6"><label class="form-label">كلمة المرور</label><input name="password" type="password" class="form-control" required></div>
+                <div class="col-md-6"><label class="form-label">الدور</label>
+                    <select name="role_id" class="form-select" required>
+                        {% for r in roles %}<option value="{{ r.id }}">{{ r.name_ar }}</option>{% endfor %}
+                    </select>
+                </div>
+                {% if schools %}
+                <div class="col-md-6"><label class="form-label">المدرسة</label>
+                    <select name="school_id" class="form-select">
+                        <option value="">—</option>
+                        {% for s in schools %}<option value="{{ s.id }}">{{ s.name_ar }}</option>{% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary mt-4">إنشاء</button>
+        </form>
+    </div></div>
+</div>
+{% endblock %}

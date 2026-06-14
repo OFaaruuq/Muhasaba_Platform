@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}تقرير متابعة — {{ report.student.full_name_ar }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set hub_subtitle = report.student.full_name_ar ~ ' — ' ~ period_label %}
+    {% set active_page = 'analytics' %}
+    {% include 'followup_surveys/_hub_header.html' %}
+
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a href="{{ url_for('followup_surveys.analytics_index', tab='students', year=period_year, month=period_month) }}"
+            class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-right"></i> لوحة التحليلات</a>
+        {% if report.survey %}
+        <a href="{{ url_for('followup_surveys.family_view', student_id=report.student.id, year=period_year, month=period_month) }}"
+            class="btn btn-outline-primary btn-sm"><i class="bi bi-eye"></i> عرض الاستبيان</a>
+        {% endif %}
+        {% if report.program_survey %}
+        <a href="{{ url_for('followup_surveys.program_student_view', student_id=report.student.id, year=period_year, month=period_month) }}"
+            class="btn btn-outline-info btn-sm"><i class="bi bi-eye"></i> عرض البرنامج التربوي</a>
+        {% endif %}
+        <a href="{{ url_for('followup_surveys.index', tab='student_program', year=period_year, month=period_month) }}"
+            class="btn btn-outline-secondary btn-sm"><i class="bi bi-clipboard-data"></i> التعبئة</a>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body py-3">
+            <form method="GET" class="d-flex flex-wrap align-items-end gap-2">
+                <div>
+                    <label class="form-label small mb-0">السنة</label>
+                    <input type="number" name="year" class="form-control form-control-sm" style="width:90px" value="{{ period_year }}">
+                </div>
+                <div>
+                    <label class="form-label small mb-0">الشهر</label>
+                    <select name="month" class="form-select form-select-sm" style="width:130px">
+                        {% for m, label in arabic_months.items() %}
+                        <option value="{{ m }}" {% if m == period_month %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label small mb-0">تاريخ التحليل (أشهر)</label>
+                    <select name="months" class="form-select form-select-sm" style="width:80px">
+                        {% for n in [3, 6, 9, 12] %}
+                        <option value="{{ n }}" {% if months == n %}selected{% endif %}>{{ n }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">تطبيق</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header"><i class="bi bi-graph-up"></i> اتجاه الإكمال الشهري</div>
+                <div class="card-body"><canvas id="historyChart" height="180"></canvas></div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header">ملخص الشهر الحالي</div>
+                <div class="card-body">
+                    {% if report.teacher_family_rating %}
+                    <p class="small mb-2"><strong>تقييم المعلم لدور الأسرة:</strong> {{ report.teacher_family_rating }}</p>
+                    {% endif %}
+                    {% if report.teacher_notes %}
+                    <p class="small mb-2"><strong>ملاحظات المعلم:</strong> {{ report.teacher_notes }}</p>
+                    {% endif %}
+                    <div class="progress mb-2" style="height:10px">
+                        <div class="progress-bar bg-{{ report.status[1] }}"
+                            style="width:{{ (report.answered * 100 / report.total) if report.total else 0 }}%"></div>
+                    </div>
+                    <p class="small text-muted mb-2">استبيان الأسرة: {{ report.answered }} من {{ report.total }} سؤالاً</p>
+                    <div class="progress mb-2" style="height:10px">
+                        <div class="progress-bar bg-{{ report.program_status[1] }}"
+                            style="width:{{ (report.program_answered * 100 / report.program_total) if report.program_total else 0 }}%"></div>
+                    </div>
+                    <p class="small text-muted mb-0">البرنامج التربوي: {{ report.program_answered }} من {{ report.program_total }} سؤالاً</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if not report.survey %}
+    <div class="alert alert-info mb-4">
+        <i class="bi bi-info-circle"></i> لم يُعبَّأ استبيان الأسرة لهذا الشهر بعد.
+    </div>
+    {% else %}
+    {% for section in report.sections %}
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header fw-semibold">{{ section.title }}</div>
+        <div class="card-body p-0">
+            <table class="table mb-0">
+                <tbody>
+                    {% for row in section.rows %}
+                    <tr>
+                        <td class="text-muted" style="width:45%">{{ row.label }}</td>
+                        <td>
+                            {% if row.answered %}
+                            {{ row.value }}
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if report.survey.updated_at %}
+    <p class="small text-muted">آخر تحديث: {{ report.survey.updated_at.strftime('%Y-%m-%d %H:%M') }}</p>
+    {% endif %}
+    {% endif %}
+
+    {% if not report.program_survey %}
+    <div class="alert alert-info mb-4">
+        <i class="bi bi-info-circle"></i> لم يُعبَّأ البرنامج التربوي لهذا الشهر بعد.
+    </div>
+    {% else %}
+    <h5 class="mb-3"><i class="bi bi-journal-check"></i> البرنامج التربوي — إجابات كاملة</h5>
+    {% for section in report.program_sections %}
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header fw-semibold">{{ section.title }}</div>
+        <div class="card-body p-0">
+            <table class="table mb-0">
+                <tbody>
+                    {% for row in section.rows %}
+                    <tr>
+                        <td class="text-muted" style="width:45%">{{ row.label }}</td>
+                        <td>
+                            {% if row.answered %}
+                            {{ row.value }}
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if report.bool_trends %}
+    <div class="card shadow-sm mt-4">
+        <div class="card-header"><i class="bi bi-check2-all"></i> اتجاهات الأسئلة (نعم/لا)</div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>السؤال</th><th>نعم</th><th>لا</th><th>غير مُجيب</th></tr></thead>
+                <tbody>
+                    {% for t in report.bool_trends %}
+                    <tr>
+                        <td>{{ t.label }}</td>
+                        <td>{{ t.yes }}</td>
+                        <td>{{ t.no }}</td>
+                        <td>{{ t.empty }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+new Chart(document.getElementById('historyChart'), {
+    type: 'line',
+    data: {
+        labels: [{% for h in report.history %}'{{ h.label }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'نسبة الإكمال %',
+            data: [{% for h in report.history %}{{ h.percent }}{% if not loop.last %},{% endif %}{% endfor %}],
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40,167,69,0.1)',
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: { scales: { y: { min: 0, max: 100 } } }
+});
+</script>
+{% endblock %}

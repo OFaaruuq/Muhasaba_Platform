@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}الحضور الأسبوعي - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-calendar-week"></i> متابعة الحضور الأسبوعي</h2>
+        <a href="{{ url_for('attendance.index') }}" class="btn btn-outline-secondary">الحضور اليومي</a>
+    </div>
+    <p class="text-muted">من {{ week_start }} إلى {{ week_end }}</p>
+
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>المجموعة / الفصل</th>
+                        <th>المستوى</th>
+                        <th>عدد الطلاب</th>
+                        <th>{{ present_column_label }}</th>
+                        <th>الإجمالي</th>
+                        <th>النسبة</th>
+                        <th>الحالة</th>
+                        {% if can_record %}<th></th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in summary %}
+                    <tr>
+                        <td>{{ row.name }}</td>
+                        <td>{{ row.grade_name }}</td>
+                        <td>{{ row.students }}</td>
+                        <td>{{ row.present }}</td>
+                        <td>{{ row.total }}</td>
+                        <td>{{ row.rate }}%</td>
+                        <td><span class="badge bg-{{ row.color }}">{{ get_performance_label(row.rate) }}</span></td>
+                        {% if can_record and row.can_record %}
+                        <td>
+                            <a href="{{ url_for('attendance.record', class_id=row.class.id) }}" class="btn btn-sm btn-outline-primary">
+                                تسجيل اليوم
+                            </a>
+                        </td>
+                        {% elif can_record %}
+                        <td></td>
+                        {% endif %}
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="{% if can_record %}8{% else %}7{% endif %}" class="text-muted text-center">لا توجد بيانات حضور لهذا الأسبوع.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

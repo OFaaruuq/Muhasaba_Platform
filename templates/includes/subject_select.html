@@ -1,0 +1,122 @@
+{# Dynamic subject (المادة) select with optional inline create #}
+{% macro subject_field(school_id, subjects, selected_id=None, select_id='subjectSelect', required=false) %}
+<div class="mb-0">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+        <label class="form-label mb-0" for="{{ select_id }}">المادة{% if required %} <span class="text-danger">*</span>{% endif %}</label>
+        <button type="button" class="btn btn-sm btn-link p-0" data-bs-toggle="modal" data-bs-target="#createSubjectModal">
+            <i class="bi bi-plus-circle"></i> إضافة مادة
+        </button>
+    </div>
+    <select name="subject_id" id="{{ select_id }}" class="form-select" {% if required %}required{% endif %}>
+        <option value="">— اختر المادة —</option>
+        {% for s in subjects %}
+        <option value="{{ s.id }}" {% if selected_id == s.id %}selected{% endif %}>{{ s.name_ar }}</option>
+        {% endfor %}
+    </select>
+    <input type="hidden" id="subjectSchoolId" value="{{ school_id }}">
+</div>
+{% endmacro %}
+
+
+{% macro subject_create_modal() %}
+<div class="modal fade" id="createSubjectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إضافة مادة جديدة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">اسم المادة بالعربية *</label>
+                    <input type="text" class="form-control" id="newSubjectNameAr" placeholder="اللغة العربية">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">رمز المادة (اختياري)</label>
+                    <input type="text" class="form-control" id="newSubjectCode" placeholder="ARAB">
+                </div>
+                <div id="createSubjectError" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="saveSubjectBtn">حفظ</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro subject_scripts(select_id='subjectSelect', school_input_id='subjectSchoolId', school_select_id='schoolSelect') %}
+<script>
+(function () {
+    const subjectSelect = document.getElementById('{{ select_id }}');
+    const schoolInput = document.getElementById('{{ school_input_id }}');
+    const schoolSelect = document.getElementById('{{ school_select_id }}');
+    const saveBtn = document.getElementById('saveSubjectBtn');
+    if (!subjectSelect || !saveBtn) return;
+
+    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
+
+    function getSchoolId() {
+        if (schoolSelect && schoolSelect.value) return schoolSelect.value;
+        return schoolInput ? schoolInput.value : '';
+    }
+
+    function loadSubjects(selectedId) {
+        const schoolId = getSchoolId();
+        if (!schoolId) return Promise.resolve();
+        return fetch(`{{ url_for('academic.api_subjects') }}?school_id=${schoolId}`, {credentials: 'same-origin'})
+            .then(r => r.json())
+            .then((items) => {
+                const current = selectedId || subjectSelect.value;
+                subjectSelect.innerHTML = '<option value="">— اختر المادة —</option>';
+                items.forEach((s) => {
+                    const opt = document.createElement('option');
+                    opt.value = s.id;
+                    opt.textContent = s.name_ar;
+                    subjectSelect.appendChild(opt);
+                });
+                if (current) subjectSelect.value = String(current);
+            });
+    }
+
+    if (schoolSelect) {
+        schoolSelect.addEventListener('change', () => {
+            if (schoolInput) schoolInput.value = schoolSelect.value;
+            loadSubjects();
+        });
+    }
+
+    saveBtn.addEventListener('click', () => {
+        const err = document.getElementById('createSubjectError');
+        const schoolId = getSchoolId();
+        if (err) { err.classList.add('d-none'); err.textContent = ''; }
+        if (!schoolId) {
+            if (err) { err.textContent = 'اختر المدرسة أولاً.'; err.classList.remove('d-none'); }
+            return;
+        }
+        fetch('{{ url_for("academic.api_create_subject") }}', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            body: JSON.stringify({
+                school_id: Number(schoolId),
+                name_ar: document.getElementById('newSubjectNameAr').value.trim(),
+                code: document.getElementById('newSubjectCode').value.trim(),
+            }),
+        }).then(async (r) => {
+            const data = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(data.error || 'فشل الحفظ');
+            return data;
+        }).then((subject) => {
+            loadSubjects(subject.id);
+            const modal = document.getElementById('createSubjectModal');
+            if (modal && window.bootstrap) bootstrap.Modal.getOrCreateInstance(modal).hide();
+        }).catch((e) => {
+            if (err) { err.textContent = e.message; err.classList.remove('d-none'); }
+        });
+    });
+})();
+</script>
+{% endmacro %}

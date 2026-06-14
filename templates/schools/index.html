@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}المدارس - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-building"></i> المدارس</h2>
+            <p class="text-muted mb-0">عرض وتعديل وحذف المدارس المسجلة</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if current_user.is_platform_admin %}
+            <a href="{{ url_for('schools.index', show_inactive='1' if not show_inactive else None) }}"
+               class="btn btn-outline-secondary btn-sm">
+                {% if show_inactive %}إخفاء {{ ui_labels.inactive_feminine }}{% else %}عرض {{ ui_labels.inactive_feminine }}{% endif %}
+            </a>
+            <a href="{{ url_for('schools.create') }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> تسجيل مدرسة
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>المدرسة</th>
+                        <th>الرمز</th>
+                        <th>المنطقة</th>
+                        <th>المدير</th>
+                        <th>التواصل</th>
+                        <th>الحالة</th>
+                        <th class="text-nowrap" style="min-width:220px">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for school in schools %}
+                    {% set deletable = can_delete_school(school.id)[0] %}
+                    <tr class="{% if not school.is_active %}table-secondary{% endif %}">
+                        <td>
+                            <strong>{{ school.name_ar }}</strong>
+                            <br><small class="text-muted">{{ school.name }}</small>
+                        </td>
+                        <td><code>{{ school.code }}</code></td>
+                        <td>{{ school.region or '—' }}{% if school.district %} / {{ school.district }}{% endif %}</td>
+                        <td>{{ school.principal_name or '—' }}</td>
+                        <td class="small">
+                            {% if school.phone %}<div><i class="bi bi-telephone"></i> {{ school.phone }}</div>{% endif %}
+                            {% if school.email %}<div><i class="bi bi-envelope"></i> {{ school.email }}</div>{% endif %}
+                            {% if not school.phone and not school.email %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if school.is_active %}
+                            <span class="badge bg-success">{{ ui_labels.active_feminine }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ ui_labels.inactive_feminine }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('schools.detail', school_id=school.id) }}"
+                                   class="btn btn-outline-primary" title="عرض التفاصيل">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ url_for('schools.edit_school', school_id=school.id, next=url_for('schools.index')) }}"
+                                   class="btn btn-outline-warning" title="تعديل">
+                                    <i class="bi bi-pencil"></i> تعديل
+                                </a>
+                                {% if current_user.is_platform_admin %}
+                                <form method="POST" action="{{ url_for('schools.toggle_school', school_id=school.id) }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button class="btn btn-outline-secondary" title="{% if school.is_active %}تعطيل{% else %}تفعيل{% endif %}">
+                                        {% if school.is_active %}
+                                        <i class="bi bi-pause-circle"></i>
+                                        {% else %}
+                                        <i class="bi bi-play-circle"></i>
+                                        {% endif %}
+                                    </button>
+                                </form>
+                                {% if deletable %}
+                                <button type="button" class="btn btn-outline-danger"
+                                    data-bs-toggle="modal" data-bs-target="#deleteSchool{{ school.id }}"
+                                    title="حذف نهائي">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            لا توجد مدارس.
+                            {% if current_user.is_platform_admin %}
+                            <a href="{{ url_for('schools.create') }}">سجّل أول مدرسة</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if current_user.is_platform_admin %}
+{% for school in schools %}
+{% if can_delete_school(school.id)[0] %}
+<div class="modal fade" id="deleteSchool{{ school.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('schools.delete_school', school_id=school.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle"></i> حذف المدرسة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>حذف نهائي لـ <strong>{{ school.name_ar }}</strong> (<code>{{ school.code }}</code>).</p>
+                    <p class="small text-muted mb-3">لا يمكن التراجع. يُسمح فقط للمدارس بدون طلاب أو معلمين أو مستخدمين.</p>
+                    <label class="form-label">اكتب رمز المدرسة للتأكيد: <code>{{ school.code }}</code></label>
+                    <input type="text" name="confirm_code" class="form-control" required autocomplete="off"
+                        placeholder="{{ school.code }}">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-danger">حذف نهائياً</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endblock %}

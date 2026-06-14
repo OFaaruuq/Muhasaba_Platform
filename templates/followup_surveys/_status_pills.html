@@ -1,0 +1,17 @@
+{# Requires: nav_endpoint, status_filter, nav_filter, period_year, period_month #}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <span class="small text-muted me-1">الحالة:</span>
+    <div class="nav nav-pills followup-status-pills">
+        {% for code, label, icon in [
+            ('all', 'الكل', 'bi-grid'),
+            ('complete', 'مكتمل', 'bi-check-circle'),
+            ('partial', 'جزئي', 'bi-pie-chart'),
+            ('empty', 'لم يُعبَّأ', 'bi-dash-circle')
+        ] %}
+        <a class="nav-link py-1 px-3 {% if status_filter == code %}active{% endif %}"
+            href="{{ url_for(nav_endpoint, status=code, year=period_year, month=period_month, **pill_filter) }}">
+            <i class="bi {{ icon }}"></i> {{ label }}
+        </a>
+        {% endfor %}
+    </div>
+</div>

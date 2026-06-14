@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% from "followup_surveys/_macros.html" import frequency_rating %}
+{% from "followup_surveys/_checklist.html" import survey_checklist %}
+{% block title %}المتابعة الشهرية — {{ teacher.full_name_ar }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-2"><i class="bi bi-clipboard-data"></i> المتابعة الشهرية — {{ period_month }}/{{ period_year }}</h2>
+    <p class="text-muted mb-1">
+        {% if admin_entry %}المعلم: {{ teacher.full_name_ar or teacher.full_name }} (إدخال إداري){% else %}
+        {{ teacher.full_name_ar or teacher.full_name }}{% endif %}
+    </p>
+    <p class="text-muted mb-3">
+        يشمل <strong>استبيان المعلم (١٠ أسئلة)</strong> +
+        <strong>استبيان الأسرة (١٩ سؤال لكل طالب)</strong> +
+        <strong>البرنامج التربوي (لكل طالب)</strong> — كالنماذج المطبوعة
+    </p>
+
+    {% if family_entries and (family_pending > 0 or family_partial > 0 or program_pending > 0 or program_partial > 0 or answered < total) %}
+    <div class="alert alert-warning mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>تقييم مطلوب لكل طالب</strong> —
+                {% if family_pending %}<span class="badge bg-danger">{{ family_pending }} أسرة لم تبدأ</span>{% endif %}
+                {% if family_partial %}<span class="badge bg-warning text-dark">{{ family_partial }} أسرة جزئي</span>{% endif %}
+                {% if program_pending %}<span class="badge bg-danger">{{ program_pending }} برنامج لم يبدأ</span>{% endif %}
+                {% if program_partial %}<span class="badge bg-warning text-dark">{{ program_partial }} برنامج جزئي</span>{% endif %}
+                {% if answered < total %}<span class="badge bg-secondary ms-1">استبيان المعلم: {{ answered }}/{{ total }}</span>{% endif %}
+            </div>
+            {% if family_pending > 0 or family_partial > 0 or program_pending > 0 or program_partial > 0 %}
+            <div class="d-flex gap-2">
+                {% if family_pending > 0 or family_partial > 0 %}
+                <a href="{% if admin_entry %}{{ url_for('followup_surveys.teacher_form_admin', teacher_id=teacher.id, year=period_year, month=period_month, tab='family') }}{% else %}{{ url_for('followup_surveys.teacher_form', year=period_year, month=period_month, tab='family') }}{% endif %}#familyAccordion"
+                    class="btn btn-sm btn-warning">إكمال استبيانات الأسرة</a>
+                {% endif %}
+                {% if program_pending > 0 or program_partial > 0 %}
+                <a href="{% if admin_entry %}{{ url_for('followup_surveys.teacher_form_admin', teacher_id=teacher.id, year=period_year, month=period_month, tab='student_program') }}{% else %}{{ url_for('followup_surveys.teacher_form', year=period_year, month=period_month, tab='student_program') }}{% endif %}#studentProgramAccordion"
+                    class="btn btn-sm btn-info text-white">إكمال البرنامج التربوي</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% elif family_entries and family_complete == family_entries|length and program_complete == student_program_entries|length and answered >= total %}
+    <div class="alert alert-success mb-4">
+        <i class="bi bi-check-circle"></i> أتممت استبيان المعلم واستبيانات الأسرة والبرنامج التربوي لجميع طلابك لهذا الشهر.
+    </div>
+    {% endif %}
+
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link {% if active_tab == 'teacher' %}active{% endif %}"
+                href="{% if admin_entry %}{{ url_for('followup_surveys.teacher_form_admin', teacher_id=teacher.id, year=period_year, month=period_month, tab='teacher') }}{% else %}{{ url_for('followup_surveys.teacher_form', year=period_year, month=period_month, tab='teacher') }}{% endif %}">
+                <i class="bi bi-person-workspace"></i> استبيان المعلم (١٠)
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if active_tab == 'family' %}active{% endif %}"
+                href="{% if admin_entry %}{{ url_for('followup_surveys.teacher_form_admin', teacher_id=teacher.id, year=period_year, month=period_month, tab='family') }}{% else %}{{ url_for('followup_surveys.teacher_form', year=period_year, month=period_month, tab='family') }}{% endif %}">
+                <i class="bi bi-house-heart"></i> استبيان الأسرة (١٩ × {{ family_entries|length }} طالب)
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if active_tab == 'student_program' %}active{% endif %}"
+                href="{% if admin_entry %}{{ url_for('followup_surveys.teacher_form_admin', teacher_id=teacher.id, year=period_year, month=period_month, tab='student_program') }}{% else %}{{ url_for('followup_surveys.teacher_form', year=period_year, month=period_month, tab='student_program') }}{% endif %}">
+                <i class="bi bi-journal-check"></i> البرنامج التربوي ({{ program_total_questions }} × {{ student_program_entries|length }} طالب)
+            </a>
+        </li>
+    </ul>
+
+    {% if active_tab == 'teacher' %}
+    <div class="alert alert-light border mb-3">
+        <strong>تبويب ١:</strong> استبيان المعلم (١٠ أسئلة) — كالنموذج المطبوع «مسؤولي المتابعة — إدارة الحي».
+        <strong>تبويب ٢:</strong> استبيان الأسرة (١٩ سؤال لكل طالب) — «مسؤول المتابعة من خلال مسؤولي المجموعات».
+    </div>
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-3">
+                <div class="card-header">استبيان شهري للمعلم حول لقاءات التلاميذ (مسؤولي المتابعة — إدارة الحي)</div>
+                <div class="card-body">
+                    <p class="mb-3"><strong>مقياس التقييم:</strong>
+                        {% for code, label in frequency_choices %}
+                        <span class="badge bg-light text-dark ms-1">{{ label }}</span>
+                        {% endfor %}
+                    </p>
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="year" value="{{ period_year }}">
+                        <input type="hidden" name="month" value="{{ period_month }}">
+
+                        {{ frequency_rating("attendance_punctuality",
+                            "١. هل تلتزم بحضور المواعيد الأسبوعية في وقتها؟",
+                            frequency_choices, survey.attendance_punctuality if survey else none) }}
+                        {{ frequency_rating("lesson_preparation",
+                            "٢. هل تقوم بتحضير المادة الدراسية بشكل جيد قبل اللقاء؟",
+                            frequency_choices, survey.lesson_preparation if survey else none) }}
+
+                        <div class="mb-3">
+                            <label class="form-label">٣. ما هي أهم العقبات التي تحول دون تحقيق تلك الفائدة من خلال تجربتك؟</label>
+                            <textarea name="main_obstacles" class="form-control" rows="3">{{ survey.main_obstacles if survey else '' }}</textarea>
+                        </div>
+                        {{ frequency_rating("student_punctuality",
+                            "٤. ما هو تقييمك لحضور تلاميذك الدروس في الوقت المحدد؟",
+                            frequency_choices, survey.student_punctuality if survey else none) }}
+                        <div class="mb-3">
+                            <label class="form-label">٥. ما هي نسبة تلاميذك الذين يقومون بتحضير الدرس بالشكل المطلوب؟</label>
+                            <input type="text" name="student_preparation_percentage" class="form-control"
+                                value="{{ survey.student_preparation_percentage if survey else '' }}">
+                        </div>
+                        {{ frequency_rating("student_comprehension",
+                            "٦. ما هو تقييمك لمدى استيعاب تلاميذك لمحتوى المادة الدراسية؟",
+                            frequency_choices, survey.student_comprehension if survey else none) }}
+                        <div class="mb-3">
+                            <label class="form-label">٧. هل لديك ملاحظات تجاه مجموعة أو شخصية من تلاميذك؟ اكتبها باختصار</label>
+                            <textarea name="student_notes" class="form-control" rows="3">{{ survey.student_notes if survey else '' }}</textarea>
+                        </div>
+                        {{ frequency_rating("family_role_rating",
+                            "٨. كيف هو تقييمك لدور الأسرة في أداء تلاميذك؟",
+                            frequency_choices, survey.family_role_rating if survey else none) }}
+                        <div class="mb-3">
+                            <label class="form-label">٩. ما هي رسالتك للآباء والأمهات؟</label>
+                            <textarea name="family_role_message" class="form-control" rows="4">{{ survey.family_role_message if survey else '' }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">١٠. ما هي اقتراحاتك لتحسين هذه الجلسات الأسبوعية؟</label>
+                            <textarea name="session_suggestions" class="form-control" rows="3">{{ survey.session_suggestions if survey else '' }}</textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-save"></i> حفظ استبيان المعلم</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            {{ survey_checklist('أسئلة استبيان المعلم', teacher_checklist, teacher_field_map|length) }}
+        </div>
+    </div>
+
+    {% elif active_tab == 'family' %}
+    <div class="alert alert-info mb-4">
+        <strong>الأسرة — مسؤول المتابعة في الحي من خلال مسؤول المجموعات</strong>
+        — ١٩ سؤالاً لكل أسرة/طالب
+    </div>
+
+    {% if family_entries %}
+    <div class="accordion" id="familyAccordion">
+        {% for entry in family_entries %}
+        <div class="accordion-item mb-2">
+            <h2 class="accordion-header">
+                <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#fam{{ entry.student.id }}">
+                    {{ entry.student.full_name_ar or entry.student.full_name }}
+                    <span class="badge bg-{{ entry.status_class }} ms-2">{{ entry.status_text }}</span>
+                </button>
+            </h2>
+            <div id="fam{{ entry.student.id }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}"
+                data-bs-parent="#familyAccordion">
+                <div class="accordion-body">
+                    <form method="POST" action="{{ url_for('followup_surveys.family_form', student_id=entry.student.id, year=period_year, month=period_month) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="year" value="{{ period_year }}">
+                        <input type="hidden" name="month" value="{{ period_month }}">
+                        <input type="hidden" name="return_teacher_id" value="{{ return_teacher_id }}">
+                        {% with student=entry.student, survey=entry.survey, default_family_name=entry.default_family_name, parents=entry.parents, weekly_meetings_choices=weekly_meetings_choices, id_prefix='s' ~ entry.student.id ~ '_' %}
+                        {% include "followup_surveys/_family_form_fields.html" %}
+                        {% endwith %}
+                        <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> حفظ استبيان هذه الأسرة</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-warning">لا يوجد طلاب مرتبطون بهذا المعلم/المجموعة.</div>
+    {% endif %}
+
+    {% else %}
+    <div class="alert alert-info mb-4">
+        <strong>البرنامج التربوي — متابعة شهرية لكل طالب</strong>
+        — {{ program_total_questions }} سؤالاً لكل طالب
+    </div>
+
+    {% if student_program_entries %}
+    <div class="accordion" id="studentProgramAccordion">
+        {% for entry in student_program_entries %}
+        <div class="accordion-item mb-2">
+            <h2 class="accordion-header">
+                <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#prog{{ entry.student.id }}">
+                    {{ entry.student.full_name_ar or entry.student.full_name }}
+                    <span class="badge bg-{{ entry.status_class }} ms-2">{{ entry.status_text }}</span>
+                </button>
+            </h2>
+            <div id="prog{{ entry.student.id }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}"
+                data-bs-parent="#studentProgramAccordion">
+                <div class="accordion-body">
+                    <form method="POST" action="{{ url_for('followup_surveys.program_student_form', student_id=entry.student.id, year=period_year, month=period_month) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="year" value="{{ period_year }}">
+                        <input type="hidden" name="month" value="{{ period_month }}">
+                        <input type="hidden" name="return_teacher_id" value="{{ return_teacher_id }}">
+                        {% with survey=entry.survey, program_sections=program_sections, id_prefix='p' ~ entry.student.id ~ '_' %}
+                        {% include "followup_surveys/_program_form_fields.html" %}
+                        {% endwith %}
+                        <button type="submit" class="btn btn-info text-white"><i class="bi bi-save"></i> حفظ البرنامج التربوي لهذا الطالب</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-warning">لا يوجد طلاب مرتبطون بهذا المعلم/المجموعة.</div>
+    {% endif %}
+    {% endif %}
+
+    <a href="{{ url_for('followup_surveys.index', tab='teacher', year=period_year, month=period_month) }}"
+        class="btn btn-outline-secondary mt-4">← رجوع للقائمة</a>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}تسجيل الدخول - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="login-page d-flex align-items-center justify-content-center min-vh-100">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-5 col-lg-4">
+                <div class="card shadow-lg border-0">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <i class="bi bi-mortarboard-fill text-primary" style="font-size: 3rem;"></i>
+                            <h3 class="mt-2 fw-bold">{{ platform_name }}</h3>
+                            <p class="text-muted">{{ platform_tagline }}</p>
+                        </div>
+                        <form method="POST" action="{{ url_for('auth.login') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-3">
+                                <label class="form-label">اسم المستخدم</label>
+                                <input type="text" name="username" class="form-control form-control-lg" required autofocus>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">كلمة المرور</label>
+                                <input type="password" name="password" class="form-control form-control-lg" required>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" name="remember" class="form-check-input" id="remember">
+                                <label class="form-check-label" for="remember">تذكرني</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="bi bi-box-arrow-in-left"></i> دخول
+                            </button>
+                        </form>
+                        {% if show_demo_logins and demo_accounts %}
+                        <div class="mt-4 p-3 bg-light rounded small">
+                            <strong>حسابات تجريبية:</strong><br>
+                            {% for acc in demo_accounts %}
+                            {{ acc.username }} / {{ acc.password }}{% if acc.role %} <span class="text-muted">({{ acc.role }})</span>{% endif %}<br>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

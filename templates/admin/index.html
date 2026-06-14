@@ -1,0 +1,729 @@
+{% extends "base.html" %}
+{% block title %}إعدادات النظام - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-gear-wide-connected"></i> مركز إعدادات المنصة</h2>
+            <p class="text-muted mb-0">كل القوائم والحدود والمعايير قابلة للتعديل دون تعديل الكود</p>
+        </div>
+        {% if current_user.is_platform_admin and schools %}
+        <form method="POST" action="{{ url_for('admin.select_school') }}" class="d-flex gap-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <select name="school_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                {% for s in schools %}
+                <option value="{{ s.id }}" {% if active_school_id == s.id %}selected{% endif %}>{{ s.name_ar }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        {% endif %}
+    </div>
+
+    <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-general">عام</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-kpi">مؤشرات KPI</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-daily">محاسبة يومية</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-monthly">محاسبة شهرية</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-attendance">الحضور</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-ui">تسميات الواجهة</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-options">خيارات النظام</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-advanced">إعدادات متقدمة</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-registration">تسجيل الطلاب</button></li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="tab-general">
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">الهوية والدرجات</div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('admin.save_settings') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="mb-2"><label class="form-label">اسم المنصة</label>
+                                    <input name="platform_name_ar" class="form-control" value="{{ platform_name }}"></div>
+                                <div class="mb-2"><label class="form-label">الشعار</label>
+                                    <input name="platform_tagline_ar" class="form-control" value="{{ platform_tagline }}"></div>
+                                <hr>
+                                <h6 class="text-primary mb-2">الهيكل التنظيمي (قابل للتخصيص)</h6>
+                                <p class="text-muted small">إذا لم تكن المنصة لوزارة، غيّر الأسماء — مثل: الإدارة المركزية، المؤسسة، الهيئة…</p>
+                                <div class="mb-2">
+                                    <label class="form-label">اسم الجهة المركزية</label>
+                                    <input name="org_central_name_ar" class="form-control" value="{{ org_central_name }}"
+                                        placeholder="الوزارة / الإدارة المركزية / المؤسسة">
+                                    <div class="form-text">يُستخدم في «إدارة {{ org_central_name }}»</div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">تسمية دور المسؤول المركزي</label>
+                                    <input name="org_central_admin_role_ar" class="form-control" value="{{ org_central_admin_role }}"
+                                        placeholder="مسؤول الوزارة / مسؤول الإدارة / مدير المنظمة">
+                                    <div class="form-text">بديل «مسؤول الوزارة» — يظهر في القوائم والحسابات</div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">عنوان لوحة المسؤول المركزي</label>
+                                    <input name="org_central_dashboard_title_ar" class="form-control" value="{{ org_central_dashboard_title }}"
+                                        placeholder="لوحة تحكم الإدارة المركزية">
+                                </div>
+                                <hr>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-3"><label class="small">حد A</label><input name="grade_a_min" type="number" class="form-control form-control-sm" value="{{ grade_a_min }}"></div>
+                                    <div class="col-3"><label class="small">حد B</label><input name="grade_b_min" type="number" class="form-control form-control-sm" value="{{ grade_b_min }}"></div>
+                                    <div class="col-3"><label class="small">حد C</label><input name="grade_c_min" type="number" class="form-control form-control-sm" value="{{ grade_c_min }}"></div>
+                                    <div class="col-3"><label class="small">حد D</label><input name="grade_d_min" type="number" class="form-control form-control-sm" value="{{ grade_d_min }}"></div>
+                                </div>
+                        <div class="mb-2"><label>سعة الفصل الافتراضية</label>
+                            <input name="default_class_capacity" type="number" class="form-control" value="{{ default_class_capacity }}"></div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-4"><label class="small">درجة الاختبار الكاملة</label>
+                                <input name="default_exam_total_marks" type="number" class="form-control form-control-sm" value="{{ default_exam_total_marks }}"></div>
+                            <div class="col-4"><label class="small">درجة النجاح</label>
+                                <input name="default_exam_passing_marks" type="number" class="form-control form-control-sm" value="{{ default_exam_passing_marks }}"></div>
+                            <div class="col-4"><label class="small">مدة الاختبار (د)</label>
+                                <input name="default_exam_duration" type="number" class="form-control form-control-sm" value="{{ default_exam_duration }}"></div>
+                        </div>
+                        <div class="mb-2"><label class="small">درجة إنجاز قراءة الدرس (KPI)</label>
+                            <input name="reading_lesson_score" type="number" class="form-control form-control-sm" value="{{ reading_lesson_score }}"></div>
+                                <div class="form-check mb-2">
+                                    <input type="checkbox" name="show_demo_logins" class="form-check-input" id="demoLogins"
+                                        {% if show_demo_logins %}checked{% endif %}>
+                                    <label class="form-check-label" for="demoLogins">عرض حسابات تجريبية في صفحة الدخول</label>
+                                </div>
+                                <div class="mb-3"><label class="small">كلمة مرور الحسابات التجريبية</label>
+                                    <input name="demo_login_password" type="text" class="form-control form-control-sm" value="{{ demo_login_password }}"></div>
+                                <button class="btn btn-primary">حفظ</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">حدود الأداء والتحليلات</div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('admin.save_settings') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="platform_name_ar" value="{{ platform_name }}">
+                                <input type="hidden" name="platform_tagline_ar" value="{{ platform_tagline }}">
+                                <input type="hidden" name="grade_a_min" value="{{ grade_a_min }}">
+                                <input type="hidden" name="grade_b_min" value="{{ grade_b_min }}">
+                                <input type="hidden" name="grade_c_min" value="{{ grade_c_min }}">
+                                <input type="hidden" name="grade_d_min" value="{{ grade_d_min }}">
+                                <input type="hidden" name="default_class_capacity" value="{{ default_class_capacity }}">
+                                <div class="row g-2 mb-2">
+                                    <div class="col-6"><label class="small">أخضر من %</label>
+                                        <input name="perf_green_min" type="number" class="form-control" value="{{ perf_green_min }}"></div>
+                                    <div class="col-6"><label class="small">أصفر من %</label>
+                                        <input name="perf_yellow_min" type="number" class="form-control" value="{{ perf_yellow_min }}"></div>
+                                    <div class="col-6"><label class="small">قوة شهرية (1-5) ≥</label>
+                                        <input name="monthly_strength_min" type="number" min="1" max="5" class="form-control" value="{{ monthly_strength_min }}"></div>
+                                    <div class="col-6"><label class="small">ضعف شهري (1-5) ≤</label>
+                                        <input name="monthly_weakness_max" type="number" min="1" max="5" class="form-control" value="{{ monthly_weakness_max }}"></div>
+                                    <div class="col-4"><label class="small">تسمية أخضر</label>
+                                        <input name="perf_label_success" class="form-control" value="{{ perf_label_success }}"></div>
+                                    <div class="col-4"><label class="small">تسمية أصفر</label>
+                                        <input name="perf_label_warning" class="form-control" value="{{ perf_label_warning }}"></div>
+                                    <div class="col-4"><label class="small">تسمية أحمر</label>
+                                        <input name="perf_label_danger" class="form-control" value="{{ perf_label_danger }}"></div>
+                                </div>
+                                <p class="text-muted small">تُستخدم في لوحة المدرسة والتقارير الشهرية لتحديد الألوان والتسميات ونقاط القوة/الضعف.</p>
+                                <button class="btn btn-primary">حفظ حدود الأداء</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-kpi">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <span>مؤشرات الأداء (KPI)</span>
+                    <a href="{{ url_for('kpi.manage') }}" class="btn btn-sm btn-outline-primary">إدارة متقدمة</a>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>المؤشر</th><th>الرمز</th><th>الوزن</th><th>المصدر</th><th></th></tr></thead>
+                        <tbody>
+                            {% for k in kpis %}
+                            <tr>
+                                <form method="POST" action="{{ url_for('admin.edit_kpi', kpi_id=k.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <td><input name="name_ar" class="form-control form-control-sm" value="{{ k.name_ar }}"></td>
+                                    <td><code>{{ k.code }}</code></td>
+                                    <td><input name="weight" type="number" step="0.1" class="form-control form-control-sm" value="{{ k.weight }}" style="width:70px"></td>
+                                    <td class="small text-muted">{{ get_kpi_source_description(k.code) }}</td>
+                                    <td><button class="btn btn-sm btn-outline-primary">حفظ</button></td>
+                                </form>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-daily">
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card">
+                        <div class="card-header">معايير المحاسبة اليومية</div>
+                        <div class="card-body">
+                            {% for cat, items in criteria.items() %}
+                            <h6 class="text-primary">{{ criterion_categories.get(cat, cat) }}</h6>
+                            <ul class="list-group list-group-flush mb-3">
+                                {% for c in items %}
+                                <li class="list-group-item">
+                                    <div class="row g-2 align-items-center">
+                                        <form method="POST" action="{{ url_for('admin.edit_criterion', criterion_id=c.id) }}" class="row g-2 col">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <div class="col-md-4"><input name="name_ar" class="form-control form-control-sm" value="{{ c.name_ar }}"></div>
+                                            <div class="col-md-3">
+                                                <select name="kpi_source" class="form-select form-select-sm">
+                                                    {% for code, label in kpi_sources %}
+                                                    <option value="{{ code }}" {% if c.kpi_source == code %}selected{% endif %}>{{ label }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2"><input name="order" type="number" class="form-control form-control-sm" value="{{ c.order }}"></div>
+                                            <div class="col-md-3"><button class="btn btn-sm btn-outline-primary">حفظ</button></div>
+                                        </form>
+                                        <form method="POST" action="{{ url_for('admin.toggle_criterion', criterion_id=c.id) }}" class="col-auto">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button class="btn btn-sm btn-outline-secondary">تبديل</button>
+                                        </form>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% endfor %}
+                            <form method="POST" action="{{ url_for('admin.add_criterion') }}" class="row g-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="evaluation_type" value="daily">
+                                <div class="col-md-3"><select name="category" class="form-select form-select-sm">
+                                    {% for code, label in criterion_categories.items() %}
+                                    <option value="{{ code }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select></div>
+                                <div class="col-md-2"><input name="code" class="form-control form-control-sm" placeholder="رمز" required></div>
+                                <div class="col-md-3"><input name="name_ar" class="form-control form-control-sm" placeholder="الاسم" required></div>
+                                <div class="col-md-3"><select name="kpi_source" class="form-select form-select-sm">
+                                    {% for code, label in kpi_sources %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+                                </select></div>
+                                <div class="col-md-1"><button class="btn btn-sm btn-primary w-100">+</button></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="card">
+                        <div class="card-header">مستويات التقييم اليومي</div>
+                        <div class="card-body">
+                            {% for r in rating_levels %}
+                            <form method="POST" action="{{ url_for('admin.edit_rating', rating_id=r.id) }}" class="row g-2 align-items-center border-bottom py-2 mb-1">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="col-2"><code>{{ r.code }}</code></div>
+                                <div class="col-4"><input name="name_ar" class="form-control form-control-sm" value="{{ r.name_ar }}"></div>
+                                <div class="col-2"><input name="score" type="number" class="form-control form-control-sm" value="{{ r.score|int }}"></div>
+                                <div class="col-2"><input name="order" type="number" class="form-control form-control-sm" value="{{ r.order }}"></div>
+                                <div class="col-2 d-flex gap-1">
+                                    <button class="btn btn-sm btn-outline-primary">حفظ</button>
+                                    <button type="submit" formaction="{{ url_for('admin.toggle_rating', rating_id=r.id) }}" class="btn btn-sm btn-outline-secondary" title="تبديل">
+                                        {% if r.is_active %}إيقاف{% else %}تفعيل{% endif %}
+                                    </button>
+                                </div>
+                            </form>
+                            {% endfor %}
+                            <form method="POST" action="{{ url_for('admin.add_rating') }}" class="row g-2 mt-3">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="scale_type" value="qualitative">
+                                <div class="col-4"><input name="code" class="form-control form-control-sm" placeholder="رمز" required></div>
+                                <div class="col-4"><input name="name_ar" class="form-control form-control-sm" placeholder="الاسم" required></div>
+                                <div class="col-2"><input name="score" type="number" class="form-control form-control-sm" placeholder="%" required></div>
+                                <div class="col-2"><button class="btn btn-sm btn-primary">+</button></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-monthly">
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card">
+                        <div class="card-header">معايير التقييم الشهري (1–5)</div>
+                        <div class="card-body">
+                            {% for cat, items in monthly_criteria.items() %}
+                            <h6 class="text-primary">{{ monthly_categories.get(cat, cat) }}</h6>
+                            <ul class="list-group list-group-flush mb-3">
+                                {% for c in items %}
+                                <li class="list-group-item">
+                                    <div class="row g-2 align-items-center">
+                                        <form method="POST" action="{{ url_for('admin.edit_criterion', criterion_id=c.id) }}" class="row g-2 col">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <div class="col-md-5"><input name="name_ar" class="form-control form-control-sm" value="{{ c.name_ar }}"></div>
+                                            <div class="col-md-3"><input name="order" type="number" class="form-control form-control-sm" value="{{ c.order }}"></div>
+                                            <div class="col-md-4"><button class="btn btn-sm btn-outline-primary">حفظ</button></div>
+                                        </form>
+                                        <form method="POST" action="{{ url_for('admin.toggle_criterion', criterion_id=c.id) }}" class="col-auto">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button class="btn btn-sm btn-outline-secondary">تبديل</button>
+                                        </form>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% endfor %}
+                            <form method="POST" action="{{ url_for('admin.add_criterion') }}" class="row g-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="evaluation_type" value="monthly">
+                                <div class="col-md-3"><select name="category" class="form-select form-select-sm">
+                                    {% for code, label in monthly_categories.items() %}
+                                    <option value="{{ code }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select></div>
+                                <div class="col-md-2"><input name="code" class="form-control form-control-sm" placeholder="رمز" required></div>
+                                <div class="col-md-5"><input name="name_ar" class="form-control form-control-sm" placeholder="الاسم" required></div>
+                                <div class="col-md-2"><button class="btn btn-sm btn-primary w-100">+</button></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="card">
+                        <div class="card-header">مقياس 1–5</div>
+                        <div class="card-body">
+                            {% for r in monthly_rating_levels|sort(attribute='code', reverse=true) %}
+                            <form method="POST" action="{{ url_for('admin.edit_rating', rating_id=r.id) }}" class="row g-2 align-items-center border-bottom py-2 mb-1">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="col-2"><span class="badge bg-primary">{{ r.code }}</span></div>
+                                <div class="col-4"><input name="name_ar" class="form-control form-control-sm" value="{{ r.name_ar }}"></div>
+                                <div class="col-2"><input name="score" type="number" class="form-control form-control-sm" value="{{ r.score|int }}"></div>
+                                <div class="col-2"><input name="order" type="number" class="form-control form-control-sm" value="{{ r.order }}"></div>
+                                <div class="col-2 d-flex gap-1">
+                                    <button class="btn btn-sm btn-outline-primary">حفظ</button>
+                                    <button type="submit" formaction="{{ url_for('admin.toggle_rating', rating_id=r.id) }}" class="btn btn-sm btn-outline-secondary">
+                                        {% if r.is_active %}إيقاف{% else %}تفعيل{% endif %}
+                                    </button>
+                                </div>
+                            </form>
+                            {% endfor %}
+                            <form method="POST" action="{{ url_for('admin.add_rating') }}" class="row g-2 mt-3">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="scale_type" value="numeric_5">
+                                <div class="col-3"><input name="code" class="form-control form-control-sm" placeholder="1-5" required></div>
+                                <div class="col-5"><input name="name_ar" class="form-control form-control-sm" placeholder="الوصف" required></div>
+                                <div class="col-2"><input name="score" type="number" class="form-control form-control-sm" placeholder="%" required></div>
+                                <div class="col-2"><button class="btn btn-sm btn-primary">+</button></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-attendance">
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-clock"></i> إعدادات وقت الحضور</div>
+                <div class="card-body">
+                    <p class="text-muted small">حدّد أوقات اللقاء ومتى يُعتبر الطالب حاضراً أو متأخراً أو غائباً. يمكن تخصيص نافذة زمنية لكل حالة أدناه.</p>
+                    <form method="POST" action="{{ url_for('admin.save_attendance_time') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="attendance_time_enabled" id="attTimeEnabled"
+                                        {% if attendance_time.enabled %}checked{% endif %}>
+                                    <label class="form-check-label" for="attTimeEnabled">تفعيل قواعد الوقت</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="attendance_record_time" id="attRecordTime"
+                                        {% if attendance_time.record_time %}checked{% endif %}>
+                                    <label class="form-check-label" for="attRecordTime">تسجيل وقت الحضور</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="attendance_auto_suggest" id="attAutoSuggest"
+                                        {% if attendance_time.auto_suggest %}checked{% endif %}>
+                                    <label class="form-check-label" for="attAutoSuggest">اقتراح الحالة تلقائياً من الوقت</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label small">بداية اللقاء</label>
+                                <input type="time" name="attendance_session_start" class="form-control form-control-sm"
+                                    value="{{ attendance_time.session_start }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">حاضر حتى</label>
+                                <input type="time" name="attendance_on_time_until" class="form-control form-control-sm"
+                                    value="{{ attendance_time.on_time_until }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">متأخر حتى</label>
+                                <input type="time" name="attendance_late_until" class="form-control form-control-sm"
+                                    value="{{ attendance_time.late_until }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">غائب بعد</label>
+                                <input type="time" name="attendance_absent_after" class="form-control form-control-sm"
+                                    value="{{ attendance_time.absent_after }}">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3">حفظ إعدادات الوقت</button>
+                    </form>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">حالات الحضور ونوافذها الزمنية</div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>الحالة</th>
+                                <th>من</th>
+                                <th>إلى</th>
+                                <th>{{ ui_labels.counts_as_present }}</th>
+                                <th>إشعار</th>
+                                <th>الشارة</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in statuses %}
+                            <tr>
+                                <form method="POST" action="{{ url_for('admin.edit_attendance_status', status_id=s.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <td><input name="name_ar" class="form-control form-control-sm" value="{{ s.name_ar }}"> <code>{{ s.code }}</code></td>
+                                    <td><input type="time" name="time_from" class="form-control form-control-sm" value="{{ s.time_from or '' }}" style="width:110px"></td>
+                                    <td><input type="time" name="time_to" class="form-control form-control-sm" value="{{ s.time_to or '' }}" style="width:110px"></td>
+                                    <td class="text-center"><input type="checkbox" name="counts_as_present" class="form-check-input" {% if s.counts_as_present %}checked{% endif %}></td>
+                                    <td class="text-center"><input type="checkbox" name="notify_parent" class="form-check-input" {% if s.notify_parent %}checked{% endif %}></td>
+                                    <td><input name="badge_class" class="form-control form-control-sm" value="{{ s.badge_class }}" style="width:90px"></td>
+                                    <td><button class="btn btn-sm btn-outline-primary">حفظ</button></td>
+                                </form>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <form method="POST" action="{{ url_for('admin.add_attendance_status') }}" class="row g-2">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="col-2"><input name="code" class="form-control form-control-sm" placeholder="رمز" required></div>
+                        <div class="col-2"><input name="name_ar" class="form-control form-control-sm" placeholder="الاسم" required></div>
+                        <div class="col-2"><input type="time" name="time_from" class="form-control form-control-sm" placeholder="من"></div>
+                        <div class="col-2"><input type="time" name="time_to" class="form-control form-control-sm" placeholder="إلى"></div>
+                        <div class="col-1 form-check"><input type="checkbox" name="counts_as_present" class="form-check-input" id="cp"><label for="cp" class="form-check-label small">حاضر</label></div>
+                        <div class="col-1 form-check"><input type="checkbox" name="notify_parent" class="form-check-input" id="np"><label for="np" class="form-check-label small">إشعار</label></div>
+                        <div class="col-1"><input name="badge_class" class="form-control form-control-sm" value="secondary"></div>
+                        <div class="col-1"><button class="btn btn-sm btn-primary">+</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-ui">
+            <div class="card">
+                <div class="card-header">تسميات الواجهة الديناميكية</div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.save_settings') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="platform_name_ar" value="{{ platform_name }}">
+                        <input type="hidden" name="platform_tagline_ar" value="{{ platform_tagline }}">
+                        <input type="hidden" name="grade_a_min" value="{{ grade_a_min }}">
+                        <input type="hidden" name="grade_b_min" value="{{ grade_b_min }}">
+                        <input type="hidden" name="grade_c_min" value="{{ grade_c_min }}">
+                        <input type="hidden" name="grade_d_min" value="{{ grade_d_min }}">
+                        <input type="hidden" name="default_class_capacity" value="{{ default_class_capacity }}">
+                        <input type="hidden" name="default_exam_total_marks" value="{{ default_exam_total_marks }}">
+                        <div class="row g-2">
+                            {% for key, label in ui_label_schema %}
+                            <div class="col-md-4 mb-2">
+                                <label class="small">{{ label }}</label>
+                                <input name="ui_{{ key }}" class="form-control form-control-sm" value="{{ ui_labels[key] }}">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button class="btn btn-primary mt-3">حفظ التسميات</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-options">
+            <div class="card">
+                <div class="card-body">
+                    <div class="accordion" id="optionsAccordion">
+                        {% for key, label in config_section_labels.items() %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#opt-{{ key }}">
+                                    {{ label }}
+                                </button>
+                            </h2>
+                            <div id="opt-{{ key }}" class="accordion-collapse collapse" data-bs-parent="#optionsAccordion">
+                                <div class="accordion-body">
+                                    <ul class="list-group list-group-flush mb-2">
+                                        {% for opt in config_sections[key] %}
+                                        <li class="list-group-item py-2">
+                                            <form method="POST" action="{{ url_for('admin.edit_config_option', option_id=opt.id) }}" class="row g-2 align-items-center">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <input type="hidden" name="anchor" value="tab-options">
+                                                <div class="col-md-2"><code>{{ opt.code }}</code></div>
+                                                <div class="col-md-4"><input name="name_ar" class="form-control form-control-sm" value="{{ opt.name_ar }}"></div>
+                                                <div class="col-md-2"><input name="order" type="number" class="form-control form-control-sm" value="{{ opt.order }}" placeholder="ترتيب"></div>
+                                                {% if key == 'behavior_type' %}
+                                                <div class="col-md-1"><input name="score" type="number" class="form-control form-control-sm" placeholder="درجة"
+                                                    value="{% if opt.metadata_json %}{{ (opt.metadata_json|fromjson).score|default('') }}{% endif %}"></div>
+                                                {% else %}
+                                                <div class="col-md-1"></div>
+                                                {% endif %}
+                                                <div class="col-md-3 d-flex gap-1 justify-content-end">
+                                                    <button class="btn btn-sm btn-outline-primary">حفظ</button>
+                                                    <button type="submit" formaction="{{ url_for('admin.toggle_config_option', option_id=opt.id) }}" class="btn btn-sm btn-outline-secondary">
+                                                        {% if opt.is_active %}إيقاف{% else %}تفعيل{% endif %}
+                                                    </button>
+                                                </div>
+                                                {% if not opt.is_active %}<div class="col-12"><span class="badge bg-secondary">{{ ui_labels.inactive }}</span></div>{% endif %}
+                                            </form>
+                                        </li>
+                                        {% else %}
+                                        <li class="list-group-item text-muted small">لا توجد خيارات بعد — أضف أول خيار أدناه.</li>
+                                        {% endfor %}
+                                    </ul>
+                                    <form method="POST" action="{{ url_for('admin.add_config_option') }}" class="row g-2">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="option_type" value="{{ key }}">
+                                        <div class="col-3"><input name="code" class="form-control form-control-sm" placeholder="رمز" required></div>
+                                        <div class="col-5"><input name="name_ar" class="form-control form-control-sm" placeholder="الاسم" required></div>
+                                        {% if key == 'behavior_type' %}
+                                        <div class="col-2"><input name="score" type="number" class="form-control form-control-sm" placeholder="درجة"></div>
+                                        {% else %}
+                                        <div class="col-2"></div>
+                                        {% endif %}
+                                        <div class="col-2"><button class="btn btn-sm btn-primary w-100">+</button></div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-advanced">
+            <p class="text-muted small mb-3">
+                تعديل جميع إعدادات المنصة حسب التصنيف — تقارير، إشعارات، توصيات، KPI، وغيرها.
+                الإعدادات المعروضة في تبويب «عام» و«تسميات الواجهة» هي نفس السجلات هنا.
+            </p>
+            <form method="POST" action="{{ url_for('admin.save_advanced_settings') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="accordion mb-4" id="advancedSettingsAccordion">
+                    {% for cat in setting_categories %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#adv-{{ cat }}">
+                                {{ setting_category_labels.get(cat, cat) }}
+                                <span class="badge bg-secondary ms-2">{{ settings_grouped[cat]|length }}</span>
+                            </button>
+                        </h2>
+                        <div id="adv-{{ cat }}" class="accordion-collapse collapse" data-bs-parent="#advancedSettingsAccordion">
+                            <div class="accordion-body">
+                                <table class="table table-sm align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:18%">المفتاح</th>
+                                            <th style="width:22%">الوصف</th>
+                                            <th>القيمة</th>
+                                            <th style="width:8%">النوع</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for s in settings_grouped[cat] %}
+                                        <tr>
+                                            <td><code class="small">{{ s.key }}</code></td>
+                                            <td class="small text-muted">{{ s.label_ar or '—' }}</td>
+                                            <td>
+                                                {% if s.value_type == 'json' or (s.value and s.value|length > 80) %}
+                                                <textarea name="ps_{{ s.id }}" class="form-control form-control-sm" rows="2">{{ s.value or '' }}</textarea>
+                                                {% elif s.value_type == 'bool' %}
+                                                <select name="ps_{{ s.id }}" class="form-select form-select-sm">
+                                                    <option value="true" {% if s.value in ('true','1','yes') %}selected{% endif %}>نعم</option>
+                                                    <option value="false" {% if s.value not in ('true','1','yes') %}selected{% endif %}>لا</option>
+                                                </select>
+                                                {% else %}
+                                                <input name="ps_{{ s.id }}" class="form-control form-control-sm" value="{{ s.value or '' }}">
+                                                {% endif %}
+                                            </td>
+                                            <td><span class="badge bg-light text-dark">{{ s.value_type or 'string' }}</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="submit" class="btn btn-primary">حفظ جميع الإعدادات المتقدمة</button>
+            </form>
+
+            <div class="card mt-4">
+                <div class="card-header">إضافة إعداد جديد</div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.create_platform_setting') }}" class="row g-2">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="col-md-3">
+                            <label class="form-label small">المفتاح (إنجليزي)</label>
+                            <input name="key" class="form-control form-control-sm" placeholder="notify_custom_title" required pattern="[a-z0-9_]+">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">الوصف بالعربية</label>
+                            <input name="label_ar" class="form-control form-control-sm" placeholder="عنوان إشعار مخصص">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">التصنيف</label>
+                            <select name="category" class="form-select form-select-sm">
+                                {% for code, label in setting_category_labels.items() %}
+                                <option value="{{ code }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label small">النوع</label>
+                            <select name="value_type" class="form-select form-select-sm">
+                                <option value="string">نص</option>
+                                <option value="int">رقم</option>
+                                <option value="bool">نعم/لا</option>
+                                <option value="json">JSON</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">القيمة</label>
+                            <input name="value" class="form-control form-control-sm" placeholder="القيمة الافتراضية">
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <button class="btn btn-sm btn-success w-100">+</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-registration">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>حقول تسجيل الطلاب الديناميكية</span>
+                    <a href="{{ url_for('evaluations.register') }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                        معاينة النموذج
+                    </a>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">
+                        اختر نموذجاً مختصراً (الحقول الضرورية فقط) أو كاملاً، أو خصّص كل حقل (ظاهر / مطلوب).
+                        المدرسة والمستوى والفصل والاسم بالعربية مطلوبة دائماً.
+                    </p>
+                    <form method="POST" action="{{ url_for('admin.save_registration_fields') }}" id="registrationFieldsForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">نمط النموذج</label>
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="registration_mode" id="modeConcise"
+                                        value="concise" {% if registration_mode == 'concise' %}checked{% endif %}>
+                                    <label class="form-check-label" for="modeConcise">
+                                        <strong>مختصر</strong> — الاسم، الجنس، المستوى، الفصل، المسؤول (اختياري)
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="registration_mode" id="modeFull"
+                                        value="full" {% if registration_mode == 'full' %}checked{% endif %}>
+                                    <label class="form-check-label" for="modeFull">
+                                        <strong>كامل</strong> — جميع الحقول بما فيها الموقع وحساب الدخول
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="registration_mode" id="modeCustom"
+                                        value="custom" {% if registration_mode == 'custom' %}checked{% endif %}>
+                                    <label class="form-check-label" for="modeCustom">
+                                        <strong>مخصص</strong> — تحكم يدوي بكل حقل
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="customFieldsTable" class="{% if registration_mode != 'custom' %}d-none{% endif %}">
+                            <table class="table table-sm table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>الحقل</th>
+                                        <th class="text-center">ظاهر</th>
+                                        <th class="text-center">مطلوب</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for field in registration_fields %}
+                                    <tr>
+                                        <td>{{ field.label }}</td>
+                                        <td class="text-center">
+                                            <input type="checkbox" name="reg_{{ field.key }}_visible" class="form-check-input reg-visible"
+                                                {% if field.visible %}checked{% endif %}
+                                                {% if field.key == 'full_name_ar' %}disabled checked{% endif %}>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="checkbox" name="reg_{{ field.key }}_required" class="form-check-input reg-required"
+                                                {% if field.required %}checked{% endif %}
+                                                {% if field.key == 'full_name_ar' %}disabled checked{% endif %}>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <input type="hidden" name="reg_full_name_ar_visible" value="on">
+                            <input type="hidden" name="reg_full_name_ar_required" value="on">
+                        </div>
+                        <button type="submit" class="btn btn-primary">حفظ إعدادات التسجيل</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const form = document.getElementById('registrationFieldsForm');
+    if (!form) return;
+    const customTable = document.getElementById('customFieldsTable');
+    const modes = form.querySelectorAll('input[name="registration_mode"]');
+    modes.forEach(r => r.addEventListener('change', () => {
+        customTable.classList.toggle('d-none', form.querySelector('input[name="registration_mode"]:checked').value !== 'custom');
+    }));
+    customTable.querySelectorAll('.reg-visible').forEach(vis => {
+        vis.addEventListener('change', () => {
+            const row = vis.closest('tr');
+            const req = row.querySelector('.reg-required');
+            if (!vis.checked && req && !req.disabled) {
+                req.checked = false;
+                req.disabled = true;
+            } else if (req && !req.disabled) {
+                req.disabled = false;
+            }
+        });
+        if (!vis.checked) {
+            const req = vis.closest('tr').querySelector('.reg-required');
+            if (req && !req.disabled) req.disabled = true;
+        }
+    });
+    if (window.location.hash) {
+        const tabBtn = document.querySelector(`[data-bs-target="${window.location.hash}"]`);
+        if (tabBtn) tabBtn.click();
+    }
+})();
+</script>
+{% endblock %}

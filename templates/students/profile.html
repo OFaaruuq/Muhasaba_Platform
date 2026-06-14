@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}{{ student.full_name_ar }} - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h2 class="mb-1">{{ student.full_name_ar or student.full_name }}</h2>
+            {% if student.is_active %}
+            <span class="badge bg-success">{{ ui_labels.active }}</span>
+        {% else %}
+            <span class="badge bg-secondary">{{ ui_labels.inactive }}</span>
+            {% endif %}
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            {% if can_self_edit %}
+            <a href="{{ url_for('students.self_edit', student_id=student.id) }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-pencil-square"></i> تعديل بياناتي
+            </a>
+            {% endif %}
+            {% if can_edit %}
+            <a href="{{ url_for('students.edit', student_id=student.id) }}" class="btn btn-warning btn-sm">
+                <i class="bi bi-pencil"></i> تعديل الملف
+            </a>
+            {% endif %}
+            {% if user_can_any('manage_followup_surveys', 'view_followup_surveys') %}
+            <a href="{{ url_for('followup_surveys.index', tab='family') }}" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-clipboard-data"></i> متابعة شهرية
+            </a>
+            {% endif %}
+            {% if can_manage %}
+            {% if student.is_active %}
+            <form method="POST" action="{{ url_for('students.deactivate', student_id=student.id) }}"
+                onsubmit="return confirm('تعطيل هذا الطالب؟')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-person-x"></i> تعطيل</button>
+            </form>
+            {% else %}
+            <form method="POST" action="{{ url_for('students.activate', student_id=student.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-success btn-sm"><i class="bi bi-person-check"></i> تفعيل</button>
+            </form>
+            {% endif %}
+            {% endif %}
+            <a href="{{ url_for('students.index') }}" class="btn btn-outline-secondary btn-sm">رجوع</a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">المعلومات الأساسية</div>
+                <div class="card-body">
+                    <p><strong>الرقم:</strong> {{ student.student_id }}</p>
+                    <p><strong>المستوى:</strong> {{ student.grade.name_ar if student.grade else '-' }}</p>
+                    <p><strong>المجموعة:</strong> {{ student.class_.name if student.class_ else '-' }}</p>
+                    <p><strong>المسؤول:</strong> {{ student.responsible_teacher.full_name_ar if student.responsible_teacher else '—' }}</p>
+                    <p><strong>الجنس:</strong> {{ get_gender_label(student.gender, student.school_id) }}</p>
+                    <p><strong>المعدل:</strong> {{ student.gpa }}</p>
+                    {% if student.phone %}<p><strong>الهاتف:</strong> {{ student.phone }}</p>{% endif %}
+                </div>
+            </div>
+            <div class="card mt-3">
+                <div class="card-header"><i class="bi bi-people"></i> أولياء الأمور</div>
+                <div class="card-body">
+                    {% if student.parents %}
+                    <ul class="list-group list-group-flush mb-3">
+                        {% for p in student.parents %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span>{{ p.full_name_ar or p.full_name }}
+                                {% if p.relationship_type %}
+                                <small class="text-muted">({{ relationship_labels.get(p.relationship_type, p.relationship_type) }})</small>
+                                {% endif %}
+                            </span>
+                            {% if current_user.is_teacher or current_user.is_school_manager or current_user.is_platform_admin %}
+                            <form method="POST" action="{{ url_for('students.unlink_parent', student_id=student.id, parent_id=p.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-sm btn-outline-danger">إلغاء</button>
+                            </form>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted small">لا يوجد أولياء أمور مرتبطون.</p>
+                    {% endif %}
+                    {% if current_user.is_teacher or current_user.is_school_manager or current_user.is_platform_admin %}
+                    <form method="POST" action="{{ url_for('students.link_parent', student_id=student.id) }}" class="row g-2">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="col-12">
+                            <select name="parent_id" class="form-select form-select-sm" required>
+                                <option value="">— اختر ولي أمر —</option>
+                                {% for p in parents_available %}
+                                {% if p not in student.parents %}
+                                <option value="{{ p.id }}">{{ p.full_name_ar or p.full_name }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-8">
+                            <select name="relationship_type" class="form-select form-select-sm">
+                                <option value="">نوع القرابة</option>
+                                {% for code, label in relationship_choices %}
+                                <option value="{{ code }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <button class="btn btn-sm btn-primary w-100">ربط</button>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card mt-3">
+                <div class="card-header"><i class="bi bi-geo-alt"></i> الموقع</div>
+                <div class="card-body">
+                    <p><strong>المنطقة:</strong> {{ student.region or '-' }}</p>
+                    <p><strong>الحي:</strong> {{ student.district or '-' }}</p>
+                    <p><strong>العنوان:</strong> {{ student.address or '-' }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between">
+                    <span>مؤشرات الأداء الديناميكية</span>
+                    <span class="badge bg-primary">{{ overall_kpi }}%</span>
+                </div>
+                <div class="card-body">
+                    {% for b in kpi_breakdown %}
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span>{{ b.kpi.name_ar }}</span>
+                            <span>{{ b.score }}%</span>
+                        </div>
+                        <div class="progress" style="height:6px">
+                            <div class="progress-bar" style="width:{{ b.score }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ b.detail.source }}</small>
+                    </div>
+                    {% endfor %}
+                    <a href="{{ url_for('reports.student_kpi_pdf', student_id=student.id) }}" class="btn btn-sm btn-outline-danger mt-2">
+                        <i class="bi bi-file-pdf"></i> تصدير PDF
+                    </a>
+                </div>
+            </div>
+            <div class="card mb-4">
+                <div class="card-header">تقييمات المحاسبة</div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead><tr><th>التاريخ</th><th>اليومي</th>{% for code, label in category_labels.items() %}<th>{{ label }}</th>{% endfor %}</tr></thead>
+                        <tbody>
+                            {% for ev in evaluations %}
+                            <tr>
+                                <td>{{ ev.date }}</td>
+                                <td>{{ ev.daily_score }}%</td>
+                                {% for code, field in daily_category_fields.items() %}
+                                <td>{% if ev[field] is not none %}{{ ev[field] }}%{% else %}—{% endif %}</td>
+                                {% endfor %}
+                            </tr>
+                            {% else %}<tr><td colspan="{{ 2 + daily_category_fields|length }}" class="text-muted">لا تقييمات</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card mb-4">
+                <div class="card-header">سجل الحضور الأخير</div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead><tr><th>التاريخ</th><th>الحالة</th></tr></thead>
+                        <tbody>
+                            {% for a in attendance %}
+                            <tr>
+                                <td>{{ a.date }}</td>
+                                <td>
+                                    {% set st = status_map.get(a.status) %}
+                                    {% if st %}
+                                    <span class="badge bg-{{ st.badge_class }}">{{ st.name_ar }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ a.status }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

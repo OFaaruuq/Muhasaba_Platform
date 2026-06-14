@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}تعديل مستخدم - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">تعديل: {{ user.username }}</h2>
+    <div class="card"><div class="card-body">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-md-6"><label class="form-label">الاسم</label><input name="full_name_ar" class="form-control" value="{{ user.full_name_ar or user.full_name }}" required></div>
+                <div class="col-md-6"><label class="form-label">البريد</label><input name="email" type="email" class="form-control" value="{{ user.email }}" required></div>
+                <div class="col-md-6"><label class="form-label">الهاتف</label><input name="phone" class="form-control" value="{{ user.phone or '' }}"></div>
+                <div class="col-md-6"><label class="form-label">الدور</label>
+                    <select name="role_id" class="form-select" required>
+                        {% for r in roles %}<option value="{{ r.id }}" {% if user.role_id == r.id %}selected{% endif %}>{{ r.name_ar }}</option>{% endfor %}
+                    </select>
+                </div>
+                {% if schools %}
+                <div class="col-md-6"><label class="form-label">المدرسة</label>
+                    <select name="school_id" class="form-select">
+                        <option value="">—</option>
+                        {% for s in schools %}<option value="{{ s.id }}" {% if user.school_id == s.id %}selected{% endif %}>{{ s.name_ar }}</option>{% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="col-md-6"><label class="form-label">كلمة مرور جديدة (اختياري)</label><input name="password" type="password" class="form-control"></div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-4">حفظ</button>
+        </form>
+    </div></div>
+</div>
+{% endblock %}

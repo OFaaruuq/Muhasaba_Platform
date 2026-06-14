@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "includes/subject_select.html" import subject_field, subject_create_modal, subject_scripts %}
+{% block title %}تسجيل معلم - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">تسجيل معلم جديد</h2>
+    <div class="card"><div class="card-body">
+        <form method="POST" id="createTeacherForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                {% if schools %}
+                <div class="col-md-6"><label class="form-label">المدرسة</label>
+                    <select name="school_id" id="schoolSelect" class="form-select" required>
+                        {% for s in schools %}
+                        <option value="{{ s.id }}" {% if school_id == s.id %}selected{% endif %}>{{ s.name_ar }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% else %}<input type="hidden" name="school_id" id="schoolSelect" value="{{ school_id }}">{% endif %}
+                <div class="col-md-6"><label class="form-label">الاسم</label><input name="full_name_ar" class="form-control" required></div>
+                <div class="col-md-4"><label class="form-label">الرقم الوظيفي</label><input name="employee_id" class="form-control" required></div>
+                <div class="col-md-4">{{ subject_field(school_id, subjects) }}</div>
+                <div class="col-md-4"><label class="form-label">الهاتف <span class="text-muted">(اختياري)</span></label><input name="phone" class="form-control"></div>
+                <div class="col-md-4"><label class="form-label">اسم المستخدم</label><input name="username" class="form-control" required></div>
+                <div class="col-md-4"><label class="form-label">كلمة المرور</label><input name="password" type="password" class="form-control" required></div>
+                <div class="col-md-4"><label class="form-label">البريد <span class="text-muted">(اختياري)</span></label><input name="email" type="email" class="form-control"></div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-4">تسجيل المعلم</button>
+        </form>
+    </div></div>
+</div>
+{{ subject_create_modal() }}
+{% endblock %}
+{% block scripts %}
+{{ subject_scripts() }}
+{% endblock %}

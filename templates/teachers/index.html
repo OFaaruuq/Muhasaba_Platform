@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}المعلمون - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <h2 class="mb-0"><i class="bi bi-person-workspace"></i> المعلمون</h2>
+        <a href="{{ url_for('teachers.create') }}" class="btn btn-primary">
+            <i class="bi bi-plus"></i> تسجيل معلم
+        </a>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body py-3">
+            <form method="GET" class="row g-2 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label small text-muted mb-0">بحث</label>
+                    <input type="search" name="q" class="form-control form-control-sm"
+                        placeholder="الاسم، الرقم الوظيفي، المادة" value="{{ search_q }}">
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" name="show_inactive" value="1"
+                            id="showInactive" {% if show_inactive %}checked{% endif %}
+                            onchange="this.form.submit()">
+                        <label class="form-check-label small" for="showInactive">عرض المعطّلين</label>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-search"></i> بحث
+                    </button>
+                </div>
+                {% if search_q %}
+                <div class="col-md-2">
+                    <a href="{{ url_for('teachers.index', show_inactive=1 if show_inactive else none) }}"
+                        class="btn btn-outline-secondary btn-sm w-100">مسح</a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>الرقم الوظيفي</th>
+                            <th>الاسم</th>
+                            <th>المادة</th>
+                            <th>المجموعة / الفصل</th>
+                            <th>المدرسة</th>
+                            <th>الحالة</th>
+                            <th class="text-end">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for teacher in teachers %}
+                        {% set summary = teacher_summaries.get(teacher.id, {}) %}
+                        <tr class="{% if not teacher.is_active %}table-secondary{% endif %}">
+                            <td>{{ teacher.employee_id }}</td>
+                            <td><strong>{{ teacher.full_name_ar or teacher.full_name }}</strong></td>
+                            <td>
+                                {% if summary.subjects %}
+                                {{ summary.subjects | join('، ') }}
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if summary.classes %}
+                                {% for class_name in summary.classes %}
+                                <span class="badge bg-light text-dark border me-1 mb-1">{{ class_name }}</span>
+                                {% endfor %}
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ teacher.school.name_ar if teacher.school else '—' }}</td>
+                            <td>
+                                {% if teacher.is_active %}
+                                <span class="badge bg-success">{{ ui_labels.active }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ ui_labels.inactive }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <a href="{{ url_for('teachers.detail', teacher_id=teacher.id) }}"
+                                    class="btn btn-sm btn-outline-primary" title="عرض">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ url_for('teachers.edit', teacher_id=teacher.id) }}"
+                                    class="btn btn-sm btn-outline-secondary" title="تعديل">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if teacher.is_active %}
+                                <form method="POST" action="{{ url_for('teachers.deactivate', teacher_id=teacher.id) }}"
+                                    class="d-inline" onsubmit="return confirm('تعطيل هذا المعلم؟ لن يتمكن من تسجيل الدخول.')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="تعطيل">
+                                        <i class="bi bi-person-x"></i>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="POST" action="{{ url_for('teachers.activate', teacher_id=teacher.id) }}"
+                                    class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-success" title="تفعيل">
+                                        <i class="bi bi-person-check"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">لا يوجد معلمون.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

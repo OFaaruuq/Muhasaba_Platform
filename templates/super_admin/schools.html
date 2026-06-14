@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}إدارة المدارس - المشرف الأعلى{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-building"></i> إدارة المدارس</h2>
+            <p class="text-muted mb-0">عرض وتعديل وتفعيل/تعطيل وحذف المدارس</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('super_admin.index') }}" class="btn btn-outline-secondary btn-sm">← لوحة المشرف</a>
+            <a href="{{ url_for('schools.index') }}" class="btn btn-outline-primary btn-sm">إدارة كاملة</a>
+            <a href="{{ url_for('schools.create') }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg"></i> مدرسة جديدة
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>المدرسة</th>
+                        <th>الرمز</th>
+                        <th>المنطقة</th>
+                        <th>الحالة</th>
+                        <th class="text-nowrap">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in schools %}
+                    {% set deletable = can_delete_school(s.id)[0] %}
+                    <tr class="{% if not s.is_active %}table-secondary{% endif %}">
+                        <td>
+                            <strong>{{ s.name_ar }}</strong>
+                            <br><small class="text-muted">{{ s.name }}</small>
+                        </td>
+                        <td><code>{{ s.code }}</code></td>
+                        <td>{{ s.region or '—' }}{% if s.district %} / {{ s.district }}{% endif %}</td>
+                        <td>
+                            {% if s.is_active %}
+                            <span class="badge bg-success">{{ ui_labels.active_feminine }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ ui_labels.inactive_feminine }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('schools.detail', school_id=s.id) }}"
+                                    class="btn btn-outline-primary" title="عرض"><i class="bi bi-eye"></i></a>
+                                <a href="{{ url_for('schools.edit_school', school_id=s.id) }}"
+                                    class="btn btn-outline-warning" title="تعديل"><i class="bi bi-pencil"></i></a>
+                                <form method="POST" action="{{ url_for('super_admin.toggle_school', school_id=s.id) }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button class="btn btn-outline-secondary" title="{% if s.is_active %}تعطيل{% else %}تفعيل{% endif %}">
+                                        {% if s.is_active %}<i class="bi bi-pause-circle"></i>{% else %}<i class="bi bi-play-circle"></i>{% endif %}
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ url_for('admin.provision_school', school_id=s.id) }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button class="btn btn-outline-success" title="تهيئة"><i class="bi bi-database-check"></i></button>
+                                </form>
+                                {% if deletable %}
+                                <button type="button" class="btn btn-outline-danger" title="حذف"
+                                    data-bs-toggle="modal" data-bs-target="#deleteSchool{{ s.id }}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">لا توجد مدارس.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% for s in schools %}
+{% if can_delete_school(s.id)[0] %}
+<div class="modal fade" id="deleteSchool{{ s.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('schools.delete_school', school_id=s.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger">حذف المدرسة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>حذف نهائي: <strong>{{ s.name_ar }}</strong></p>
+                    <label class="form-label">اكتب الرمز <code>{{ s.code }}</code></label>
+                    <input type="text" name="confirm_code" class="form-control" required autocomplete="off">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-danger">حذف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endblock %}

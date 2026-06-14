@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% from "includes/academic_selectors.html" import grade_class_fields, grade_class_modals, grade_class_scripts %}
+{% block title %}تعديل طالب - {{ student.full_name_ar }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="mb-0"><i class="bi bi-pencil"></i> تعديل: {{ student.full_name_ar }}</h2>
+        <a href="{{ url_for('students.profile', student_id=student.id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-right"></i> رجوع للملف
+        </a>
+    </div>
+    <form method="POST" class="card shadow-sm" id="editStudentForm">
+        <div class="card-body">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                {% if schools %}
+                <div class="col-md-4">
+                    <label class="form-label">المدرسة</label>
+                    <select name="school_id" class="form-select" id="schoolSelect">
+                        {% for s in schools %}
+                        <option value="{{ s.id }}" {% if school_id == s.id %}selected{% endif %}>{{ s.name_ar }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="col-md-4">
+                    <label class="form-label">الاسم (عربي) *</label>
+                    <input name="full_name_ar" class="form-control" value="{{ student.full_name_ar }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">الاسم (EN)</label>
+                    <input name="full_name" class="form-control" value="{{ student.full_name }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">رقم الطالب</label>
+                    <input name="student_id" class="form-control" value="{{ student.student_id }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الجنس</label>
+                    <select name="gender" class="form-select">
+                        {% for code, label in gender_choices %}
+                        <option value="{{ code }}" {% if student.gender == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    {{ grade_class_fields(
+                        school_id,
+                        grades,
+                        classes,
+                        academic_labels,
+                        can_create_grade_class,
+                        selected_grade=selected_grade,
+                        selected_class=selected_class,
+                        school_input_id='academicSchoolId'
+                    ) }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">المعلم المسؤول</label>
+                    <select name="responsible_teacher_id" class="form-select">
+                        <option value="">—</option>
+                        {% for t in teachers %}
+                        <option value="{{ t.id }}" {% if student.responsible_teacher_id == t.id %}selected{% endif %}>{{ t.full_name_ar }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">المنطقة</label>
+                    <input name="region" class="form-control" value="{{ student.region }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">الحي</label>
+                    <input name="district" class="form-control" value="{{ student.district }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">الهاتف <span class="text-muted">(اختياري)</span></label>
+                    <input name="phone" class="form-control" value="{{ student.phone or '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">العنوان</label>
+                    <textarea name="address" class="form-control" rows="2" required>{{ student.address }}</textarea>
+                </div>
+            </div>
+            {% if student.user %}
+            <hr>
+            <h6 class="text-muted">حساب الدخول</h6>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">اسم المستخدم</label>
+                    <input name="username" class="form-control" value="{{ student.user.username }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">البريد الإلكتروني <span class="text-muted">(اختياري)</span></label>
+                    <input name="email" type="email" class="form-control" value="{{ student.user.email or '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">كلمة مرور جديدة</label>
+                    <input name="password" type="password" class="form-control" placeholder="اتركه فارغاً للإبقاء">
+                </div>
+            </div>
+            {% endif %}
+            <div class="mt-4">
+                <button class="btn btn-primary"><i class="bi bi-save"></i> حفظ التعديلات</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% if can_create_grade_class %}
+{{ grade_class_modals(academic_labels) }}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if can_create_grade_class %}
+{{ grade_class_scripts(academic_labels, can_create_grade_class, true, 'academicSchoolId') }}
+<script>
+(function () {
+    const schoolSelect = document.getElementById('schoolSelect');
+    const schoolInput = document.getElementById('academicSchoolId');
+    if (schoolSelect && schoolInput) {
+        schoolSelect.addEventListener('change', () => {
+            schoolInput.value = schoolSelect.value;
+        });
+    }
+})();
+</script>
+{% else %}
+<script>
+(function () {
+    const schoolSelect = document.getElementById('schoolSelect');
+    const gradeSelect = document.getElementById('gradeSelect');
+    const classSelect = document.getElementById('classSelect');
+    const schoolInput = document.getElementById('academicSchoolId');
+    if (!gradeSelect || !classSelect || !schoolInput) return;
+
+    function getSchoolId() {
+        return schoolSelect ? schoolSelect.value : schoolInput.value;
+    }
+
+    gradeSelect.addEventListener('change', () => {
+        const schoolId = getSchoolId();
+        const gradeId = gradeSelect.value;
+        classSelect.innerHTML = '<option value="">— اختر المجموعة —</option>';
+        if (!schoolId || !gradeId) return;
+        fetch(`{{ url_for('academic.api_classes') }}?school_id=${schoolId}&grade_id=${gradeId}`, {credentials: 'same-origin'})
+            .then(r => r.json())
+            .then((classes) => {
+                classes.forEach((c) => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.name;
+                    classSelect.appendChild(opt);
+                });
+            });
+    });
+
+    if (schoolSelect) {
+        schoolSelect.addEventListener('change', () => {
+            schoolInput.value = schoolSelect.value;
+            const schoolId = getSchoolId();
+            gradeSelect.innerHTML = '<option value="">— اختر المستوى —</option>';
+            classSelect.innerHTML = '<option value="">— اختر المجموعة —</option>';
+            if (!schoolId) return;
+            fetch(`{{ url_for('academic.api_grades') }}?school_id=${schoolId}`, {credentials: 'same-origin'})
+                .then(r => r.json())
+                .then((grades) => {
+                    grades.forEach((g) => {
+                        const opt = document.createElement('option');
+                        opt.value = g.id;
+                        opt.textContent = `${g.name_ar} (المستوى ${g.level})`;
+                        gradeSelect.appendChild(opt);
+                    });
+                });
+        });
+    }
+})();
+</script>
+{% endif %}
+{% endblock %}

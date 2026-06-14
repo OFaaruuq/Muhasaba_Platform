@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}الحضور - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-calendar-check"></i> سجل الحضور</h2>
+            {% if is_teacher_view %}
+            <p class="text-muted mb-0 small">سجّل حضور فريقك (مجموعاتك الدراسية) يومياً</p>
+            {% endif %}
+        </div>
+        <a href="{{ url_for('attendance.weekly') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-calendar-week"></i> عرض أسبوعي
+        </a>
+    </div>
+
+    <form class="mb-4" method="GET">
+        <div class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label">التاريخ</label>
+                <input type="date" name="date" class="form-control" value="{{ selected_date }}">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary">عرض</button>
+            </div>
+        </div>
+    </form>
+
+    {% if can_record and teams.rows %}
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body text-center">
+                    <h3>{{ teams.team_count }}</h3>
+                    <p class="text-muted mb-0">مجموعة</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-success">
+                <div class="card-body text-center">
+                    <h3 class="text-success">{{ teams.complete_count }}</h3>
+                    <p class="text-muted mb-0">مكتملة</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-warning">
+                <div class="card-body text-center">
+                    <h3 class="text-warning">{{ teams.pending_count }}</h3>
+                    <p class="text-muted mb-0">بانتظار التسجيل</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if teams.pending_count > 0 %}
+    <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>حضور مطلوب</strong> — يجب تسجيل حضور جميع طلاب فريقك لتاريخ {{ selected_date }}.
+        </div>
+    </div>
+    {% elif teams.all_complete %}
+    <div class="alert alert-success mb-4">
+        <i class="bi bi-check-circle"></i> أتممت تسجيل حضور جميع مجموعاتك لتاريخ {{ selected_date }}.
+    </div>
+    {% endif %}
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-people"></i>
+            {% if is_teacher_view %}فريقي — مجموعاتي{% else %}المجموعات / الفصول{% endif %}
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>المجموعة</th>
+                        <th>المستوى</th>
+                        <th>الطلاب</th>
+                        <th>حالة اليوم</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in teams.rows %}
+                    <tr class="{% if row.has_students and not row.is_complete %}table-warning{% endif %}">
+                        <td><strong>{{ row.class.name }}</strong></td>
+                        <td>{{ row.grade_name }}</td>
+                        <td>{{ row.student_count }}</td>
+                        <td>
+                            {% if not row.has_students %}
+                            <span class="badge bg-secondary">لا طلاب</span>
+                            {% elif row.is_complete %}
+                            <span class="badge bg-success">مكتمل ({{ row.recorded_count }}/{{ row.student_count }})</span>
+                            {% elif row.recorded_count > 0 %}
+                            <span class="badge bg-warning text-dark">جزئي ({{ row.recorded_count }}/{{ row.student_count }})</span>
+                            {% else %}
+                            <span class="badge bg-danger">لم يُسجَّل</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if can_record and row.has_students %}
+                            <a href="{{ url_for('attendance.record', class_id=row.class.id, date=selected_date) }}"
+                                class="btn btn-sm {% if row.is_complete %}btn-outline-primary{% else %}btn-primary{% endif %}">
+                                <i class="bi bi-pencil-square"></i>
+                                {% if row.is_complete %}تعديل{% else %}تسجيل الحضور{% endif %}
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% elif can_record and is_teacher_view %}
+    <div class="alert alert-info mb-4">
+        <i class="bi bi-info-circle"></i>
+        لا توجد مجموعات مخصصة لك. تواصل مع مدير المدرسة لتعيينك كمعلم لمجموعة.
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header">سجل الحضور — {{ selected_date }}</div>
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>الطالب</th>
+                        <th>الفصل</th>
+                        {% if time_settings.record_time %}<th>الوقت</th>{% endif %}
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td>{{ record.student.full_name_ar if record.student else '-' }}</td>
+                        <td>{{ record.class_.name if record.class_ else '-' }}</td>
+                        {% if time_settings.record_time %}
+                        <td>
+                            {% if record.check_in_time %}
+                            <span class="badge bg-light text-dark"><i class="bi bi-clock"></i> {{ record.check_in_time.strftime('%H:%M') }}</span>
+                            {% else %}—{% endif %}
+                        </td>
+                        {% endif %}
+                        <td>
+                            {% set st = status_map.get(record.status) %}
+                            {% if st %}
+                            <span class="badge bg-{{ st.badge_class }}">{{ st.name_ar }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ record.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="{% if time_settings.record_time %}4{% else %}3{% endif %}" class="text-muted text-center">لا توجد سجلات لهذا التاريخ.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

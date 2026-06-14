@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}اختباراتي - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">اختباراتي</h2>
+    <div class="card"><div class="card-body">
+        <table class="table">
+            <thead><tr><th>الاختبار</th><th>التاريخ</th><th>الحالة</th><th></th></tr></thead>
+            <tbody>
+                {% for exam in exams %}
+                <tr>
+                    <td>{{ exam.title_ar or exam.title }}</td>
+                    <td>{{ exam.exam_date or '-' }}</td>
+                    <td>
+                        {% if results.get(exam.id) %}
+                        <span class="badge bg-primary">{{ results[exam.id].percentage }}%</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">{{ ui_labels.not_submitted }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not results.get(exam.id) or not results[exam.id].is_graded %}
+                        <a href="{{ url_for('exams.take', exam_id=exam.id) }}" class="btn btn-sm btn-success">أداء الاختبار</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}<tr><td colspan="4" class="text-muted">لا اختبارات متاحة.</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div></div>
+</div>
+{% endblock %}

@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block title %}التقارير - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="followup-hub-header mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                    <h2 class="mb-0"><i class="bi bi-file-earmark-bar-graph"></i> مركز التقارير</h2>
+                    {% if period_ctx.is_current_period %}
+                    <span class="badge bg-primary"><i class="bi bi-calendar-check"></i> الشهر الحالي</span>
+                    {% endif %}
+                </div>
+                <p class="text-muted mb-0 small">
+                    تصدير وتنزيل جميع التقارير — أكاديمية (KPI، حضور، تقييم) ومتابعة شهرية (أسرة، معلم، برنامج)
+                </p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ url_for('followup_surveys.analytics_index', year=period_year, month=period_month) }}"
+                    class="btn btn-outline-info btn-sm">
+                    <i class="bi bi-graph-up-arrow"></i> تحليلات المتابعة
+                </a>
+                <a href="{{ url_for('followup_surveys.index', year=period_year, month=period_month) }}"
+                    class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-clipboard-data"></i> تعبئة الاستبيانات
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% set nav_endpoint = 'reports.index' %}
+    {% set nav_filter = dict(tab=tab, grade_id=selected_grade, class_id=selected_class, q=search_q or none) %}
+    {% set show_grade_filters = (tab == 'students' and not is_student_view) %}
+    {% include 'followup_surveys/_period_nav.html' %}
+
+    {% if summary and not is_student_view %}
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card followup-stat-card border-success h-100">
+                <div class="card-body py-3 text-center">
+                    <div class="small text-muted">أسرة مكتملة</div>
+                    <div class="fs-4 fw-bold text-success">{{ summary.family_complete }}/{{ summary.students_total }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card followup-stat-card border-warning h-100">
+                <div class="card-body py-3 text-center">
+                    <div class="small text-muted">أسرة جزئية/فارغة</div>
+                    <div class="fs-4 fw-bold text-warning">{{ summary.family_partial + summary.family_empty }}</div>
+                </div>
+            </div>
+        </div>
+        {% if show_teachers %}
+        <div class="col-6 col-md-3">
+            <div class="card followup-stat-card border-primary h-100">
+                <div class="card-body py-3 text-center">
+                    <div class="small text-muted">معلم مكتمل</div>
+                    <div class="fs-4 fw-bold text-primary">{{ summary.teacher_complete }}/{{ summary.teachers_total }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card followup-stat-card border-info h-100">
+                <div class="card-body py-3 text-center">
+                    <div class="small text-muted">برنامج مكتمل</div>
+                    <div class="fs-4 fw-bold text-info">{{ summary.program_complete }}/{{ summary.teachers_total }}</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <ul class="nav nav-tabs followup-tabs mb-3">
+        {% if show_family or student_cards is defined %}
+        <li class="nav-item">
+            <a class="nav-link {% if tab == 'students' %}active{% endif %}"
+                href="{{ url_for('reports.index', tab='students', year=period_year, month=period_month, grade_id=selected_grade, class_id=selected_class, q=search_q or none) }}">
+                <i class="bi bi-people"></i> تقارير الطلاب
+            </a>
+        </li>
+        {% endif %}
+        {% if show_teachers %}
+        <li class="nav-item">
+            <a class="nav-link {% if tab == 'teachers' %}active{% endif %}"
+                href="{{ url_for('reports.index', tab='teachers', year=period_year, month=period_month, q=search_q or none) }}">
+                <i class="bi bi-person-workspace"></i> تقارير المعلمين
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+
+    {% if not is_student_view %}
+    <form method="GET" class="row g-2 align-items-end mb-4">
+        <input type="hidden" name="tab" value="{{ tab }}">
+        <input type="hidden" name="year" value="{{ period_year }}">
+        <input type="hidden" name="month" value="{{ period_month }}">
+        {% if tab == 'students' %}
+        <input type="hidden" name="grade_id" value="{{ selected_grade or '' }}">
+        <input type="hidden" name="class_id" value="{{ selected_class or '' }}">
+        {% endif %}
+        <div class="col-md-5">
+            <label class="form-label small text-muted mb-0">بحث</label>
+            <input type="search" name="q" class="form-control form-control-sm"
+                placeholder="{% if tab == 'teachers' %}اسم المعلم{% else %}اسم الطالب{% endif %}"
+                value="{{ search_q }}">
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-outline-primary btn-sm w-100"><i class="bi bi-search"></i> بحث</button>
+        </div>
+    </form>
+    {% endif %}
+
+    {% if tab == 'students' %}
+    {% if not sid and current_user.is_platform_admin %}
+    <div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> يرجى اختيار مدرسة لعرض التقارير.</div>
+    {% endif %}
+
+    {% if student_cards %}
+    <div class="row g-4">
+        {% for card in student_cards %}
+        {% set st = card.student %}
+        {% set fu = card.followup %}
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 py-2">
+                    <div>
+                        <strong>{{ st.full_name_ar or st.full_name }}</strong>
+                        <br><small class="text-muted">{{ card.grade_name }} — {{ card.class_name }}</small>
+                    </div>
+                    <span class="badge bg-{{ fu.status_class }}">{{ fu.status_text }}</span>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-2"><i class="bi bi-house-heart"></i> متابعة الأسرة — {{ period_ctx.period_label }}</p>
+                    <div class="progress mb-3" style="height:6px">
+                        <div class="progress-bar bg-{{ fu.status_class }}" style="width:{{ fu.percent }}%"></div>
+                    </div>
+
+                    <h6 class="small fw-bold text-muted mb-2">التقارير الأكاديمية</h6>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <a href="{{ url_for('reports.student_kpi_pdf', student_id=st.id) }}"
+                            class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-file-pdf"></i> KPI
+                        </a>
+                        <a href="{{ url_for('reports.attendance_excel', student_id=st.id) }}"
+                            class="btn btn-sm btn-outline-success">
+                            <i class="bi bi-file-excel"></i> حضور
+                        </a>
+                        <a href="{{ url_for('reports.evaluation_pdf', student_id=st.id) }}"
+                            class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-file-pdf"></i> يومي
+                        </a>
+                        <a href="{{ url_for('reports.monthly_pdf', student_id=st.id, year=period_year, month=period_month) }}"
+                            class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-file-pdf"></i> شهري
+                        </a>
+                    </div>
+
+                    <h6 class="small fw-bold text-muted mb-2">تقارير المتابعة الشهرية</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ url_for('reports.family_followup_pdf', student_id=st.id, year=period_year, month=period_month) }}"
+                            class="btn btn-sm btn-success text-white">
+                            <i class="bi bi-download"></i> PDF أسرة
+                        </a>
+                        <a href="{{ url_for('followup_surveys.analytics_student', student_id=st.id, year=period_year, month=period_month) }}"
+                            class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-graph-up"></i> تحليل
+                        </a>
+                        <a href="{{ url_for('followup_surveys.family_view', student_id=st.id, year=period_year, month=period_month) }}"
+                            class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-eye"></i> عرض
+                        </a>
+                        <a href="{{ url_for('kpi.student_kpi', student_id=st.id) }}"
+                            class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-speedometer2"></i> KPI
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">لا توجد تقارير طلاب متاحة.</div>
+    {% endif %}
+
+    {% elif tab == 'teachers' and show_teachers %}
+    {% if teacher_cards %}
+    <div class="row g-4">
+        {% for card in teacher_cards %}
+        {% set t = card.teacher %}
+        {% set fu = card.followup %}
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header py-2">
+                    <strong>{{ t.full_name_ar or t.full_name }}</strong>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-2">{{ period_ctx.period_label }}</p>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <span class="badge bg-{{ fu.teacher_status_class }}">معلم: {{ fu.teacher_status }}</span>
+                        <span class="badge bg-{{ fu.program_status_class }}">برنامج: {{ fu.program_status }}</span>
+                        {% if fu.family_total %}
+                        <span class="badge bg-light text-dark">أسر: {{ fu.family_complete }}/{{ fu.family_total }}</span>
+                        {% endif %}
+                    </div>
+
+                    <h6 class="small fw-bold text-muted mb-2">تصدير PDF</h6>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <a href="{{ url_for('reports.teacher_followup_pdf', teacher_id=t.id, year=period_year, month=period_month) }}"
+                            class="btn btn-sm btn-primary">
+                            <i class="bi bi-download"></i> استبيان المعلم
+                        </a>
+                        <a href="{{ url_for('reports.program_followup_pdf', teacher_id=t.id, year=period_year, month=period_month) }}"
+                            class="btn btn-sm btn-info text-white">
+                            <i class="bi bi-download"></i> البرنامج التربوي
+                        </a>
+                    </div>
+
+                    <h6 class="small fw-bold text-muted mb-2">عرض وتحليل</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ url_for('followup_surveys.analytics_teacher', teacher_id=t.id, year=period_year, month=period_month) }}"
+                            class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-graph-up"></i> تقرير تحليلي
+                        </a>
+                        <a href="{{ url_for('followup_surveys.teacher_form_admin', teacher_id=t.id, year=period_year, month=period_month) }}"
+                            class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-pencil"></i> تعبئة
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">لا توجد تقارير معلمين متاحة.</div>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

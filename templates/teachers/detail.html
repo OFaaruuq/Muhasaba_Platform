@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% from "includes/subject_select.html" import subject_create_modal, subject_scripts %}
+{% block title %}{{ teacher.full_name_ar }} - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <h2 class="mb-1">{{ teacher.full_name_ar or teacher.full_name }}</h2>
+            <p class="text-muted mb-0 small">
+                {{ teacher.employee_id }}
+                {% if teacher.is_active %}
+                <span class="badge bg-success">{{ ui_labels.active }}</span>
+            {% else %}
+                <span class="badge bg-secondary">{{ ui_labels.inactive }}</span>
+                {% endif %}
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('teachers.edit', teacher_id=teacher.id) }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-pencil"></i> تعديل
+            </a>
+            <a href="{{ url_for('followup_surveys.analytics_teacher', teacher_id=teacher.id) }}"
+                class="btn btn-outline-info btn-sm">
+                <i class="bi bi-graph-up"></i> تقرير المتابعة
+            </a>
+            {% if teacher.is_active %}
+            <form method="POST" action="{{ url_for('teachers.deactivate', teacher_id=teacher.id) }}"
+                onsubmit="return confirm('تعطيل هذا المعلم؟')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-person-x"></i> تعطيل
+                </button>
+            </form>
+            {% else %}
+            <form method="POST" action="{{ url_for('teachers.activate', teacher_id=teacher.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-person-check"></i> تفعيل
+                </button>
+            </form>
+            {% endif %}
+            <a href="{{ url_for('teachers.index') }}" class="btn btn-outline-secondary btn-sm">رجوع</a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">البيانات</div>
+                <div class="card-body">
+                    <p><strong>الرقم الوظيفي:</strong> {{ teacher.employee_id }}</p>
+                    <p><strong>المادة:</strong>
+                        {% set subject_labels = [] %}
+                        {% for a in assignments %}
+                            {% if a.subject and a.subject.name_ar not in subject_labels %}
+                                {% if subject_labels.append(a.subject.name_ar) %}{% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if subject_labels %}
+                            {{ subject_labels | join('، ') }}
+                        {% elif teacher.specialization %}
+                            {{ teacher.specialization }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </p>
+                    <p class="small text-muted mb-0">
+                        <a href="{{ url_for('schools.detail', school_id=teacher.school_id) }}#subjects">إدارة المواد في المدرسة</a>
+                    </p>
+                    <p><strong>الهاتف:</strong> {{ teacher.phone or '—' }}</p>
+                    <p><strong>المدرسة:</strong> {{ teacher.school.name_ar if teacher.school else '—' }}</p>
+                    <p><strong>تاريخ التعيين:</strong> {{ teacher.hire_date or '—' }}</p>
+                    {% if teacher.user %}
+                    <p><strong>المستخدم:</strong> {{ teacher.user.username }}</p>
+                    <p><strong>البريد:</strong> {{ teacher.user.email or '—' }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% if usage %}
+            <div class="card shadow-sm mt-3">
+                <div class="card-header">السجل</div>
+                <div class="card-body small">
+                    <p class="mb-1">طلاب مسؤول عنهم: <strong>{{ usage.students }}</strong></p>
+                    <p class="mb-1">اختبارات: <strong>{{ usage.exams }}</strong></p>
+                    <p class="mb-1">تقييمات: <strong>{{ usage.evaluations }}</strong></p>
+                    <p class="mb-0">تعيينات فصول: <strong>{{ usage.assignments }}</strong></p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>الفصول المعينة</span>
+                    <span class="badge bg-secondary">{{ assignments|length }}</span>
+                </div>
+                <div class="card-body">
+                    {% if assignments %}
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr><th>الفصل</th><th>المادة</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                {% for a in assignments %}
+                                <tr>
+                                    <td>{{ a.class_.name if a.class_ else '—' }}</td>
+                                    <td>{{ a.subject.name_ar if a.subject else '—' }}</td>
+                                    <td class="text-end">
+                                        <form method="POST"
+                                            action="{{ url_for('teachers.delete_assignment', teacher_id=teacher.id, assignment_id=a.id) }}"
+                                            class="d-inline"
+                                            onsubmit="return confirm('إزالة هذا التعيين؟')">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted small mb-3">لا توجد فصول معينة بعد.</p>
+                    {% endif %}
+
+                    <h6 class="small fw-bold text-muted mb-2">إضافة تعيين</h6>
+                    <form method="POST" action="{{ url_for('teachers.assign_class', teacher_id=teacher.id) }}" class="row g-2">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="col-md-4">
+                            <select name="class_id" class="form-select form-select-sm" required>
+                                <option value="">— اختر الفصل —</option>
+                                {% for c in classes %}
+                                <option value="{{ c.id }}">{{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label small mb-0">المادة</label>
+                                <button type="button" class="btn btn-sm btn-link p-0" data-bs-toggle="modal" data-bs-target="#createSubjectModal">
+                                    <i class="bi bi-plus-circle"></i> إضافة
+                                </button>
+                            </div>
+                            <select name="subject_id" id="assignSubjectSelect" class="form-select form-select-sm">
+                                <option value="">— مادة (اختياري) —</option>
+                                {% for s in subjects %}
+                                <option value="{{ s.id }}">{{ s.name_ar }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-sm btn-primary w-100"><i class="bi bi-plus"></i> تعيين</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<input type="hidden" id="subjectSchoolId" value="{{ teacher.school_id }}">
+{{ subject_create_modal() }}
+{% endblock %}
+{% block scripts %}
+{{ subject_scripts(select_id='assignSubjectSelect', school_input_id='subjectSchoolId') }}
+{% endblock %}

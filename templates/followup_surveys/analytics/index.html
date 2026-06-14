@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+{% block title %}تحليلات المتابعة - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set hub_subtitle = 'تقارير تفصيلية لكل طالب ومعلم — إكمال الاستبيانات، اتجاهات شهرية، وإجابات كاملة' %}
+    {% set active_page = 'analytics' %}
+    {% set hub_analytics_tab = tab %}
+    {% include 'followup_surveys/_hub_header.html' %}
+
+    {% set nav_endpoint = 'followup_surveys.analytics_index' %}
+    {% set nav_filter = dict(tab=tab, grade_id=selected_grade, class_id=selected_class, status=status_filter, q=search_q or none) %}
+    {% set show_grade_filters = (tab == 'students') %}
+    {% include 'followup_surveys/_period_nav.html' %}
+
+    <ul class="nav nav-tabs followup-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link {% if tab == 'overview' %}active{% endif %}"
+                href="{{ url_for('followup_surveys.analytics_index', tab='overview', year=period_year, month=period_month) }}">
+                <i class="bi bi-speedometer2"></i> نظرة عامة
+            </a>
+        </li>
+        {% if show_students_tab %}
+        <li class="nav-item">
+            <a class="nav-link {% if tab == 'students' %}active{% endif %}"
+                href="{{ url_for('followup_surveys.analytics_index', tab='students', year=period_year, month=period_month, grade_id=selected_grade, class_id=selected_class) }}">
+                <i class="bi bi-people"></i> الطلاب
+                {% if student_rows %}<span class="badge bg-secondary ms-1">{{ student_rows|length }}</span>{% endif %}
+            </a>
+        </li>
+        {% endif %}
+        {% if can_view_teachers %}
+        <li class="nav-item">
+            <a class="nav-link {% if tab == 'teachers' %}active{% endif %}"
+                href="{{ url_for('followup_surveys.analytics_index', tab='teachers', year=period_year, month=period_month) }}">
+                <i class="bi bi-person-workspace"></i> المعلمون
+                {% if teacher_rows %}<span class="badge bg-secondary ms-1">{{ teacher_rows|length }}</span>{% endif %}
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+
+    {% if tab == 'overview' and summary %}
+    {# Quick jump cards #}
+    <div class="row g-3 mb-4">
+        {% if show_students_tab %}
+        <div class="col-md-4">
+            <a href="{{ url_for('followup_surveys.analytics_index', tab='students', year=period_year, month=period_month) }}"
+                class="card followup-stat-card text-decoration-none h-100 border-success border-2">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <i class="bi bi-people fs-2 text-success"></i>
+                    <div>
+                        <div class="fw-bold text-dark">تقارير الطلاب</div>
+                        <small class="text-muted">{{ summary.family.total }} طالب/أسرة</small>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+        {% if can_view_teachers %}
+        <div class="col-md-4">
+            <a href="{{ url_for('followup_surveys.analytics_index', tab='teachers', year=period_year, month=period_month) }}"
+                class="card followup-stat-card text-decoration-none h-100 border-primary border-2">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <i class="bi bi-person-workspace fs-2 text-primary"></i>
+                    <div>
+                        <div class="fw-bold text-dark">تقارير المعلمين</div>
+                        <small class="text-muted">{{ summary.teacher.total }} معلم</small>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+        <div class="col-md-4">
+            <a href="{{ url_for('followup_surveys.index', year=period_year, month=period_month) }}"
+                class="card followup-stat-card text-decoration-none h-100 border-secondary border-2">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <i class="bi bi-pencil-square fs-2 text-secondary"></i>
+                    <div>
+                        <div class="fw-bold text-dark">تعبئة الاستبيانات</div>
+                        <small class="text-muted">الانتقال لصفحة التعبئة</small>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card followup-stat-card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="small opacity-75">أسرة — مكتمل</div>
+                            <div class="fs-3 fw-bold">{{ summary.family.complete }}/{{ summary.family.total }}</div>
+                            <div class="small">{{ analytics_completion_pct(summary.family) }}%</div>
+                        </div>
+                        <i class="bi bi-house-heart stat-icon"></i>
+                    </div>
+                    <div class="progress mt-2 bg-white bg-opacity-25" style="height:4px">
+                        <div class="progress-bar bg-white" style="width:{{ analytics_completion_pct(summary.family) }}%"></div>
+                    </div>
+                    <div class="small mt-2 opacity-75">جزئي {{ summary.family.partial }} · فارغ {{ summary.family.not_started }}</div>
+                </div>
+            </div>
+        </div>
+        {% if can_view_teachers %}
+        <div class="col-md-4">
+            <div class="card followup-stat-card bg-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="small opacity-75">معلم — مكتمل</div>
+                            <div class="fs-3 fw-bold">{{ summary.teacher.complete }}/{{ summary.teacher.total }}</div>
+                            <div class="small">{{ analytics_completion_pct(summary.teacher) }}%</div>
+                        </div>
+                        <i class="bi bi-person-workspace stat-icon"></i>
+                    </div>
+                    <div class="small mt-2 opacity-75">جزئي {{ summary.teacher.partial }} · فارغ {{ summary.teacher.not_started }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card followup-stat-card bg-info text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="small opacity-75">برنامج — مكتمل</div>
+                            <div class="fs-3 fw-bold">{{ summary.program.complete }}/{{ summary.program.total }}</div>
+                            <div class="small">{{ analytics_completion_pct(summary.program) }}%</div>
+                        </div>
+                        <i class="bi bi-journal-check stat-icon"></i>
+                    </div>
+                    <div class="small mt-2 opacity-75">جزئي {{ summary.program.partial }} · فارغ {{ summary.program.not_started }}</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header"><i class="bi bi-pie-chart"></i> توزيع إكمال الأسرة</div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <canvas id="familyDonut" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        {% if summary.class_stats %}
+        <div class="col-lg-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header"><i class="bi bi-bar-chart"></i> الإكمال حسب المجموعة</div>
+                <div class="card-body"><canvas id="classChart" height="200"></canvas></div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if summary.bool_aggregates %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header"><i class="bi bi-check2-circle"></i> أبرز مؤشرات الأسرة — نسب «نعم»</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light"><tr><th>المؤشر</th><th>نعم</th><th>لا</th><th>النسبة</th></tr></thead>
+                    <tbody>
+                        {% for item in summary.bool_aggregates[:8] %}
+                        <tr>
+                            <td>{{ item.label }}</td>
+                            <td><span class="badge bg-success">{{ item.yes }}</span></td>
+                            <td><span class="badge bg-secondary">{{ item.no }}</span></td>
+                            <td style="min-width:140px">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height:8px">
+                                        <div class="progress-bar bg-success" style="width:{{ item.yes_percent }}%"></div>
+                                    </div>
+                                    <small>{{ item.yes_percent }}%</small>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% elif tab == 'overview' %}
+    <div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> لا توجد بيانات. اختر مدرسة أو تحقق من الصلاحيات.</div>
+    {% endif %}
+
+    {% if tab == 'students' %}
+    {% set pill_filter = dict(tab='students', grade_id=selected_grade, class_id=selected_class, q=search_q or none) %}
+    {% include 'followup_surveys/_status_pills.html' %}
+
+    <form method="GET" class="row g-2 align-items-end mb-3">
+        <input type="hidden" name="tab" value="students">
+        <input type="hidden" name="year" value="{{ period_year }}">
+        <input type="hidden" name="month" value="{{ period_month }}">
+        <input type="hidden" name="status" value="{{ status_filter }}">
+        <input type="hidden" name="grade_id" value="{{ selected_grade or '' }}">
+        <input type="hidden" name="class_id" value="{{ selected_class or '' }}">
+        <div class="col-md-5">
+            <input type="search" name="q" class="form-control form-control-sm" value="{{ search_q }}" placeholder="بحث باسم الطالب">
+        </div>
+        <div class="col-md-2"><button type="submit" class="btn btn-outline-primary btn-sm w-100"><i class="bi bi-search"></i></button></div>
+    </form>
+
+    {% if student_rows %}
+    <div class="card shadow-sm">
+        <div class="card-header py-2 d-flex justify-content-between">
+            <span>تقرير كل طالب — {{ period_ctx.period_label }}</span>
+            <span class="badge bg-light text-dark">{{ student_rows|length }} سجل</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>الطالب</th>
+                        <th>المستوى / المجموعة</th>
+                        <th>المعلم</th>
+                        <th>استبيان الأسرة</th>
+                        <th>البرنامج التربوي</th>
+                        <th class="text-end">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in student_rows %}
+                    <tr>
+                        <td><strong>{{ row.student.full_name_ar or row.student.full_name }}</strong></td>
+                        <td><small>{{ row.grade_name }} — {{ row.class_name }}</small></td>
+                        <td><small>{{ row.teacher_name }}</small></td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height:7px">
+                                    <div class="progress-bar bg-{{ row.status_class }}" style="width:{{ row.percent }}%"></div>
+                                </div>
+                                <small>{{ row.answered }}/{{ row.total }}</small>
+                            </div>
+                            <span class="badge bg-{{ row.status_class }}">{{ row.status_text }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height:7px">
+                                    <div class="progress-bar bg-{{ row.program_status_class }}" style="width:{{ row.program_percent }}%"></div>
+                                </div>
+                                <small>{{ row.program_answered }}/{{ row.program_total }}</small>
+                            </div>
+                            <span class="badge bg-{{ row.program_status_class }}">{{ row.program_status }}</span>
+                        </td>
+                        <td class="text-end followup-action-btn-group">
+                            <a href="{{ url_for('followup_surveys.analytics_student', student_id=row.student.id, year=period_year, month=period_month) }}"
+                                class="btn btn-sm btn-primary"><i class="bi bi-file-earmark-text"></i> تقرير</a>
+                            {% if can_fill_family %}
+                            <a href="{{ url_for('followup_surveys.family_form', student_id=row.student.id, year=period_year, month=period_month) }}"
+                                class="btn btn-sm btn-outline-secondary" title="تعبئة أسرة"><i class="bi bi-pencil"></i></a>
+                            {% endif %}
+                            <a href="{{ url_for('followup_surveys.program_student_form', student_id=row.student.id, year=period_year, month=period_month) }}"
+                                class="btn btn-sm btn-outline-info" title="تعبئة برنامج"><i class="bi bi-journal-check"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">لا توجد نتائج.</div>
+    {% endif %}
+    {% endif %}
+
+    {% if tab == 'teachers' and can_view_teachers %}
+    <form method="GET" class="row g-2 align-items-end mb-3">
+        <input type="hidden" name="tab" value="teachers">
+        <input type="hidden" name="year" value="{{ period_year }}">
+        <input type="hidden" name="month" value="{{ period_month }}">
+        <div class="col-md-5">
+            <input type="search" name="q" class="form-control form-control-sm" value="{{ search_q }}" placeholder="بحث باسم المعلم">
+        </div>
+        <div class="col-md-2"><button type="submit" class="btn btn-outline-primary btn-sm w-100"><i class="bi bi-search"></i></button></div>
+    </form>
+
+    {% if teacher_rows %}
+    <div class="card shadow-sm">
+        <div class="card-header py-2">تقرير كل معلم — {{ period_ctx.period_label }}</div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>المعلم</th>
+                        <th>استبيان المعلم</th>
+                        <th>البرنامج</th>
+                        <th>أسر الطلاب</th>
+                        <th class="text-end">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in teacher_rows %}
+                    <tr>
+                        <td><strong>{{ row.teacher.full_name_ar or row.teacher.full_name }}</strong></td>
+                        <td>
+                            <span class="badge bg-{{ row.teacher_status_class }}">{{ row.teacher_status }}</span>
+                            <small class="text-muted">{{ row.teacher_answered }}/{{ row.teacher_total }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ row.program_status_class }}">{{ row.program_status }}</span>
+                            <small class="text-muted">{{ row.program_answered }}/{{ row.program_total }}</small>
+                        </td>
+                        <td>
+                            {% if row.family_total %}
+                            <span class="badge bg-success">{{ row.family_complete }}/{{ row.family_total }}</span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="text-end followup-action-btn-group">
+                            <a href="{{ url_for('followup_surveys.analytics_teacher', teacher_id=row.teacher.id, year=period_year, month=period_month) }}"
+                                class="btn btn-sm btn-primary"><i class="bi bi-file-earmark-text"></i> تقرير</a>
+                            <a href="{{ url_for('followup_surveys.teacher_form_admin', teacher_id=row.teacher.id, year=period_year, month=period_month) }}"
+                                class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">لا توجد نتائج.</div>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if tab == 'overview' and summary %}
+<script>
+{% if summary.class_stats %}
+new Chart(document.getElementById('classChart'), {
+    type: 'bar',
+    data: {
+        labels: [{% for c in summary.class_stats %}'{{ c.grade }} — {{ c.class }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'مكتمل %',
+            data: [{% for c in summary.class_stats %}{{ c.percent }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: '#27ae60',
+            borderRadius: 6
+        }]
+    },
+    options: { scales: { y: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
+});
+{% endif %}
+new Chart(document.getElementById('familyDonut'), {
+    type: 'doughnut',
+    data: {
+        labels: ['مكتمل', 'جزئي', 'لم يُعبَّأ'],
+        datasets: [{
+            data: [{{ summary.family.complete }}, {{ summary.family.partial }}, {{ summary.family.not_started }}],
+            backgroundColor: ['#27ae60', '#f39c12', '#bdc3c7']
+        }]
+    },
+    options: { plugins: { legend: { position: 'bottom' } } }
+});
+</script>
+{% endif %}
+{% endblock %}

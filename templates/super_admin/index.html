@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block title %}المشرف الأعلى - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-shield-lock text-warning"></i> لوحة المشرف الأعلى</h2>
+            <p class="text-muted mb-0">إدارة المنصة — المدارس، المستخدمين، الصلاحيات، وسجل النظام</p>
+        </div>
+        <span class="badge bg-dark fs-6"><i class="bi bi-person-badge"></i> Super Admin</span>
+    </div>
+
+    {# ——— Stats ——— #}
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-0 bg-warning text-dark h-100">
+                <div class="card-body py-3 text-center">
+                    <i class="bi bi-building fs-4 opacity-75"></i>
+                    <div class="fs-3 fw-bold">{{ schools_count }}</div>
+                    <div class="small">مدرسة</div>
+                    <div class="small opacity-75">{{ active_schools }} {{ ui_labels.active_feminine }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-0 bg-primary text-white h-100">
+                <div class="card-body py-3 text-center">
+                    <i class="bi bi-people fs-4 opacity-75"></i>
+                    <div class="fs-3 fw-bold">{{ users_count }}</div>
+                    <div class="small">مستخدم</div>
+                    <div class="small opacity-75">{{ active_users }} {{ ui_labels.active }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-0 bg-success text-white h-100">
+                <div class="card-body py-3 text-center">
+                    <i class="bi bi-mortarboard fs-4 opacity-75"></i>
+                    <div class="fs-3 fw-bold">{{ students_count }}</div>
+                    <div class="small">طالب</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-0 bg-info text-white h-100">
+                <div class="card-body py-3 text-center">
+                    <i class="bi bi-person-workspace fs-4 opacity-75"></i>
+                    <div class="fs-3 fw-bold">{{ teachers_count }}</div>
+                    <div class="small">معلم</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-0 bg-light h-100">
+                <div class="card-body py-3 text-center">
+                    <i class="bi bi-key fs-4 text-muted"></i>
+                    <div class="fs-3 fw-bold">{{ roles_count }}</div>
+                    <div class="small text-muted">دور</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-0 bg-secondary text-white h-100">
+                <div class="card-body py-3 text-center">
+                    <i class="bi bi-journal-text fs-4 opacity-75"></i>
+                    <div class="fs-3 fw-bold">{{ audit_30d }}</div>
+                    <div class="small">سجل (30 يوم)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ——— Quick nav ——— #}
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a href="{{ url_for('super_admin.users') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-people"></i> المستخدمون ({{ users_count }})
+        </a>
+        <a href="{{ url_for('super_admin.schools') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-building"></i> المدارس ({{ schools_count }})
+        </a>
+        <a href="{{ url_for('super_admin.roles') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-key"></i> الأدوار
+        </a>
+        <a href="{{ url_for('super_admin.audit') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-journal-text"></i> سجل التدقيق
+        </a>
+        <a href="{{ url_for('schools.index') }}" class="btn btn-outline-dark btn-sm">
+            <i class="bi bi-gear"></i> إدارة المدارس الكاملة
+        </a>
+        <a href="{{ url_for('admin.index') }}" class="btn btn-outline-dark btn-sm">
+            <i class="bi bi-sliders"></i> إعدادات المنصة
+        </a>
+        <a href="{{ url_for('super_admin.create_user') }}" class="btn btn-success btn-sm">
+            <i class="bi bi-person-plus"></i> مستخدم جديد
+        </a>
+        <a href="{{ url_for('schools.create') }}" class="btn btn-success btn-sm">
+            <i class="bi bi-plus-lg"></i> مدرسة جديدة
+        </a>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <span><i class="bi bi-building"></i> المدارس — نظرة عامة</span>
+                    <a href="{{ url_for('super_admin.schools') }}" class="btn btn-sm btn-outline-primary">إدارة الكل</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>المدرسة</th>
+                                <th>الرمز</th>
+                                <th>طلاب</th>
+                                <th>معلمون</th>
+                                <th>مستخدمون</th>
+                                <th>الحالة</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in school_stats %}
+                            <tr class="{% if not item.school.is_active %}table-secondary{% endif %}">
+                                <td>
+                                    <strong>{{ item.school.name_ar }}</strong>
+                                    {% if item.school.region %}
+                                    <br><small class="text-muted">{{ item.school.region }}</small>
+                                    {% endif %}
+                                </td>
+                                <td><code>{{ item.school.code }}</code></td>
+                                <td>{{ item.students }}</td>
+                                <td>{{ item.teachers }}</td>
+                                <td>{{ item.users }}</td>
+                                <td>
+                                    {% if item.school.is_active %}
+                                    <span class="badge bg-success">{{ ui_labels.active_feminine }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ ui_labels.inactive_feminine }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-nowrap">
+                                    <a href="{{ url_for('schools.detail', school_id=item.school.id) }}"
+                                        class="btn btn-sm btn-outline-primary" title="عرض"><i class="bi bi-eye"></i></a>
+                                    <a href="{{ url_for('schools.edit_school', school_id=item.school.id) }}"
+                                        class="btn btn-sm btn-outline-warning" title="تعديل"><i class="bi bi-pencil"></i></a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="7" class="text-center text-muted py-4">لا توجد مدارس.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><i class="bi bi-pie-chart"></i> المستخدمون حسب الدور</div>
+                <ul class="list-group list-group-flush">
+                    {% for role in role_counts %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>{{ role.name_ar or role.name }}</span>
+                        <span class="badge bg-primary rounded-pill">{{ role.count }}</span>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted">لا أدوار</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header"><i class="bi bi-tools"></i> إجراءات النظام</div>
+                <div class="card-body d-grid gap-2">
+                    <form method="POST" action="{{ url_for('super_admin.provision_all') }}"
+                        onsubmit="return confirm('تهيئة جميع المدارس النشطة؟')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-outline-success w-100">
+                            <i class="bi bi-database-check"></i> تهيئة جميع المدارس
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('super_admin.reset_global_defaults') }}"
+                        onsubmit="return confirm('تحديث الإعدادات العامة للمنصة؟')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-outline-warning w-100">
+                            <i class="bi bi-arrow-repeat"></i> تحديث الإعدادات العامة
+                        </button>
+                    </form>
+                    {% if inactive_schools %}
+                    <div class="alert alert-light border small mb-0 py-2">
+                        {{ inactive_schools }} مدرسة {{ ui_labels.inactive_feminine }} ·
+                        {{ inactive_users }} مستخدم {{ ui_labels.inactive }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-clock-history"></i> آخر نشاطات النظام</span>
+            <a href="{{ url_for('super_admin.audit') }}" class="btn btn-sm btn-outline-secondary">عرض الكل</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>الوقت</th>
+                        <th>المستخدم</th>
+                        <th>الإجراء</th>
+                        <th>التفاصيل</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in recent_audit %}
+                    <tr>
+                        <td class="text-nowrap"><small>{{ log.created_at.strftime('%Y-%m-%d %H:%M') if log.created_at else '—' }}</small></td>
+                        <td>{{ log.user.full_name_ar if log.user else '—' }}</td>
+                        <td>
+                            <span class="badge bg-light text-dark">{{ audit_action_label(log.action) }}</span>
+                        </td>
+                        <td class="small text-muted">{{ log.details or log.module or '—' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-muted text-center py-4">لا يوجد سجل بعد.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

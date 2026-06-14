@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block title %}الطلاب - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <h2 class="mb-0"><i class="bi bi-people"></i> الطلاب</h2>
+        {% if user_can('register_students') %}
+        <a href="{{ url_for('evaluations.register') }}" class="btn btn-primary">
+            <i class="bi bi-person-plus"></i> تسجيل طالب
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body py-3">
+            <form method="GET" class="row g-2 align-items-end">
+                {% if schools %}
+                <div class="col-md-2">
+                    <label class="form-label small text-muted mb-0">المدرسة</label>
+                    <select name="school_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">الكل</option>
+                        {% for school in schools %}
+                        <option value="{{ school.id }}" {% if selected_school == school.id %}selected{% endif %}>{{ school.name_ar }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="col-md-2">
+                    <label class="form-label small text-muted mb-0">المستوى</label>
+                    <select name="grade_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">الكل</option>
+                        {% for grade in grades %}
+                        <option value="{{ grade.id }}" {% if selected_grade == grade.id %}selected{% endif %}>{{ grade.name_ar }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted mb-0">الفصل</label>
+                    <select name="class_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">الكل</option>
+                        {% for class in classes %}
+                        <option value="{{ class.id }}" {% if selected_class == class.id %}selected{% endif %}>{{ class.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted mb-0">بحث</label>
+                    <input type="search" name="q" class="form-control form-control-sm"
+                        placeholder="الاسم أو رقم الطالب" value="{{ search_q }}">
+                </div>
+                <div class="col-md-2">
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" name="show_inactive" value="1"
+                            id="showInactiveStudents" {% if show_inactive %}checked{% endif %}
+                            onchange="this.form.submit()">
+                        <label class="form-check-label small" for="showInactiveStudents">عرض المعطّلين</label>
+                    </div>
+                </div>
+                <div class="col-md-1">
+                    <button type="submit" class="btn btn-outline-primary btn-sm w-100"><i class="bi bi-search"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if user_can('manage_students') and grouped %}
+    <form method="POST" action="{{ url_for('students.bulk_action') }}" id="bulkStudentForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" id="bulkActionInput" value="">
+        {% if selected_school %}<input type="hidden" name="school_id" value="{{ selected_school }}">{% endif %}
+        {% if selected_grade %}<input type="hidden" name="grade_id" value="{{ selected_grade }}">{% endif %}
+        {% if selected_class %}<input type="hidden" name="class_id" value="{{ selected_class }}">{% endif %}
+        {% if search_q %}<input type="hidden" name="q" value="{{ search_q }}">{% endif %}
+        {% if show_inactive %}<input type="hidden" name="show_inactive" value="1">{% endif %}
+
+        <div id="bulkToolbar" class="card shadow-sm mb-3 d-none border-primary">
+            <div class="card-body py-2 d-flex flex-wrap align-items-center gap-2">
+                <span class="fw-bold"><span id="bulkSelectedCount">0</span> محدد</span>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="bulkDeactivateBtn">
+                    <i class="bi bi-person-x"></i> تعطيل المحددين
+                </button>
+                {% if show_inactive %}
+                <button type="button" class="btn btn-sm btn-outline-success" id="bulkActivateBtn">
+                    <i class="bi bi-person-check"></i> تفعيل المحددين
+                </button>
+                {% endif %}
+                <button type="button" class="btn btn-sm btn-link text-muted" id="bulkClearBtn">إلغاء التحديد</button>
+            </div>
+        </div>
+    </form>
+    {% endif %}
+
+    {% if grouped %}
+    {% for level_name, classes_map in grouped.items() %}
+    <div class="mb-4">
+        <h5 class="text-primary border-bottom pb-2"><i class="bi bi-layers"></i> {{ level_name }}</h5>
+        {% for class_name, class_students in classes_map.items() %}
+        <div class="card mb-3 shadow-sm">
+            <div class="card-header d-flex justify-content-between">
+                <span><i class="bi bi-door-open"></i> فصل {{ class_name }}</span>
+                <span class="badge bg-secondary">{{ class_students|length }} طالب</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                {% if user_can('manage_students') %}
+                                <th style="width:2.5rem">
+                                    <input type="checkbox" class="form-check-input select-all-class" title="تحديد الكل">
+                                </th>
+                                {% endif %}
+                                <th>الرقم</th>
+                                <th>الاسم</th>
+                                {% if teacher_tracking %}
+                                <th>مؤشر الأداء</th>
+                                <th>متابعة شهرية</th>
+                                {% else %}
+                                <th>الموقع</th>
+                                <th>المعدل</th>
+                                {% endif %}
+                                <th>الحالة</th>
+                                <th class="text-end">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in class_students %}
+                            {% set track = teacher_tracking.get(student.id) if teacher_tracking else none %}
+                            <tr class="{% if not student.is_active %}table-secondary{% elif track and track.needs_survey %}table-warning{% endif %}">
+                                {% if user_can('manage_students') %}
+                                <td>
+                                    {% if student.id in manageable_ids %}
+                                    <input type="checkbox" class="form-check-input student-bulk-check"
+                                        name="student_ids" value="{{ student.id }}" form="bulkStudentForm">
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                <td>{{ student.student_id }}</td>
+                                <td><strong>{{ student.full_name_ar or student.full_name }}</strong></td>
+                                {% if teacher_tracking %}
+                                <td>
+                                    {% if track %}<span class="badge bg-{{ track.perf_color }}">{{ track.overall_kpi }}%</span>{% else %}—{% endif %}
+                                </td>
+                                <td>
+                                    {% if track %}<span class="badge bg-{{ track.status_class }}">{{ track.status_text }}</span>{% else %}—{% endif %}
+                                </td>
+                                {% else %}
+                                <td><small class="text-muted">{{ student.district }}, {{ student.region }}</small></td>
+                                <td>{{ student.gpa }}</td>
+                                {% endif %}
+                                <td>
+                                    {% if student.is_active %}
+                                    <span class="badge bg-success">{{ ui_labels.active }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ ui_labels.inactive }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    <a href="{{ url_for('students.profile', student_id=student.id) }}" class="btn btn-sm btn-outline-primary" title="الملف"><i class="bi bi-eye"></i></a>
+                                    {% if student.id in editable_ids %}
+                                    <a href="{{ url_for('students.edit', student_id=student.id) }}" class="btn btn-sm btn-outline-warning" title="تعديل"><i class="bi bi-pencil"></i></a>
+                                    {% endif %}
+                                    {% if user_can('manage_evaluations') %}
+                                    <a href="{{ url_for('evaluations.daily', student_id=student.id) }}" class="btn btn-sm btn-outline-success" title="محاسبة"><i class="bi bi-clipboard-check"></i></a>
+                                    {% endif %}
+                                    {% if student.id in manageable_ids %}
+                                    {% if student.is_active %}
+                                    <form method="POST" action="{{ url_for('students.deactivate', student_id=student.id) }}" class="d-inline"
+                                        onsubmit="return confirm('تعطيل هذا الطالب؟')">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="تعطيل"><i class="bi bi-person-x"></i></button>
+                                    </form>
+                                    {% else %}
+                                    <form method="POST" action="{{ url_for('students.activate', student_id=student.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-success" title="تفعيل"><i class="bi bi-person-check"></i></button>
+                                    </form>
+                                    {% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="alert alert-info">لا يوجد طلاب مطابقون للفلتر المحدد.</div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if user_can('manage_students') %}
+<script>
+(function () {
+    const form = document.getElementById('bulkStudentForm');
+    if (!form) return;
+
+    const toolbar = document.getElementById('bulkToolbar');
+    const countEl = document.getElementById('bulkSelectedCount');
+    const actionInput = document.getElementById('bulkActionInput');
+    const checks = () => Array.from(document.querySelectorAll('.student-bulk-check'));
+
+    function selectedChecks() {
+        return checks().filter((c) => c.checked);
+    }
+
+    function updateToolbar() {
+        const n = selectedChecks().length;
+        countEl.textContent = n;
+        toolbar.classList.toggle('d-none', n === 0);
+    }
+
+    checks().forEach((c) => c.addEventListener('change', updateToolbar));
+
+    document.querySelectorAll('.select-all-class').forEach((master) => {
+        master.addEventListener('change', () => {
+            const table = master.closest('table');
+            table.querySelectorAll('.student-bulk-check').forEach((c) => {
+                c.checked = master.checked;
+            });
+            updateToolbar();
+        });
+    });
+
+    document.getElementById('bulkClearBtn')?.addEventListener('click', () => {
+        checks().forEach((c) => { c.checked = false; });
+        document.querySelectorAll('.select-all-class').forEach((m) => { m.checked = false; });
+        updateToolbar();
+    });
+
+    function submitBulk(action, message) {
+        const selected = selectedChecks();
+        if (!selected.length) {
+            alert('يرجى تحديد طالب واحد على الأقل.');
+            return;
+        }
+        if (!confirm(message.replace('{n}', selected.length))) return;
+        actionInput.value = action;
+        form.submit();
+    }
+
+    document.getElementById('bulkDeactivateBtn')?.addEventListener('click', () => {
+        submitBulk('deactivate', 'تعطيل {n} طالب/طلاب؟ لن يظهروا في القوائم النشطة.');
+    });
+
+    document.getElementById('bulkActivateBtn')?.addEventListener('click', () => {
+        submitBulk('activate', 'تفعيل {n} طالب/طلاب؟');
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

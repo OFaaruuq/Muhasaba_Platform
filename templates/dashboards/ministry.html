@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{{ org_labels.central_dashboard_title }} - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4"><i class="bi bi-building"></i> {{ org_labels.central_dashboard_title }}</h2>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card stat-card bg-primary text-white">
+                <div class="card-body d-flex align-items-center">
+                    <i class="bi bi-building stat-icon me-3"></i>
+                    <div>
+                        <h3 class="mb-0">{{ schools_count }}</h3>
+                        <small>مدرسة مسجلة</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card bg-success text-white">
+                <div class="card-body d-flex align-items-center">
+                    <i class="bi bi-people stat-icon me-3"></i>
+                    <div>
+                        <h3 class="mb-0">{{ students_count }}</h3>
+                        <small>طالب</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card bg-info text-white">
+                <div class="card-body d-flex align-items-center">
+                    <i class="bi bi-person-workspace stat-icon me-3"></i>
+                    <div>
+                        <h3 class="mb-0">{{ teachers_count }}</h3>
+                        <small>معلم</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>المدارس المسجلة</span>
+            <a href="{{ url_for('schools.create') }}" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus"></i> تسجيل مدرسة
+            </a>
+        </div>
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>المدرسة</th>
+                        <th>الرمز</th>
+                        <th>المنطقة</th>
+                        <th>عدد الطلاب</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in school_stats %}
+                    <tr>
+                        <td>{{ item.school.name_ar }}</td>
+                        <td>{{ item.school.code }}</td>
+                        <td>{{ item.school.region or '-' }}</td>
+                        <td>{{ item.students }}</td>
+                        <td>
+                            <a href="{{ url_for('schools.detail', school_id=item.school.id) }}" class="btn btn-sm btn-outline-primary">عرض</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

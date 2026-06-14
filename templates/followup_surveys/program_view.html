@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}عرض متابعة البرنامج التربوي{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <h2><i class="bi bi-journal-check"></i> متابعة البرنامج التربوي</h2>
+        <div>
+            {% if current_user.is_teacher and current_user.teacher_profile and current_user.teacher_profile.id == teacher.id %}
+            <a href="{{ url_for('followup_surveys.program_form', year=period_year, month=period_month) }}"
+                class="btn btn-primary btn-sm"><i class="bi bi-pencil"></i> تعديل</a>
+            {% elif current_user.is_school_manager or current_user.is_platform_admin or current_user.is_super_admin %}
+            <a href="{{ url_for('followup_surveys.program_form_admin', teacher_id=teacher.id, year=period_year, month=period_month) }}"
+                class="btn btn-primary btn-sm"><i class="bi bi-pencil"></i> تعديل</a>
+            {% endif %}
+            <a href="{{ url_for('followup_surveys.index', tab='program', year=period_year, month=period_month) }}"
+                class="btn btn-outline-secondary btn-sm">← رجوع</a>
+        </div>
+    </div>
+    <p class="text-muted">{{ teacher.full_name_ar or teacher.full_name }} — {{ period_month }}/{{ period_year }}</p>
+
+    {% for code, title, subtitle, fields in program_sections %}
+    <div class="card mb-3">
+        <div class="card-header">
+            <strong>{{ title }}</strong>
+            {% if subtitle %}<br><small class="text-muted fw-normal">{{ subtitle }}</small>{% endif %}
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for field, label in fields %}
+            <li class="list-group-item d-flex justify-content-between align-items-start gap-3">
+                <span>{{ label }}</span>
+                <span class="badge bg-light text-dark text-nowrap">{{ bool_label(survey|attr(field)) }}</span>
+            </li>
+            {% endfor %}
+            {% if code == 'latecomers' and survey.latecomers_notes %}
+            <li class="list-group-item">
+                <strong>ملاحظات إضافية:</strong>
+                <p class="mb-0 mt-1">{{ survey.latecomers_notes }}</p>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}تسجيل الحضور - {{ class_.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-calendar-check"></i> تسجيل الحضور — {{ class_.name }}</h2>
+            <p class="text-muted mb-0">{{ today }} · {{ class_.grade.name_ar if class_.grade else '' }}</p>
+        </div>
+        <a href="{{ url_for('attendance.index', date=today.isoformat()) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-right"></i> رجوع للحضور
+        </a>
+    </div>
+
+    {% if team_status and not team_status.is_complete %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        {{ team_status.pending_count }} طالب لم يُسجَّل حضورهم بعد في هذه المجموعة.
+    </div>
+    {% endif %}
+
+    {% if time_settings.enabled %}
+    <div class="alert alert-light border mb-4">
+        <i class="bi bi-clock"></i>
+        <strong>قواعد الوقت:</strong>
+        بداية {{ time_settings.session_start }} —
+        حاضر حتى {{ time_settings.on_time_until }} —
+        متأخر حتى {{ time_settings.late_until }} —
+        غائب بعد {{ time_settings.absent_after }}
+        {% if time_settings.auto_suggest %}
+        <span class="badge bg-info ms-1">اقتراح تلقائي مفعّل</span>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if not students %}
+    <div class="alert alert-info">لا يوجد طلاب نشطون في هذه المجموعة.</div>
+    {% else %}
+    <div class="card">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span>فريق الطلاب ({{ students|length }})</span>
+            <div class="d-flex gap-2 align-items-center">
+                {% if team_status %}
+                <span class="badge bg-{% if team_status.is_complete %}success{% else %}warning text-dark{% endif %}">
+                    {{ team_status.recorded_count }}/{{ team_status.student_count }} مسجّل
+                </span>
+                {% endif %}
+                {% if time_settings.record_time %}
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="applyNowToAll">
+                    <i class="bi bi-clock"></i> الوقت الحالي للجميع
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="POST" id="attendanceForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="date" value="{{ today.isoformat() }}">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الطالب</th>
+                            <th>الرقم</th>
+                            {% if time_settings.record_time %}<th>وقت الحضور</th>{% endif %}
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr data-student-id="{{ student.id }}">
+                            <td>{{ loop.index }}</td>
+                            <td>{{ student.full_name_ar or student.full_name }}</td>
+                            <td><small class="text-muted">{{ student.student_id }}</small></td>
+                            {% if time_settings.record_time %}
+                            <td>
+                                <input type="time" name="time_{{ student.id }}"
+                                    class="form-control form-control-sm student-time" style="width:120px"
+                                    value="{{ existing_times.get(student.id, '') }}">
+                            </td>
+                            {% endif %}
+                            <td>
+                                <select name="status_{{ student.id }}" class="form-select form-select-sm student-status" style="width:auto">
+                                    {% for value, label in statuses %}
+                                    <option value="{{ value }}" {% if existing.get(student.id) == value %}selected{% elif not existing.get(student.id) and value == default_status %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <input type="hidden" name="manual_{{ student.id }}" class="manual-flag" value="">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-save"></i> حفظ حضور الفريق
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if time_settings.enabled and time_settings.auto_suggest %}
+<script>
+(function () {
+    const rules = {{ status_time_rules | tojson }};
+    const globalPolicy = {
+        onTimeUntil: {{ time_settings.on_time_until | tojson }},
+        lateUntil: {{ time_settings.late_until | tojson }},
+        absentAfter: {{ time_settings.absent_after | tojson }},
+    };
+
+    function parseTime(str) {
+        if (!str) return null;
+        const p = str.split(':');
+        return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
+    }
+
+    function suggestStatus(minutes) {
+        for (const rule of rules) {
+            if (!rule.time_from && !rule.time_to) continue;
+            const from = rule.time_from ? parseTime(rule.time_from) : 0;
+            const to = rule.time_to ? parseTime(rule.time_to) : 24 * 60 - 1;
+            if (minutes >= from && minutes <= to) return rule.code;
+        }
+        const onTime = parseTime(globalPolicy.onTimeUntil);
+        const late = parseTime(globalPolicy.lateUntil);
+        const absent = parseTime(globalPolicy.absentAfter);
+        if (onTime !== null && minutes <= onTime) return 'present';
+        if (late !== null && minutes <= late) return 'late';
+        if (absent !== null && minutes >= absent) return 'absent';
+        return null;
+    }
+
+    function applySuggestion(row) {
+        const timeInput = row.querySelector('.student-time');
+        const statusSelect = row.querySelector('.student-status');
+        if (!timeInput || !statusSelect || !timeInput.value) return;
+        const minutes = parseTime(timeInput.value);
+        if (minutes === null) return;
+        const code = suggestStatus(minutes);
+        if (code) {
+            for (const opt of statusSelect.options) {
+                if (opt.value === code) {
+                    statusSelect.value = code;
+                    break;
+                }
+            }
+        }
+    }
+
+    document.querySelectorAll('tbody tr[data-student-id]').forEach(row => {
+        const timeInput = row.querySelector('.student-time');
+        const statusSelect = row.querySelector('.student-status');
+        const manualFlag = row.querySelector('.manual-flag');
+        if (timeInput) {
+            if (!timeInput.value) {
+                const now = new Date();
+                timeInput.value = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+            }
+            timeInput.addEventListener('change', () => {
+                if (manualFlag) manualFlag.value = '';
+                applySuggestion(row);
+            });
+            applySuggestion(row);
+        }
+        if (statusSelect && manualFlag) {
+            statusSelect.addEventListener('change', () => { manualFlag.value = '1'; });
+        }
+    });
+
+    const applyAll = document.getElementById('applyNowToAll');
+    if (applyAll) {
+        applyAll.addEventListener('click', () => {
+            const now = new Date();
+            const val = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+            document.querySelectorAll('.student-time').forEach(input => {
+                input.value = val;
+                input.dispatchEvent(new Event('change'));
+            });
+        });
+    }
+})();
+</script>
+{% elif time_settings.record_time %}
+<script>
+(function () {
+    document.querySelectorAll('.student-time').forEach(input => {
+        if (!input.value) {
+            const now = new Date();
+            input.value = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        }
+    });
+    const applyAll = document.getElementById('applyNowToAll');
+    if (applyAll) {
+        applyAll.addEventListener('click', () => {
+            const now = new Date();
+            const val = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+            document.querySelectorAll('.student-time').forEach(input => { input.value = val; });
+        });
+    }
+})();
+</script>
+{% endif %}
+{% endblock %}

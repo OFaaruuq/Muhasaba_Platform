@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}الاختبارات - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between mb-4">
+        <h2><i class="bi bi-journal-text"></i> الاختبارات</h2>
+        {% if current_user.is_teacher or current_user.is_school_manager %}
+        <a href="{{ url_for('exams.create') }}" class="btn btn-primary">إنشاء اختبار</a>
+        {% endif %}
+    </div>
+    <div class="card"><div class="card-body">
+        <table class="table table-hover">
+            <thead><tr><th>العنوان</th><th>النوع</th><th>المادة</th><th>التاريخ</th><th>منشور</th><th></th></tr></thead>
+            <tbody>
+                {% for exam in exams %}
+                <tr>
+                    <td>{{ exam.title_ar or exam.title }}</td>
+                    <td>{{ exam_type_labels.get(exam.exam_type, exam.exam_type) }}</td>
+                    <td>{{ exam.subject.name_ar if exam.subject else '-' }}</td>
+                    <td>{{ exam.exam_date or '-' }}</td>
+                    <td>{% if exam.is_published %}<span class="badge bg-success">{{ ui_labels.yes }}</span>{% else %}<span class="badge bg-secondary">{{ ui_labels.no }}</span>{% endif %}</td>
+                    <td><a href="{{ url_for('exams.detail', exam_id=exam.id) }}" class="btn btn-sm btn-outline-primary">عرض</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div></div>
+</div>
+{% endblock %}

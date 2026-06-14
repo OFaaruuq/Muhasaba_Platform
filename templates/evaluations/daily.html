@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}محاسبة يومية - {{ student.full_name_ar }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">محاسبة يومية: {{ student.full_name_ar }} ({{ today }})</h2>
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {% for category, items in criteria.items() %}
+        <div class="card mb-4">
+            <div class="card-header">{{ category_labels.get(category, category) }}</div>
+            <div class="card-body">
+                {% for key, label_ar in items %}
+                <div class="row mb-3 align-items-center">
+                    <div class="col-md-4">{{ label_ar }}</div>
+                    <div class="col-md-8">
+                        <div class="btn-group" role="group">
+                            {% for value, label in ratings %}
+                            <input type="radio" class="btn-check" name="{{ category }}_{{ key }}" id="{{ category }}_{{ key }}_{{ value }}" value="{{ value }}"
+                                {% if existing.get(key) == value %}checked{% elif not existing.get(key) and value == default_rating %}checked{% endif %}>
+                            <label class="btn btn-outline-primary btn-sm" for="{{ category }}_{{ key }}_{{ value }}">{{ label }}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <label class="form-label">ملاحظات</label>
+                <textarea name="notes" class="form-control" rows="3">{{ evaluation.notes if evaluation else '' }}</textarea>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-save"></i> حفظ التقييم
+        </button>
+        <a href="{{ url_for('evaluations.index') }}" class="btn btn-outline-secondary">إلغاء</a>
+    </form>
+</div>
+{% endblock %}

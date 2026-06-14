@@ -1,0 +1,64 @@
+{# Requires: nav_endpoint, period_ctx, period_year, period_month, nav_filter (dict without year/month), show_grade_filters #}
+<div class="card shadow-sm mb-4 followup-period-nav">
+    <div class="card-body py-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <a class="btn btn-outline-secondary btn-sm"
+                    href="{{ url_for(nav_endpoint, year=period_ctx.prev_year, month=period_ctx.prev_month, **nav_filter) }}">
+                    <i class="bi bi-chevron-right"></i> السابق
+                </a>
+                <h5 class="mb-0 px-2 text-primary fw-bold">{{ period_ctx.period_label }}</h5>
+                <a class="btn btn-outline-secondary btn-sm"
+                    href="{{ url_for(nav_endpoint, year=period_ctx.next_year, month=period_ctx.next_month, **nav_filter) }}">
+                    التالي <i class="bi bi-chevron-left"></i>
+                </a>
+                {% if not period_ctx.is_current_period %}
+                <a class="btn btn-link btn-sm text-decoration-none"
+                    href="{{ url_for(nav_endpoint, **nav_filter) }}">
+                    <i class="bi bi-calendar-event"></i> الشهر الحالي
+                </a>
+                {% endif %}
+            </div>
+            <form method="GET" class="d-flex flex-wrap align-items-end gap-2">
+                {% for key, val in nav_filter.items() %}
+                {% if val is not none and val != '' %}
+                <input type="hidden" name="{{ key }}" value="{{ val }}">
+                {% endif %}
+                {% endfor %}
+                <div>
+                    <label class="form-label small mb-0 text-muted">السنة</label>
+                    <input type="number" name="year" class="form-control form-control-sm" style="width:88px" value="{{ period_year }}">
+                </div>
+                <div>
+                    <label class="form-label small mb-0 text-muted">الشهر</label>
+                    <select name="month" class="form-select form-select-sm" style="width:128px">
+                        {% for m, label in arabic_months.items() %}
+                        <option value="{{ m }}" {% if m == period_month %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if show_grade_filters and grades %}
+                <div>
+                    <label class="form-label small mb-0 text-muted">المستوى</label>
+                    <select name="grade_id" class="form-select form-select-sm" style="min-width:110px">
+                        <option value="">الكل</option>
+                        {% for grade in grades %}
+                        <option value="{{ grade.id }}" {% if selected_grade == grade.id %}selected{% endif %}>{{ grade.name_ar }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label small mb-0 text-muted">المجموعة</label>
+                    <select name="class_id" class="form-select form-select-sm" style="min-width:110px">
+                        <option value="">الكل</option>
+                        {% for class in classes %}
+                        <option value="{{ class.id }}" {% if selected_class == class.id %}selected{% endif %}>{{ class.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <button type="submit" class="btn btn-primary btn-sm px-3"><i class="bi bi-funnel"></i> تطبيق</button>
+            </form>
+        </div>
+    </div>
+</div>

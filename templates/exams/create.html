@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}إنشاء اختبار - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">إنشاء اختبار</h2>
+    <form method="POST" id="examForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="card mb-4"><div class="card-body row g-3">
+            <div class="col-md-4"><label class="form-label">العنوان</label><input name="title" class="form-control" required></div>
+            <div class="col-md-2"><label class="form-label">النوع</label>
+                <select name="exam_type" class="form-select">
+                    {% for value, label in exam_types %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3"><label class="form-label">الفصل</label><select name="class_id" class="form-select" required>{% for c in classes %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
+            <div class="col-md-3"><label class="form-label">المادة</label><select name="subject_id" class="form-select" required>{% for s in subjects %}<option value="{{ s.id }}">{{ s.name_ar }}</option>{% endfor %}</select></div>
+            <div class="col-md-2"><label class="form-label">التاريخ</label><input name="exam_date" type="date" class="form-control"></div>
+            <div class="col-md-2"><label class="form-label">الدرجة الكاملة</label><input name="total_marks" type="number" value="{{ default_total_marks }}" class="form-control"></div>
+            <div class="col-md-2"><label class="form-label">درجة النجاح</label><input name="passing_marks" type="number" value="{{ default_passing_marks }}" class="form-control"></div>
+            <div class="col-md-2"><label class="form-label">المدة (دقيقة)</label><input name="duration_minutes" type="number" value="{{ default_duration }}" class="form-control"></div>
+            <div class="col-md-2 form-check mt-4"><input type="checkbox" name="is_published" class="form-check-input" id="pub"><label for="pub">نشر</label></div>
+        </div></div>
+        <div id="questions"></div>
+        <button type="button" class="btn btn-outline-primary mb-3" onclick="addQ()">+ سؤال</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const questionTypes = {{ question_types | tojson }};
+function addQ() {
+    const d = document.createElement('div');
+    d.className = 'card mb-2';
+    let typeOptions = questionTypes.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+    d.innerHTML = `<div class="card-body row g-2">
+        <div class="col-md-5"><input name="question_text[]" class="form-control" placeholder="السؤال" required></div>
+        <div class="col-md-2"><select name="question_type[]" class="form-select">${typeOptions}</select></div>
+        <div class="col-md-1"><input name="question_marks[]" type="number" value="1" class="form-control"></div>
+        <div class="col-md-2"><input name="correct_answer[]" class="form-control" placeholder="الإجابة"></div>
+        <div class="col-md-2"><input name="options[]" class="form-control" placeholder="خيارات|مفصولة"></div>
+    </div>`;
+    document.getElementById('questions').appendChild(d);
+}
+addQ();
+</script>
+{% endblock %}

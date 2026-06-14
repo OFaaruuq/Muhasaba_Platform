@@ -1,0 +1,40 @@
+{% macro yes_no(name, label, value=none, prefix='') %}
+<div class="row mb-3 align-items-center">
+    <div class="col-md-6">{{ label }}</div>
+    <div class="col-md-6">
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="{{ name }}" id="{{ prefix }}{{ name }}_yes" value="1"
+                {% if value is sameas true %}checked{% endif %}>
+            <label class="form-check-label" for="{{ prefix }}{{ name }}_yes">{% if ui_labels is defined %}{{ ui_labels.yes }}{% else %}نعم{% endif %}</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="{{ name }}" id="{{ prefix }}{{ name }}_no" value="0"
+                {% if value is sameas false %}checked{% endif %}>
+            <label class="form-check-label" for="{{ prefix }}{{ name }}_no">{% if ui_labels is defined %}{{ ui_labels.no }}{% else %}لا{% endif %}</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="{{ name }}" id="{{ prefix }}{{ name }}_skip" value=""
+                {% if value is none %}checked{% endif %}>
+            <label class="form-check-label text-muted" for="{{ prefix }}{{ name }}_skip">{% if ui_labels is defined %}{{ ui_labels.not_answered }}{% else %}لم يُجب{% endif %}</label>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro frequency_rating(name, label, choices, value=none) %}
+<div class="row mb-3 align-items-center">
+    <div class="col-md-5">{{ label }}</div>
+    <div class="col-md-7">
+        <div class="btn-group flex-wrap" role="group">
+            {% for code, lbl in choices %}
+            <input type="radio" class="btn-check" name="{{ name }}" id="{{ name }}_{{ code }}" value="{{ code }}"
+                {% if value == code %}checked{% endif %}>
+            <label class="btn btn-outline-primary btn-sm" for="{{ name }}_{{ code }}">{{ lbl }}</label>
+            {% endfor %}
+            <input type="radio" class="btn-check" name="{{ name }}" id="{{ name }}_skip" value=""
+                {% if not value %}checked{% endif %}>
+            <label class="btn btn-outline-secondary btn-sm" for="{{ name }}_skip">{% if ui_labels is defined %}{{ ui_labels.not_answered }}{% else %}لم يُجب{% endif %}</label>
+        </div>
+    </div>
+</div>
+{% endmacro %}

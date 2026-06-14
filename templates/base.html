@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ platform_name }}{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    {% if current_user.is_authenticated %}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{{ url_for('dashboards.index') }}">
+                <i class="bi bi-mortarboard-fill me-2"></i>{{ platform_name }}
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboards.index') }}">
+                            <i class="bi bi-speedometer2"></i> {{ nav_labels.dashboard }}
+                        </a>
+                    </li>
+                    {% if current_user.is_super_admin %}
+                    <li class="nav-item">
+                        <a class="nav-link text-warning" href="{{ url_for('super_admin.index') }}">
+                            <i class="bi bi-shield-lock"></i> {{ nav_labels.super_admin }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if user_can_any('view_all_schools', 'manage_school') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('schools.index') }}">
+                            <i class="bi bi-building"></i> {{ nav_labels.schools }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if user_can_any('view_students', 'manage_students') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('students.index') }}">
+                            <i class="bi bi-people"></i> {{ nav_labels.students }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if user_can('manage_teachers') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('teachers.index') }}">
+                            <i class="bi bi-person-workspace"></i> {{ nav_labels.teachers }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if user_can_any('view_attendance', 'record_attendance') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('attendance.index') }}">
+                            <i class="bi bi-calendar-check"></i> {{ nav_labels.attendance }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if user_can('manage_evaluations') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('evaluations.index') }}">
+                            <i class="bi bi-clipboard-check"></i> {{ nav_labels.evaluations }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if user_can('self_assess') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('evaluations.self_assess') }}">
+                            <i class="bi bi-person-check"></i> {{ nav_labels.self_assess }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('questionnaires.index') }}">
+                            <i class="bi bi-question-circle"></i> {{ nav_labels.questionnaires }}
+                        </a>
+                    </li>
+                    {% if user_can_any('manage_followup_surveys', 'view_followup_surveys') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('followup_surveys.index') }}">
+                            <i class="bi bi-clipboard-data"></i> {{ nav_labels.followup_surveys }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('exams.index') }}">
+                            <i class="bi bi-journal-text"></i> {{ nav_labels.exams }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('kpi.index') }}">
+                            <i class="bi bi-graph-up"></i> {{ nav_labels.kpi }}
+                        </a>
+                    </li>
+                    {% if user_can('manage_evaluations') %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">{{ nav_labels.more }}</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('evaluations.reading_index') }}">{{ nav_labels.reading }}</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('evaluations.behavior_index') }}">{{ nav_labels.behavior }}</a></li>
+                            {% if user_can('view_ai_assistant') %}
+                            <li><a class="dropdown-item" href="{{ url_for('ai.index') }}">
+                                <i class="bi bi-robot"></i> {{ nav_labels.ai_assistant }}
+                            </a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    {% endif %}
+                    {% if user_can('view_reports') or user_can('view_own_kpi') or user_can('view_children_kpi') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('reports.index') }}">
+                            <i class="bi bi-file-earmark-bar-graph"></i> {{ nav_labels.reports }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if user_can_any('manage_platform_config', 'manage_global_config') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.index') }}">
+                            <i class="bi bi-gear"></i> الإعدادات
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if user_can('manage_users') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('users.index') }}">
+                            <i class="bi bi-people-fill"></i> المستخدمون
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link position-relative" href="{{ url_for('notifications.index') }}">
+                            <i class="bi bi-bell"></i>
+                            {% if unread_notifications %}<span class="position-absolute top-0 start-0 badge rounded-pill bg-danger">{{ unread_notifications }}</span>{% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i>
+                            {{ current_user.full_name_ar or current_user.full_name }}
+                            <span class="badge bg-light text-primary ms-1">{{ current_user.role_name_ar }}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-start">
+                            <li><a class="dropdown-item" href="{{ url_for('notifications.index') }}">
+                                <i class="bi bi-bell"></i> الإشعارات
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
+                                <i class="bi bi-box-arrow-left"></i> تسجيل الخروج
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <main class="{% if current_user.is_authenticated %}container-fluid py-4{% endif %}">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="container mt-3">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {% if current_user.is_authenticated %}
+    <footer class="footer mt-auto py-3 bg-light border-top">
+        <div class="container text-center text-muted">
+            <small>{{ platform_tagline }}</small>
+        </div>
+    </footer>
+    {% endif %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}سجل التدقيق - المشرف الأعلى{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between mb-4">
+        <h2><i class="bi bi-journal-text"></i> سجل التدقيق</h2>
+        <a href="{{ url_for('super_admin.index') }}" class="btn btn-outline-secondary">العودة</a>
+    </div>
+    <p class="text-muted">آخر 30 يوماً — {{ logs|length }} سجل</p>
+    <div class="card"><div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+            <thead><tr><th>التاريخ</th><th>المستخدم</th><th>الوحدة</th><th>الإجراء</th><th>التفاصيل</th><th>IP</th></tr></thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td><small>{{ log.created_at.strftime('%Y-%m-%d %H:%M') if log.created_at else '—' }}</small></td>
+                    <td>{{ log.user.full_name_ar if log.user else '—' }}</td>
+                    <td>{{ log.module or '—' }}</td>
+                    <td><span class="badge bg-light text-dark">{{ audit_action_label(log.action) }}</span></td>
+                    <td>{{ log.details or '—' }}</td>
+                    <td><small>{{ log.ip_address or '—' }}</small></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-muted p-3">لا توجد سجلات.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div></div>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}المحاسبة الذاتية - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="mb-0"><i class="bi bi-person-check"></i> محاسبتي الذاتية ({{ today }})</h2>
+        {% if student %}
+        <a href="{{ url_for('students.self_edit', student_id=student.id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-pencil-square"></i> تعديل بياناتي
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">تقييم يومي</div>
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        {% for item in self_assess_items %}
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="{{ item.code }}" id="{{ item.code }}"
+                                {% if answers.get(item.code) %}checked{% endif %}>
+                            <label class="form-check-label" for="{{ item.code }}">{{ item.name_ar }}</label>
+                        </div>
+                        {% endfor %}
+                        <div class="mb-3">
+                            <label class="form-label">تأملاتي اليوم</label>
+                            <textarea name="reflection" class="form-control" rows="3">{{ assessment.reflection if assessment else '' }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">كيف أتحسن غداً؟</label>
+                            <textarea name="improvement_plan" class="form-control" rows="3">{{ assessment.improvement_plan if assessment else '' }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> حفظ المحاسبة
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header">سجل الأسبوع</div>
+                <div class="card-body">
+                    {% for h in history %}
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span>{{ h.date }}</span>
+                        <span class="badge bg-primary">{{ h.self_score }}%</span>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">لا يوجد سجل بعد.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

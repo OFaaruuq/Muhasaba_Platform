@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}نتائج الاستبيان - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>نتائج: {{ questionnaire.title_ar or questionnaire.title }}</h2>
+            <p class="text-muted mb-0">{{ category_labels.get(questionnaire.category, '') }} — {{ summary.completed }}/{{ summary.eligible }} طالب أكمل ({{ summary.rate }}%)</p>
+        </div>
+        <a href="{{ url_for('questionnaires.detail', questionnaire_id=questionnaire.id) }}" class="btn btn-outline-secondary">العودة</a>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">حالة الطلاب</div>
+                <div class="card-body p-0" style="max-height:320px;overflow:auto">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>الطالب</th><th>التقدم</th></tr></thead>
+                        <tbody>
+                            {% for row in student_status %}
+                            <tr>
+                                <td>{{ row.student.full_name_ar or row.student.full_name }}</td>
+                                <td>
+                                    {% if row.completion.complete %}<span class="badge bg-success">{{ ui_labels.complete }}</span>
+                                    {% elif row.completion.answered %}<span class="badge bg-warning text-dark">{{ row.completion.percent }}%</span>
+                                    {% else %}<span class="badge bg-secondary">{{ ui_labels.not_started }}</span>{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">ملخص الإكمال</div>
+                <div class="card-body">
+                    <canvas id="completionChart" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% for item in results_data %}
+    {% set stats = item.stats %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between">
+            <span>{{ item.question.text_ar or item.question.text }}</span>
+            <span class="badge bg-light text-dark">{{ type_labels.get(item.question.question_type, item.question.question_type) }}</span>
+        </div>
+        <div class="card-body">
+            {% if stats.type in ['yes_no', 'rating', 'multiple_choice'] and stats.breakdown %}
+            <div class="row g-4">
+                <div class="col-md-5">
+                    <canvas id="chart-{{ loop.index }}" height="180"></canvas>
+                    {% if stats.type == 'rating' and stats.average %}
+                    <p class="text-center mt-2">المتوسط: <strong>{{ stats.average }}</strong></p>
+                    {% endif %}
+                </div>
+                <div class="col-md-7">
+                    <table class="table table-sm">
+                        <thead><tr><th>الخيار</th><th>العدد</th><th>النسبة</th></tr></thead>
+                        <tbody>
+                            {% for b in stats.breakdown %}
+                            <tr>
+                                <td>{{ b.label }}</td>
+                                <td>{{ b.count }}</td>
+                                <td>
+                                    <div class="progress" style="height:6px">
+                                        <div class="progress-bar" style="width:{{ b.percent }}%"></div>
+                                    </div>
+                                    <small>{{ b.percent }}%</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <h6 class="mt-3">الإجابات الفردية ({{ stats.total }})</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                    <thead><tr><th>الطالب</th><th>الإجابة</th></tr></thead>
+                    <tbody>
+                        {% for row in item.rows %}
+                        <tr>
+                            <td>{{ row.student.full_name_ar if row.student else '—' }}</td>
+                            <td>{{ row.display }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="2" class="text-muted">لا إجابات بعد</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+new Chart(document.getElementById('completionChart'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ [ui_labels.complete, ui_labels.partial, ui_labels.not_started]|tojson }},
+        datasets: [{
+            data: [{{ summary.completed }}, {{ summary.in_progress }}, {{ summary.eligible - summary.completed - summary.in_progress }}],
+            backgroundColor: ['#198754', '#ffc107', '#6c757d']
+        }]
+    },
+    options: { plugins: { legend: { position: 'bottom' } } }
+});
+
+{% for item in results_data %}
+{% if item.stats.breakdown %}
+new Chart(document.getElementById('chart-{{ loop.index }}'), {
+    type: '{{ "bar" if item.stats.type == "rating" else "pie" }}',
+    data: {
+        labels: [{% for b in item.stats.breakdown %}'{{ b.label }}',{% endfor %}],
+        datasets: [{
+            data: [{% for b in item.stats.breakdown %}{{ b.count }},{% endfor %}],
+            backgroundColor: ['#0d6efd','#198754','#ffc107','#dc3545','#6f42c1','#20c997']
+        }]
+    },
+    options: { plugins: { legend: { display: {{ 'false' if item.stats.type == 'rating' else 'true' }} } } }
+});
+{% endif %}
+{% endfor %}
+</script>
+{% endblock %}

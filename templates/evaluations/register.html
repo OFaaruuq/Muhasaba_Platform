@@ -1,0 +1,574 @@
+{% extends "base.html" %}
+{% block title %}تسجيل طالب - المحاسبة - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-person-plus"></i> تسجيل طالب جديد</h2>
+            {% if reg_config.is_concise %}
+            <p class="text-muted mb-0 small">
+                <i class="bi bi-lightning"></i> نموذج مختصر — الحقول الضرورية فقط
+            </p>
+            {% endif %}
+        </div>
+        <a href="{{ url_for('evaluations.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-right"></i> العودة للمحاسبة
+        </a>
+    </div>
+
+    <form method="POST" id="registerForm" action="{{ url_for('evaluations.register') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                {% set personal_fields = reg_config.fields | selectattr('section', 'equalto', 'personal') | selectattr('visible') | list %}
+                {% if personal_fields %}
+                <div class="card mb-4">
+                    <div class="card-header">{{ reg_config.section_labels.personal }}</div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            {% for field in personal_fields %}
+                            <div class="col-md-{% if field.input == 'textarea' %}12{% elif field.key == 'gender' %}4{% else %}6{% endif %}">
+                                <label class="form-label">
+                                    {{ field.label }}
+                                    {% if field.required %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                {% if field.input == 'gender' %}
+                                <select name="gender" class="form-select" {% if field.required %}required{% endif %}>
+                                    <option value="">— اختر —</option>
+                                    {% for code, label in gender_choices %}
+                                    <option value="{{ code }}" {% if form.get('gender') == code %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                {% elif field.input == 'date' %}
+                                <input type="date" name="{{ field.key }}" class="form-control"
+                                    {% if field.required %}required{% endif %}
+                                    value="{{ form.get(field.key, '') }}">
+                                {% else %}
+                                <input type="text" name="{{ field.key }}" class="form-control"
+                                    {% if field.required %}required{% endif %}
+                                    {% if field.placeholder %}placeholder="{{ field.placeholder }}"{% endif %}
+                                    value="{{ form.get(field.key, '') }}">
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% set location_fields = reg_config.fields | selectattr('section', 'equalto', 'location') | selectattr('visible') | list %}
+                {% if location_fields %}
+                <div class="card mb-4">
+                    <div class="card-header"><i class="bi bi-geo-alt"></i> {{ reg_config.section_labels.location }}</div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            {% for field in location_fields %}
+                            <div class="col-md-{% if field.input == 'textarea' %}12{% else %}4{% endif %}">
+                                <label class="form-label">
+                                    {{ field.label }}
+                                    {% if field.required %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                {% if field.input == 'textarea' %}
+                                <textarea name="{{ field.key }}" class="form-control" rows="2"
+                                    {% if field.required %}required{% endif %}
+                                    placeholder="الشارع، رقم المنزل، معلم قريب...">{{ form.get(field.key, '') }}</textarea>
+                                {% else %}
+                                <input type="text" name="{{ field.key }}" class="form-control"
+                                    {% if field.required %}required{% endif %}
+                                    value="{{ form.get(field.key, '') }}">
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% set account_field = reg_config.fields_map.get('create_account') %}
+                {% if account_field and account_field.visible %}
+                <div class="card">
+                    <div class="card-header">{{ reg_config.section_labels.account }} {% if not account_field.required %}<small class="text-muted">(اختياري)</small>{% endif %}</div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="create_account" id="createAccount"
+                                {% if form.get('create_account') == 'on' %}checked{% endif %}>
+                            <label class="form-check-label" for="createAccount">{{ account_field.label }}</label>
+                        </div>
+                        <div id="accountFields" class="row g-3" style="display:none">
+                            <div class="col-md-4">
+                                <label class="form-label">اسم المستخدم</label>
+                                <input type="text" name="username" class="form-control"
+                                    value="{{ form.get('username', '') }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">كلمة المرور</label>
+                                <input type="password" name="password" class="form-control">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">البريد الإلكتروني</label>
+                                <input type="email" name="email" class="form-control"
+                                    value="{{ form.get('email', '') }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card sticky-top" style="top:1rem">
+                    <div class="card-header">{{ section_labels.academic }}</div>
+                    <div class="card-body">
+                        {% if schools|length > 1 %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label mb-0">
+                                    {{ academic_labels.school_id.label }} <span class="text-danger">*</span>
+                                </label>
+                                {% if can_create_school %}
+                                <button type="button" class="btn btn-sm btn-link p-0" data-bs-toggle="modal" data-bs-target="#createSchoolModal">
+                                    <i class="bi bi-plus-circle"></i> {{ academic_labels.school_id.create_button }}
+                                </button>
+                                {% endif %}
+                            </div>
+                            <select name="school_id" id="schoolSelect" class="form-select" required>
+                                <option value="">{{ academic_labels.school_id.select_empty }}</option>
+                                {% for school in schools %}
+                                <option value="{{ school.id }}"
+                                    {% if (form.get('school_id')|int if form.get('school_id') else default_school) == school.id %}selected{% endif %}>
+                                    {{ school.name_ar }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% else %}
+                        <input type="hidden" name="school_id" id="schoolSelect"
+                            value="{{ schools[0].id if schools else default_school }}">
+                        <p class="text-muted mb-3">
+                            <i class="bi bi-building"></i>
+                            {{ schools[0].name_ar if schools else '' }}
+                        </p>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label mb-0">
+                                    {{ academic_labels.grade_id.label }} <span class="text-danger">*</span>
+                                </label>
+                                {% if can_create_grade_class %}
+                                <button type="button" class="btn btn-sm btn-link p-0" id="openCreateGradeBtn" data-bs-toggle="modal" data-bs-target="#createGradeModal">
+                                    <i class="bi bi-plus-circle"></i> {{ academic_labels.grade_id.create_button }}
+                                </button>
+                                {% endif %}
+                            </div>
+                            <select name="grade_id" id="gradeSelect" class="form-select" required>
+                                <option value="">{{ academic_labels.grade_id.select_empty }}</option>
+                                {% for grade in grades %}
+                                <option value="{{ grade.id }}"
+                                    {% if (form.get('grade_id')|int if form.get('grade_id') else 0) == grade.id %}selected{% endif %}>
+                                    {{ grade.name_ar }} (المستوى {{ grade.level }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label mb-0">
+                                    {{ academic_labels.class_id.label }} <span class="text-danger">*</span>
+                                </label>
+                                {% if can_create_grade_class %}
+                                <button type="button" class="btn btn-sm btn-link p-0" id="openCreateClassBtn" data-bs-toggle="modal" data-bs-target="#createClassModal">
+                                    <i class="bi bi-plus-circle"></i> {{ academic_labels.class_id.create_button }}
+                                </button>
+                                {% endif %}
+                            </div>
+                            <select name="class_id" id="classSelect" class="form-select" required>
+                                <option value="">{{ academic_labels.class_id.select_empty }}</option>
+                                {% for class in classes %}
+                                <option value="{{ class.id }}"
+                                    {% if (form.get('class_id')|int if form.get('class_id') else 0) == class.id %}selected{% endif %}>
+                                    {{ class.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if academic_labels.class_id.hint %}
+                            <div class="form-text">{{ academic_labels.class_id.hint }}</div>
+                            {% endif %}
+                        </div>
+
+                        {% if teacher_field and teacher_field.visible %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label mb-0">
+                                    {{ teacher_field.label }}
+                                    {% if teacher_field.required %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                {% if can_create_teacher %}
+                                <button type="button" class="btn btn-sm btn-link p-0" id="openCreateTeacherBtn" data-bs-toggle="modal" data-bs-target="#createTeacherModal">
+                                    <i class="bi bi-plus-circle"></i> إضافة مسؤول
+                                </button>
+                                {% endif %}
+                            </div>
+                            <select name="responsible_teacher_id" id="teacherSelect" class="form-select"
+                                {% if teacher_field.required %}required{% endif %}>
+                                <option value="">— اختر المسؤول —</option>
+                                {% for t in teachers %}
+                                <option value="{{ t.id }}"
+                                    {% if (form.get('responsible_teacher_id')|int if form.get('responsible_teacher_id') else 0) == t.id %}selected{% endif %}>
+                                    {{ t.full_name_ar or t.full_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <button type="submit" class="btn btn-primary w-100 btn-lg">
+                            <i class="bi bi-person-plus"></i> تسجيل الطالب
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% if can_create_school %}
+<div class="modal fade" id="createSchoolModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ academic_labels.school_id.create_title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">اسم المدرسة بالعربية *</label>
+                    <input type="text" class="form-control" id="newSchoolNameAr">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">رمز المدرسة *</label>
+                    <input type="text" class="form-control" id="newSchoolCode" placeholder="MGD">
+                </div>
+                <div id="createSchoolError" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="saveSchoolBtn">حفظ</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if can_create_grade_class %}
+<div class="modal fade" id="createGradeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ academic_labels.grade_id.create_title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">اسم المستوى بالعربية *</label>
+                    <input type="text" class="form-control" id="newGradeNameAr" placeholder="الصف الخامس">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">رقم المستوى *</label>
+                    <input type="number" class="form-control" id="newGradeLevel" min="1" max="12" value="5">
+                </div>
+                <div id="createGradeError" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="saveGradeBtn">حفظ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="createClassModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ academic_labels.class_id.create_title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">اسم المجموعة / الفصل *</label>
+                    <input type="text" class="form-control" id="newClassName" placeholder="مجموعة أ">
+                </div>
+                <div id="createClassError" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="saveClassBtn">حفظ</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if can_create_teacher %}
+<div class="modal fade" id="createTeacherModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إضافة مسؤول (Mas'uulka)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">الاسم بالعربية *</label>
+                    <input type="text" class="form-control" id="newTeacherNameAr">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">الرقم الوظيفي (اختياري)</label>
+                    <input type="text" class="form-control" id="newTeacherEmployeeId" placeholder="يُولّد تلقائياً">
+                </div>
+                <div id="createTeacherError" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="saveTeacherBtn">حفظ</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const schoolSelect = document.getElementById('schoolSelect');
+    const gradeSelect = document.getElementById('gradeSelect');
+    const classSelect = document.getElementById('classSelect');
+    const teacherSelect = document.getElementById('teacherSelect');
+    const accountCheck = document.getElementById('createAccount');
+    const accountFields = document.getElementById('accountFields');
+    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
+
+    const gradeEmpty = {{ academic_labels.grade_id.select_empty | tojson }};
+    const classEmpty = {{ academic_labels.class_id.select_empty | tojson }};
+
+    function getSchoolId() {
+        return schoolSelect.value || schoolSelect.getAttribute('value');
+    }
+
+    function fetchJson(url, options = {}) {
+        const headers = Object.assign(
+            {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            options.headers || {}
+        );
+        return fetch(url, Object.assign({credentials: 'same-origin', headers}, options))
+            .then(async (r) => {
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(data.error || 'فشل الطلب');
+                return data;
+            });
+    }
+
+    function fillSelect(select, emptyLabel, items, mapFn, selectedId) {
+        if (!select) return;
+        select.innerHTML = `<option value="">${emptyLabel}</option>`;
+        items.forEach((item) => {
+            const opt = document.createElement('option');
+            const mapped = mapFn(item);
+            opt.value = mapped.value;
+            opt.textContent = mapped.label;
+            select.appendChild(opt);
+        });
+        if (selectedId) select.value = String(selectedId);
+    }
+
+    function loadGrades(selectedId) {
+        const schoolId = getSchoolId();
+        if (!schoolId) return Promise.resolve();
+        return fetchJson(`{{ url_for('academic.api_grades') }}?school_id=${schoolId}`)
+            .then((grades) => {
+                fillSelect(gradeSelect, gradeEmpty, grades, (g) => ({
+                    value: g.id,
+                    label: `${g.name_ar} (المستوى ${g.level})`,
+                }), selectedId);
+            });
+    }
+
+    function loadClasses(selectedId) {
+        const schoolId = getSchoolId();
+        const gradeId = gradeSelect.value;
+        fillSelect(classSelect, classEmpty, [], () => ({value: '', label: ''}));
+        if (!schoolId || !gradeId) return Promise.resolve();
+        return fetchJson(`{{ url_for('academic.api_classes') }}?school_id=${schoolId}&grade_id=${gradeId}`)
+            .then((classes) => {
+                fillSelect(classSelect, classEmpty, classes, (c) => ({
+                    value: c.id,
+                    label: c.name,
+                }), selectedId);
+            });
+    }
+
+    function loadTeachers(selectedId) {
+        if (!teacherSelect) return Promise.resolve();
+        const schoolId = getSchoolId();
+        if (!schoolId) return Promise.resolve();
+        return fetchJson(`{{ url_for('academic.api_teachers') }}?school_id=${schoolId}`)
+            .then((teachers) => {
+                fillSelect(teacherSelect, '— اختر المسؤول —', teachers, (t) => ({
+                    value: t.id,
+                    label: t.full_name_ar,
+                }), selectedId);
+            });
+    }
+
+    function refreshAcademicLists() {
+        const gradeId = gradeSelect.value;
+        return loadGrades(gradeId).then(() => loadClasses(classSelect.value)).then(() => loadTeachers(teacherSelect?.value));
+    }
+
+    function onSchoolChange() {
+        gradeSelect.value = '';
+        classSelect.value = '';
+        if (teacherSelect) teacherSelect.value = '';
+        loadGrades().then(loadClasses).then(loadTeachers);
+    }
+
+    if (schoolSelect.tagName === 'SELECT') {
+        schoolSelect.addEventListener('change', onSchoolChange);
+    }
+    gradeSelect.addEventListener('change', () => loadClasses());
+
+    if (getSchoolId()) {
+        refreshAcademicLists();
+    }
+
+    function showModalError(el, message) {
+        if (!el) return;
+        el.textContent = message;
+        el.classList.remove('d-none');
+    }
+
+    function hideModalError(el) {
+        if (!el) return;
+        el.classList.add('d-none');
+        el.textContent = '';
+    }
+
+    function closeModal(id) {
+        const el = document.getElementById(id);
+        if (el && window.bootstrap) {
+            bootstrap.Modal.getOrCreateInstance(el).hide();
+        }
+    }
+
+    const saveSchoolBtn = document.getElementById('saveSchoolBtn');
+    if (saveSchoolBtn) {
+        saveSchoolBtn.addEventListener('click', () => {
+            const err = document.getElementById('createSchoolError');
+            hideModalError(err);
+            fetchJson('{{ url_for("academic.api_create_school") }}', {
+                method: 'POST',
+                body: JSON.stringify({
+                    name_ar: document.getElementById('newSchoolNameAr').value.trim(),
+                    code: document.getElementById('newSchoolCode').value.trim(),
+                }),
+            }).then((school) => {
+                if (schoolSelect.tagName === 'SELECT') {
+                    const opt = document.createElement('option');
+                    opt.value = school.id;
+                    opt.textContent = school.name_ar;
+                    schoolSelect.appendChild(opt);
+                    schoolSelect.value = school.id;
+                    onSchoolChange();
+                }
+                closeModal('createSchoolModal');
+            }).catch((e) => showModalError(err, e.message));
+        });
+    }
+
+    const saveGradeBtn = document.getElementById('saveGradeBtn');
+    if (saveGradeBtn) {
+        saveGradeBtn.addEventListener('click', () => {
+            const err = document.getElementById('createGradeError');
+            hideModalError(err);
+            const schoolId = getSchoolId();
+            if (!schoolId) {
+                showModalError(err, 'اختر المدرسة أولاً.');
+                return;
+            }
+            fetchJson('{{ url_for("academic.api_create_grade") }}', {
+                method: 'POST',
+                body: JSON.stringify({
+                    school_id: Number(schoolId),
+                    name_ar: document.getElementById('newGradeNameAr').value.trim(),
+                    level: document.getElementById('newGradeLevel').value,
+                }),
+            }).then((grade) => {
+                loadGrades(grade.id).then(() => loadClasses());
+                closeModal('createGradeModal');
+            }).catch((e) => showModalError(err, e.message));
+        });
+    }
+
+    const saveClassBtn = document.getElementById('saveClassBtn');
+    if (saveClassBtn) {
+        saveClassBtn.addEventListener('click', () => {
+            const err = document.getElementById('createClassError');
+            hideModalError(err);
+            const schoolId = getSchoolId();
+            const gradeId = gradeSelect.value;
+            if (!schoolId || !gradeId) {
+                showModalError(err, 'اختر المستوى الدراسي أولاً.');
+                return;
+            }
+            fetchJson('{{ url_for("academic.api_create_class") }}', {
+                method: 'POST',
+                body: JSON.stringify({
+                    school_id: Number(schoolId),
+                    grade_id: Number(gradeId),
+                    name: document.getElementById('newClassName').value.trim(),
+                }),
+            }).then((cls) => {
+                loadClasses(cls.id);
+                closeModal('createClassModal');
+            }).catch((e) => showModalError(err, e.message));
+        });
+    }
+
+    const saveTeacherBtn = document.getElementById('saveTeacherBtn');
+    if (saveTeacherBtn) {
+        saveTeacherBtn.addEventListener('click', () => {
+            const err = document.getElementById('createTeacherError');
+            hideModalError(err);
+            const schoolId = getSchoolId();
+            if (!schoolId) {
+                showModalError(err, 'اختر المدرسة أولاً.');
+                return;
+            }
+            fetchJson('{{ url_for("academic.api_create_teacher") }}', {
+                method: 'POST',
+                body: JSON.stringify({
+                    school_id: Number(schoolId),
+                    full_name_ar: document.getElementById('newTeacherNameAr').value.trim(),
+                    employee_id: document.getElementById('newTeacherEmployeeId').value.trim(),
+                }),
+            }).then((teacher) => {
+                loadTeachers(teacher.id);
+                closeModal('createTeacherModal');
+            }).catch((e) => showModalError(err, e.message));
+        });
+    }
+
+    if (accountCheck && accountFields) {
+        accountCheck.addEventListener('change', () => {
+            accountFields.style.display = accountCheck.checked ? 'flex' : 'none';
+        });
+        if (accountCheck.checked) accountFields.style.display = 'flex';
+    }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% from "followup_surveys/_macros.html" import yes_no %}
+{% from "followup_surveys/_checklist.html" import survey_checklist %}
+{% block title %}استبيان متابعة الأسرة - {{ student.full_name_ar }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-2">
+        <i class="bi bi-house-heart"></i>
+        الأسرة — مسؤول المتابعة في الحي من خلال مسؤولي المجموعات
+    </h2>
+    <p class="text-muted mb-2">
+        استبيان متابعة الأسرة — {{ student.full_name_ar or student.full_name }}
+        — {{ period_month }}/{{ period_year }}
+    </p>
+    <div class="alert alert-warning border mb-3">
+        <strong>هذه الصفحة = استبيان الأسرة فقط (١٩ سؤال).</strong>
+        استبيان المعلم (١٠ أسئلة) منفصل على:
+        <a href="{{ url_for('followup_surveys.index', tab='teacher', year=period_year, month=period_month) }}">تبويب استبيان المعلم</a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="year" value="{{ period_year }}">
+        <input type="hidden" name="month" value="{{ period_month }}">
+
+        <div class="card mb-4">
+            <div class="card-header">بيانات الأسرة</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">الاسم الكريم</label>
+                    <input type="text" name="family_name" class="form-control"
+                        placeholder="{{ default_family_name }}"
+                        value="{{ survey.family_name if survey else default_family_name }}">
+                </div>
+                {% if parents %}
+                <div class="mb-3">
+                    <label class="form-label">ولي الأمر (اختياري)</label>
+                    <select name="parent_id" class="form-select">
+                        <option value="">—</option>
+                        {% for parent in parents %}
+                        <option value="{{ parent.id }}"
+                            {% if survey and survey.parent_id == parent.id %}selected{% endif %}>
+                            {{ parent.full_name_ar or parent.full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="mb-2">
+                    <label class="form-label d-block">أولادك في المرحلة الدراسية:</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="stage_primary" id="stage_primary"
+                            {% if survey and survey.stage_primary %}checked{% endif %}>
+                        <label class="form-check-label" for="stage_primary">الابتدائي</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="stage_middle" id="stage_middle"
+                            {% if survey and survey.stage_middle %}checked{% endif %}>
+                        <label class="form-check-label" for="stage_middle">الإعدادي</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="stage_secondary" id="stage_secondary"
+                            {% if survey and survey.stage_secondary %}checked{% endif %}>
+                        <label class="form-check-label" for="stage_secondary">الثانوي</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">اللقاء الأسري</div>
+            <div class="card-body">
+                {{ yes_no("has_regular_family_meeting", "هل هناك برنامج مستمر للقاء الأسري في بيتك؟",
+                    survey.has_regular_family_meeting if survey else none) }}
+
+                <div class="mb-3">
+                    <label class="form-label d-block">عدد اللقاءات الأسبوعية:</label>
+                    {% for code, label in weekly_meetings_choices %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="weekly_meetings_count"
+                            id="wm_{{ code }}" value="{{ code }}"
+                            {% if survey and survey.weekly_meetings_count == code %}checked{% endif %}>
+                        <label class="form-check-label" for="wm_{{ code }}">{{ label }}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">سبب لقاء واحد (إن وُجد)</label>
+                    <input type="text" name="weekly_meetings_one_reason" class="form-control"
+                        value="{{ survey.weekly_meetings_one_reason if survey else '' }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">أخرى (حدد)</label>
+                    <input type="text" name="weekly_meetings_other" class="form-control"
+                        value="{{ survey.weekly_meetings_other if survey else '' }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ملاحظات حول التفاعل والاستفادة</label>
+                    <textarea name="family_meeting_notes" class="form-control" rows="3">{{ survey.family_meeting_notes if survey else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">منهج التربية</div>
+            <div class="card-body">
+                {{ yes_no("received_curriculum_book", "هل وصلك كتاب منهج التربية؟",
+                    survey.received_curriculum_book if survey else none) }}
+                {{ yes_no("read_curriculum_book", "هل قرأته؟",
+                    survey.read_curriculum_book if survey else none) }}
+                {{ yes_no("studied_curriculum_at_home", "هل تدارستم الكتاب في البيت؟",
+                    survey.studied_curriculum_at_home if survey else none) }}
+                <div class="mb-3">
+                    <label class="form-label">ملاحظاتك حول الاستفادة من المقرر</label>
+                    <textarea name="curriculum_notes" class="form-control" rows="3">{{ survey.curriculum_notes if survey else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">مقررات الأبناء</div>
+            <div class="card-body">
+                {{ yes_no("hadith_at_home", "هل يتم أخذ مقرر الحديث للأولاد في المنزل؟",
+                    survey.hadith_at_home if survey else none) }}
+                {{ yes_no("fiqh_at_home", "هل يتم أخذ مقرر الفقه للأولاد في المنزل؟",
+                    survey.fiqh_at_home if survey else none) }}
+                <div class="mb-3">
+                    <label class="form-label">هل توجد عوائق أو عقبات؟</label>
+                    <textarea name="curricula_obstacles" class="form-control" rows="3">{{ survey.curricula_obstacles if survey else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">برنامج رياض الصالحين</div>
+            <div class="card-body">
+                {{ yes_no("listens_riyadh_saliheen", "هل تستمع مع أولادك إلى تسجيلات \"رياض الصالحين\" بشكل مستمر؟",
+                    survey.listens_riyadh_saliheen if survey else none) }}
+                <div class="mb-3">
+                    <label class="form-label">إلى أي تسجيل وصلت؟</label>
+                    <input type="text" name="riyadh_progress" class="form-control"
+                        value="{{ survey.riyadh_progress if survey else '' }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">الترفيه والمشاهدة</div>
+            <div class="card-body">
+                {{ yes_no("received_approved_films", "هل وصلتك النسخة الصحيحة للأفلام المسموحة؟",
+                    survey.received_approved_films if survey else none) }}
+                {{ yes_no("watches_approved_only", "هل تلتزم بمشاهدة الأفلام المسموحة فقط؟",
+                    survey.watches_approved_only if survey else none) }}
+                {{ yes_no("outdoor_entertainment", "هل يوجد برنامج ترفيهي للأولاد خارج البيت؟",
+                    survey.outdoor_entertainment if survey else none) }}
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-save"></i> حفظ الاستبيان</button>
+        <a href="{{ url_for('followup_surveys.index', tab='family', year=period_year, month=period_month) }}"
+            class="btn btn-outline-secondary">إلغاء</a>
+    </form>
+        </div>
+        <div class="col-lg-4">
+            {{ survey_checklist('قائمة أسئلة استبيان الأسرة', family_checklist, family_field_map|length) }}
+        </div>
+    </div>
+</div>
+{% endblock %}

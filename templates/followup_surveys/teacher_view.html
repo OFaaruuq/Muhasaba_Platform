@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}عرض استبيان المعلم{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-person-workspace"></i> استبيان المعلم الشهري</h2>
+        <div>
+            {% if current_user.is_teacher %}
+            <a href="{{ url_for('followup_surveys.teacher_form', year=period_year, month=period_month) }}"
+                class="btn btn-primary btn-sm"><i class="bi bi-pencil"></i> تعديل</a>
+            {% else %}
+            <a href="{{ url_for('followup_surveys.teacher_form_admin', teacher_id=teacher.id, year=period_year, month=period_month) }}"
+                class="btn btn-primary btn-sm"><i class="bi bi-pencil"></i> تعديل</a>
+            {% endif %}
+            <a href="{{ url_for('followup_surveys.index', tab='teacher', year=period_year, month=period_month) }}"
+                class="btn btn-outline-secondary btn-sm">رجوع</a>
+        </div>
+    </div>
+    <p class="text-muted">{{ teacher.full_name_ar or teacher.full_name }} — {{ period_month }}/{{ period_year }}</p>
+
+    {% if not survey %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        لم يُعبَّأ استبيان المعلم لهذا الشهر بعد.
+    </div>
+    {% else %}
+    <div class="card mb-3">
+        <div class="card-header">التزام المعلم</div>
+        <div class="card-body">
+            <p><strong>حضور المواعيد في وقتها:</strong> {{ frequency_label(survey.attendance_punctuality) }}</p>
+            <p><strong>تحضير المادة الدراسية:</strong> {{ frequency_label(survey.lesson_preparation) }}</p>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">تقييم التلاميذ</div>
+        <div class="card-body">
+            {% if survey.main_obstacles %}
+            <p><strong>أهم العقبات:</strong> {{ survey.main_obstacles }}</p>
+            {% endif %}
+            <p><strong>حضور التلاميذ في الوقت:</strong> {{ frequency_label(survey.student_punctuality) }}</p>
+            <p><strong>نسبة تحضير الدرس:</strong> {{ survey.student_preparation_percentage or '—' }}</p>
+            <p><strong>استيعاب المحتوى:</strong> {{ frequency_label(survey.student_comprehension) }}</p>
+            {% if survey.student_notes %}
+            <p><strong>ملاحظات على التلاميذ:</strong> {{ survey.student_notes }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">دور الأسرة والاقتراحات</div>
+        <div class="card-body">
+            <p><strong>تقييم دور الأسرة:</strong> {{ frequency_label(survey.family_role_rating) }}</p>
+            {% if survey.family_role_message %}
+            <p><strong>رسالة للآباء والأمهات:</strong> {{ survey.family_role_message }}</p>
+            {% endif %}
+            {% if survey.session_suggestions %}
+            <p><strong>اقتراحات التحسين:</strong> {{ survey.session_suggestions }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <small class="text-muted">
+        آخر تحديث: {{ survey.updated_at.strftime('%Y-%m-%d %H:%M') if survey.updated_at else '—' }}
+    </small>
+    {% endif %}
+</div>
+{% endblock %}

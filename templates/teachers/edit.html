@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% from "includes/subject_select.html" import subject_field, subject_create_modal, subject_scripts %}
+{% block title %}تعديل معلم - {{ teacher.full_name_ar }}{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="mb-0"><i class="bi bi-pencil"></i> تعديل: {{ teacher.full_name_ar }}</h2>
+        <a href="{{ url_for('teachers.detail', teacher_id=teacher.id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-right"></i> رجوع
+        </a>
+    </div>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="POST" id="editTeacherForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <h6 class="text-muted mb-3">البيانات الوظيفية</h6>
+                <div class="row g-3">
+                    {% if schools %}
+                    <div class="col-md-6">
+                        <label class="form-label">المدرسة</label>
+                        <select name="school_id" id="schoolSelect" class="form-select">
+                            {% for s in schools %}
+                            <option value="{{ s.id }}" {% if teacher.school_id == s.id %}selected{% endif %}>{{ s.name_ar }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    <div class="col-md-6">
+                        <label class="form-label">الاسم (عربي)</label>
+                        <input name="full_name_ar" class="form-control" value="{{ teacher.full_name_ar }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">الاسم (EN)</label>
+                        <input name="full_name" class="form-control" value="{{ teacher.full_name }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">الرقم الوظيفي</label>
+                        <input name="employee_id" class="form-control" value="{{ teacher.employee_id }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        {{ subject_field(school_id, subjects, selected_subject_id) }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">الهاتف <span class="text-muted">(اختياري)</span></label>
+                        <input name="phone" class="form-control" value="{{ teacher.phone or '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">تاريخ التعيين</label>
+                        <input name="hire_date" type="date" class="form-control"
+                            value="{{ teacher.hire_date.isoformat() if teacher.hire_date else '' }}">
+                    </div>
+                </div>
+
+                {% if teacher.user %}
+                <hr class="my-4">
+                <h6 class="text-muted mb-3">حساب الدخول</h6>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">اسم المستخدم</label>
+                        <input name="username" class="form-control" value="{{ teacher.user.username }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">البريد الإلكتروني <span class="text-muted">(اختياري)</span></label>
+                        <input name="email" type="email" class="form-control" value="{{ teacher.user.email or '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">كلمة مرور جديدة (اختياري)</label>
+                        <input name="password" type="password" class="form-control" autocomplete="new-password">
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> حفظ التعديلات</button>
+                    <a href="{{ url_for('teachers.detail', teacher_id=teacher.id) }}" class="btn btn-outline-secondary">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{{ subject_create_modal() }}
+{% endblock %}
+{% block scripts %}
+{{ subject_scripts() }}
+{% endblock %}

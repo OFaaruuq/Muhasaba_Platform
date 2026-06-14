@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}استبيانات الأبناء - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4"><i class="bi bi-people"></i> استبيانات الأبناء</h2>
+    {% for item in children_data %}
+    <div class="card mb-4">
+        <div class="card-header">{{ item.student.full_name_ar or item.student.full_name }}</div>
+        <div class="card-body p-0">
+            <table class="table mb-0">
+                <thead><tr><th>الاستبيان</th><th>التصنيف</th><th>الحالة</th><th>التقدم</th></tr></thead>
+                <tbody>
+                    {% for row in item.questionnaires %}
+                    <tr>
+                        <td>{{ row.q.title_ar or row.q.title }}</td>
+                        <td>{{ category_labels.get(row.q.category, row.q.category or '—') }}</td>
+                        <td>
+                            {% if row.completion.complete %}<span class="badge bg-success">{{ ui_labels.complete }}</span>
+                            {% elif row.completion.answered %}<span class="badge bg-warning text-dark">{{ ui_labels.partial }}</span>
+                            {% else %}<span class="badge bg-secondary">{{ ui_labels.not_started }}</span>{% endif %}
+                        </td>
+                        <td>{{ row.completion.answered }}/{{ row.completion.total }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-muted">لا استبيانات</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">لا يوجد أبناء مرتبطون بحسابك.</div>
+    {% endfor %}
+</div>
+{% endblock %}

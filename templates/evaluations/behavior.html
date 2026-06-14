@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}سجل السلوك - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4"><i class="bi bi-emoji-smile"></i> سجل السلوك</h2>
+    <div class="row g-4">
+        <div class="col-md-5">
+            <div class="card"><div class="card-header">تسجيل ملاحظة ({{ today }})</div><div class="card-body">
+                {% for student in students %}
+                <form method="POST" action="{{ url_for('evaluations.behavior_record', student_id=student.id) }}" class="border-bottom py-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <strong>{{ student.full_name_ar }}</strong>
+                    <div class="row g-2 mt-2">
+                        <div class="col-6">
+                            <select name="behavior_type" class="form-select form-select-sm behavior-type-select">
+                                {% for value, label in behavior_types %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <select name="category" class="form-select form-select-sm">
+                                {% for value, label in behavior_categories %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12"><textarea name="description" class="form-control form-control-sm" placeholder="الوصف"></textarea></div>
+                        <div class="col-4"><input name="score" type="number" min="0" max="100" value="{{ default_behavior_score }}" class="form-control form-control-sm score-input"></div>
+                    </div>
+                    <button class="btn btn-sm btn-primary mt-2">حفظ</button>
+                </form>
+                {% endfor %}
+            </div></div>
+        </div>
+        <div class="col-md-7">
+            <div class="card"><div class="card-header">السجل</div><div class="card-body">
+                <table class="table table-sm">
+                    <thead><tr><th>الطالب</th><th>النوع</th><th>التصنيف</th><th>التاريخ</th><th>الوصف</th></tr></thead>
+                    <tbody>
+                        {% for r in records %}
+                        <tr>
+                            <td>{{ r.student.full_name_ar if r.student else '-' }}</td>
+                            <td>{{ behavior_type_labels.get(r.behavior_type, r.behavior_type) }}</td>
+                            <td>{{ category_labels.get(r.category, r.category or '-') }}</td>
+                            <td>{{ r.date }}</td>
+                            <td>{{ r.description or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const behaviorScores = {{ behavior_type_scores | tojson }};
+document.querySelectorAll('form').forEach(form => {
+    const sel = form.querySelector('.behavior-type-select');
+    const scoreInput = form.querySelector('.score-input');
+    if (!sel || !scoreInput) return;
+    const update = () => {
+        const v = sel.value;
+        if (behaviorScores[v] !== undefined) scoreInput.value = behaviorScores[v];
+    };
+    sel.addEventListener('change', update);
+});
+</script>
+{% endblock %}

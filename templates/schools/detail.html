@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block title %}{{ school.name_ar }} - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">{{ school.name_ar }}</h2>
+            <p class="text-muted mb-0"><code>{{ school.code }}</code> — {{ school.region or '—' }}</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('schools.index') }}" class="btn btn-outline-secondary btn-sm">المدارس</a>
+            <a href="{{ url_for('schools.edit_school', school_id=school.id) }}" class="btn btn-warning btn-sm">
+                <i class="bi bi-pencil"></i> تعديل المدرسة
+            </a>
+            {% if current_user.is_platform_admin %}
+            <form method="POST" action="{{ url_for('schools.toggle_school', school_id=school.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-outline-secondary btn-sm">
+                    {% if school.is_active %}
+                    <i class="bi bi-pause-circle"></i> تعطيل
+                    {% else %}
+                    <i class="bi bi-play-circle"></i> تفعيل
+                    {% endif %}
+                </button>
+            </form>
+            {% if not delete_blockers %}
+            <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteSchoolModal">
+                <i class="bi bi-trash"></i> حذف نهائي
+            </button>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">معلومات المدرسة</div>
+                <div class="card-body">
+                    <p><strong>المدير:</strong> {{ school.principal_name or '—' }}</p>
+                    <p><strong>الهاتف:</strong> {{ school.phone or '—' }}</p>
+                    <p><strong>البريد:</strong> {{ school.email or '—' }}</p>
+                    <p><strong>العنوان:</strong> {{ school.address or '—' }}</p>
+                    <p><strong>الحالة:</strong>
+                        {% if school.is_active %}<span class="badge bg-success">{{ ui_labels.active_feminine }}</span>
+                        {% else %}<span class="badge bg-secondary">{{ ui_labels.inactive_feminine }}</span>{% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-layers"></i> الصفوف الدراسية</span>
+                    <span class="badge bg-secondary">{{ grades|length }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr><th>الاسم عربي</th><th>إنجليزي</th><th>المستوى</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            {% for grade in grades %}
+                            <tr>
+                                <td colspan="4" class="p-0 border-0">
+                                    <form method="POST" action="{{ url_for('schools.edit_grade', school_id=school.id, grade_id=grade.id) }}" class="d-flex flex-wrap gap-2 align-items-center p-2 border-bottom">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input name="name_ar" class="form-control form-control-sm" style="max-width:140px" value="{{ grade.name_ar }}" required>
+                                        <input name="name" class="form-control form-control-sm" style="max-width:120px" value="{{ grade.name }}" required>
+                                        <input name="level" type="number" class="form-control form-control-sm" style="max-width:80px" value="{{ grade.level }}" required>
+                                        <button class="btn btn-sm btn-outline-primary">حفظ</button>
+                                        <button type="submit" formaction="{{ url_for('schools.delete_grade', school_id=school.id, grade_id=grade.id) }}"
+                                            class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('حذف هذا الصف؟')">حذف</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-muted text-center py-3">لا صفوف بعد</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <form method="POST" action="{{ url_for('schools.add_grade', school_id=school.id) }}" class="p-3 border-top row g-2">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="col-md-3"><input name="name_ar" class="form-control form-control-sm" placeholder="الاسم عربي *" required></div>
+                        <div class="col-md-3"><input name="name" class="form-control form-control-sm" placeholder="Name EN (اختياري)"></div>
+                        <div class="col-md-2"><input name="level" type="number" class="form-control form-control-sm" placeholder="رقم المستوى *" min="1" required></div>
+                        <div class="col-md-2"><button class="btn btn-sm btn-primary">+ إضافة مستوى</button></div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between">
+                    <span><i class="bi bi-people"></i> الفصول</span>
+                    <span class="badge bg-primary">{{ classes|length }}</span>
+                </div>
+                <div class="card-body p-0">
+                    {% for class in classes %}
+                    <form method="POST" action="{{ url_for('schools.edit_class', school_id=school.id, class_id=class.id) }}"
+                        class="d-flex flex-wrap gap-2 align-items-center p-2 border-bottom">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <select name="grade_id" class="form-select form-select-sm" style="max-width:130px" required>
+                            {% for g in grades %}<option value="{{ g.id }}" {% if class.grade_id == g.id %}selected{% endif %}>{{ g.name_ar }}</option>{% endfor %}
+                        </select>
+                        <input name="name" class="form-control form-control-sm" style="max-width:100px" value="{{ class.name }}" required>
+                        <input name="section" class="form-control form-control-sm" style="max-width:80px" value="{{ class.section or '' }}" placeholder="شعبة">
+                        <input name="capacity" type="number" class="form-control form-control-sm" style="max-width:70px" value="{{ class.capacity }}">
+                        <select name="academic_year_id" class="form-select form-select-sm" style="max-width:120px">
+                            <option value="">— سنة —</option>
+                            {% for y in years %}<option value="{{ y.id }}" {% if class.academic_year_id == y.id %}selected{% endif %}>{{ y.name }}</option>{% endfor %}
+                        </select>
+                        <button class="btn btn-sm btn-outline-primary">حفظ</button>
+                        <button type="submit" formaction="{{ url_for('schools.delete_class', school_id=school.id, class_id=class.id) }}"
+                            class="btn btn-sm btn-outline-danger" onclick="return confirm('حذف هذا الفصل؟')">حذف</button>
+                    </form>
+                    {% else %}
+                    <p class="text-muted text-center py-3 mb-0">لا فصول بعد</p>
+                    {% endfor %}
+                    <form method="POST" action="{{ url_for('schools.add_class', school_id=school.id) }}" class="p-3 border-top row g-2">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="col-md-2">
+                            <select name="grade_id" class="form-select form-select-sm" required>
+                                <option value="">الصف</option>
+                                {% for g in grades %}<option value="{{ g.id }}">{{ g.name_ar }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2"><input name="name" class="form-control form-control-sm" placeholder="الفصل" required></div>
+                        <div class="col-md-2"><input name="section" class="form-control form-control-sm" placeholder="شعبة"></div>
+                        <div class="col-md-2"><input name="capacity" type="number" class="form-control form-control-sm" placeholder="السعة" value="{{ default_class_capacity }}"></div>
+                        <div class="col-md-2"><button class="btn btn-sm btn-primary">+ إضافة فصل</button></div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mb-4" id="subjects">
+                <div class="card-header d-flex justify-content-between">
+                    <span><i class="bi bi-book"></i> المواد</span>
+                    <span class="badge bg-info text-dark">{{ subjects|length }}</span>
+                </div>
+                <div class="card-body p-0">
+                    {% for subject in subjects %}
+                    <form method="POST" action="{{ url_for('schools.edit_subject', school_id=school.id, subject_id=subject.id) }}"
+                        class="d-flex flex-wrap gap-2 align-items-center p-2 border-bottom">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input name="name_ar" class="form-control form-control-sm" style="max-width:150px" value="{{ subject.name_ar }}" required>
+                        <input name="name" class="form-control form-control-sm" style="max-width:130px" value="{{ subject.name }}" required>
+                        <input name="code" class="form-control form-control-sm" style="max-width:90px" value="{{ subject.code or '' }}" placeholder="رمز">
+                        <button class="btn btn-sm btn-outline-primary">حفظ</button>
+                        <button type="submit" formaction="{{ url_for('schools.delete_subject', school_id=school.id, subject_id=subject.id) }}"
+                            class="btn btn-sm btn-outline-danger" onclick="return confirm('حذف هذه المادة؟')">حذف</button>
+                    </form>
+                    {% else %}
+                    <p class="text-muted text-center py-3 mb-0">لا مواد بعد</p>
+                    {% endfor %}
+                    <form method="POST" action="{{ url_for('schools.add_subject', school_id=school.id) }}" class="p-3 border-top row g-2">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="col-md-3"><input name="name_ar" class="form-control form-control-sm" placeholder="المادة عربي" required></div>
+                        <div class="col-md-3"><input name="name" class="form-control form-control-sm" placeholder="Subject EN" required></div>
+                        <div class="col-md-2"><input name="code" class="form-control form-control-sm" placeholder="رمز"></div>
+                        <div class="col-md-2"><button class="btn btn-sm btn-primary">+ إضافة مادة</button></div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <span><i class="bi bi-calendar-range"></i> السنوات الدراسية</span>
+                    <span class="badge bg-success">{{ years|length }}</span>
+                </div>
+                <div class="card-body p-0">
+                    {% for year in years %}
+                    <form method="POST" action="{{ url_for('schools.edit_year', school_id=school.id, year_id=year.id) }}"
+                        class="d-flex flex-wrap gap-2 align-items-center p-2 border-bottom">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input name="name" class="form-control form-control-sm" style="max-width:110px" value="{{ year.name }}" required>
+                        <input name="start_date" type="date" class="form-control form-control-sm" style="max-width:150px" value="{{ year.start_date }}" required>
+                        <input name="end_date" type="date" class="form-control form-control-sm" style="max-width:150px" value="{{ year.end_date }}" required>
+                        <div class="form-check">
+                            <input type="checkbox" name="is_current" class="form-check-input" id="cur-{{ year.id }}" {% if year.is_current %}checked{% endif %}>
+                            <label class="form-check-label small" for="cur-{{ year.id }}">حالية</label>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary">حفظ</button>
+                        <button type="submit" formaction="{{ url_for('schools.delete_year', school_id=school.id, year_id=year.id) }}"
+                            class="btn btn-sm btn-outline-danger" onclick="return confirm('حذف هذه السنة؟')">حذف</button>
+                    </form>
+                    {% else %}
+                    <p class="text-muted text-center py-3 mb-0">لا سنوات بعد</p>
+                    {% endfor %}
+                    <form method="POST" action="{{ url_for('schools.add_year', school_id=school.id) }}" class="p-3 border-top row g-2 align-items-center">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="col-md-2"><input name="name" class="form-control form-control-sm" placeholder="2025-2026" required></div>
+                        <div class="col-md-2"><input name="start_date" type="date" class="form-control form-control-sm" required></div>
+                        <div class="col-md-2"><input name="end_date" type="date" class="form-control form-control-sm" required></div>
+                        <div class="col-md-2 form-check">
+                            <input type="checkbox" name="is_current" class="form-check-input" id="cur-new">
+                            <label for="cur-new" class="form-check-label small">حالية</label>
+                        </div>
+                        <div class="col-md-2"><button class="btn btn-sm btn-primary">+ إضافة سنة</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if current_user.is_platform_admin and delete_blockers %}
+    <div class="alert alert-warning mt-4">
+        <i class="bi bi-info-circle"></i>
+        <strong>لا يمكن الحذف النهائي</strong> — المدرسة تحتوي على: {{ delete_blockers|join('، ') }}.
+        يمكنك <strong>تعطيل</strong> المدرسة بدلاً من ذلك.
+    </div>
+    {% endif %}
+</div>
+
+{% if current_user.is_platform_admin and not delete_blockers %}
+<div class="modal fade" id="deleteSchoolModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('schools.delete_school', school_id=school.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle"></i> حذف المدرسة نهائياً</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>حذف <strong>{{ school.name_ar }}</strong> (<code>{{ school.code }}</code>) وجميع إعداداتها.</p>
+                    <label class="form-label">اكتب رمز المدرسة للتأكيد:</label>
+                    <input type="text" name="confirm_code" class="form-control" required autocomplete="off"
+                        placeholder="{{ school.code }}">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-danger">حذف نهائياً</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

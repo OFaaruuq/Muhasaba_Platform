@@ -1,0 +1,111 @@
+{% from "followup_surveys/_macros.html" import yes_no %}
+{# expects: student, survey, default_family_name, parents, weekly_meetings_choices, id_prefix (optional) #}
+{% set p = id_prefix or '' %}
+
+<div class="mb-3">
+    <label class="form-label">الاسم الكريم</label>
+    <input type="text" name="family_name" class="form-control"
+        placeholder="{{ default_family_name }}"
+        value="{{ survey.family_name if survey else default_family_name }}">
+</div>
+{% if parents %}
+<div class="mb-3">
+    <label class="form-label">ولي الأمر (اختياري)</label>
+    <select name="parent_id" class="form-select">
+        <option value="">—</option>
+        {% for parent in parents %}
+        <option value="{{ parent.id }}"
+            {% if survey and survey.parent_id == parent.id %}selected{% endif %}>
+            {{ parent.full_name_ar or parent.full_name }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+{% endif %}
+<div class="mb-2">
+    <label class="form-label d-block">أولادك في المرحلة الدراسية:</label>
+    {% for field, stage_label in education_stage_fields.items() %}
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" name="{{ field }}" id="{{ p }}{{ field }}"
+            {% if survey %}
+                {% if field == 'stage_primary' and survey.stage_primary %}checked
+                {% elif field == 'stage_middle' and survey.stage_middle %}checked
+                {% elif field == 'stage_secondary' and survey.stage_secondary %}checked{% endif %}
+            {% endif %}>
+        <label class="form-check-label" for="{{ p }}{{ field }}">{{ stage_label }}</label>
+    </div>
+    {% endfor %}
+</div>
+
+<hr>
+<h6 class="text-primary">اللقاء الأسري</h6>
+{{ yes_no("has_regular_family_meeting", "هل هناك برنامج مستمر للقاء الأسري في بيتك؟",
+    survey.has_regular_family_meeting if survey else none, p) }}
+<div class="mb-3">
+    <label class="form-label d-block">عدد اللقاءات الأسبوعية:</label>
+    {% for code, label in weekly_meetings_choices %}
+    <div class="form-check">
+        <input class="form-check-input" type="radio" name="weekly_meetings_count"
+            id="{{ p }}wm_{{ code }}" value="{{ code }}"
+            {% if survey and survey.weekly_meetings_count == code %}checked{% endif %}>
+        <label class="form-check-label" for="{{ p }}wm_{{ code }}">{{ label }}</label>
+    </div>
+    {% endfor %}
+</div>
+<div class="mb-3">
+    <label class="form-label">سبب لقاء واحد (اذكر السبب أدناه)</label>
+    <input type="text" name="weekly_meetings_one_reason" class="form-control"
+        value="{{ survey.weekly_meetings_one_reason if survey else '' }}">
+</div>
+<div class="mb-3">
+    <label class="form-label">أخرى:</label>
+    <input type="text" name="weekly_meetings_other" class="form-control"
+        value="{{ survey.weekly_meetings_other if survey else '' }}">
+</div>
+<div class="mb-3">
+    <label class="form-label">ملاحظات حول التفاعل والاستفادة</label>
+    <textarea name="family_meeting_notes" class="form-control" rows="3">{{ survey.family_meeting_notes if survey else '' }}</textarea>
+</div>
+
+<hr>
+<h6 class="text-primary">منهج التربية</h6>
+{{ yes_no("received_curriculum_book", "هل وصلك كتاب منهج التربية؟",
+    survey.received_curriculum_book if survey else none, p) }}
+{{ yes_no("read_curriculum_book", "هل قرأته؟",
+    survey.read_curriculum_book if survey else none, p) }}
+{{ yes_no("studied_curriculum_at_home", "هل تدارستم الكتاب في البيت؟",
+    survey.studied_curriculum_at_home if survey else none, p) }}
+<div class="mb-3">
+    <label class="form-label">ملاحظاتك حول الاستفادة من المقرر</label>
+    <textarea name="curriculum_notes" class="form-control" rows="3">{{ survey.curriculum_notes if survey else '' }}</textarea>
+</div>
+
+<hr>
+<h6 class="text-primary">مقررات الأبناء</h6>
+{{ yes_no("hadith_at_home", "هل يتم أخذ مقرر الحديث للأولاد في المنزل؟",
+    survey.hadith_at_home if survey else none, p) }}
+{{ yes_no("fiqh_at_home", "هل يتم أخذ مقرر الفقه للأولاد في المنزل؟",
+    survey.fiqh_at_home if survey else none, p) }}
+<div class="mb-3">
+    <label class="form-label">هل توجد عوائق أو عقبات؟</label>
+    <textarea name="curricula_obstacles" class="form-control" rows="3">{{ survey.curricula_obstacles if survey else '' }}</textarea>
+</div>
+
+<hr>
+<h6 class="text-primary">برنامج رياض الصالحين</h6>
+{{ yes_no("listens_riyadh_saliheen", "هل تستمع مع أولادك إلى تسجيلات \"رياض الصالحين\" بشكل مستمر؟",
+    survey.listens_riyadh_saliheen if survey else none, p) }}
+<div class="mb-3">
+    <label class="form-label">إلى أي تسجيل وصلت؟</label>
+    <input type="text" name="riyadh_progress" class="form-control"
+        value="{{ survey.riyadh_progress if survey else '' }}">
+</div>
+
+<hr>
+<h6 class="text-primary">الترفيه والمشاهدة</h6>
+{{ yes_no("received_approved_films", "هل وصلتك النسخة الصحيحة للأفلام المسموحة؟",
+    survey.received_approved_films if survey else none, p) }}
+{{ yes_no("watches_approved_only", "هل تلتزم بمشاهدة الأفلام المسموحة فقط؟",
+    survey.watches_approved_only if survey else none, p) }}
+{{ yes_no("outdoor_entertainment", "هل يوجد برنامج ترفيهي للأولاد خارج البيت؟",
+    survey.outdoor_entertainment if survey else none, p) }}

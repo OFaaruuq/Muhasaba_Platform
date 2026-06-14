@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% from "followup_surveys/_macros.html" import frequency_rating %}
+{% from "followup_surveys/_checklist.html" import survey_checklist %}
+{% block title %}استبيان المعلم الشهري{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-2">
+        <i class="bi bi-person-workspace"></i>
+        استبيان شهري للمعلم حول لقاءات التلاميذ
+    </h2>
+    <p class="text-muted mb-1">
+        (مسؤولي المتابعة في الحي — من خلال إدارة الحي)
+    </p>
+    <p class="text-muted mb-2">
+        {% if admin_entry %}
+        المعلم: {{ teacher.full_name_ar or teacher.full_name }} — إدخال إداري
+        {% else %}
+        {{ teacher.full_name_ar or teacher.full_name }}
+        {% endif %}
+        | {{ period_month }}/{{ period_year }}
+    </p>
+
+    <div class="alert alert-warning border mb-3">
+        <strong>هذه الصفحة = استبيان المعلم فقط (١٠ أسئلة).</strong>
+        استبيان الأسرة (١٩ سؤال) منفصل على:
+        <a href="{{ url_for('followup_surveys.index', tab='family', year=period_year, month=period_month) }}">متابعة الأسرة</a>
+    </div>
+
+    <div class="alert alert-light border mb-3">
+        <strong>مقياس التقييم:</strong>
+        {% for code, label in frequency_choices %}
+        <span class="badge bg-light text-dark ms-1">{{ label }}</span>
+        {% endfor %}
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="year" value="{{ period_year }}">
+        <input type="hidden" name="month" value="{{ period_month }}">
+
+        <div class="card mb-4">
+            <div class="card-header">التزام المعلم</div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">١ — ٢</p>
+                {{ frequency_rating("attendance_punctuality",
+                    "١. هل تلتزم بحضور المواعيد الأسبوعية في وقتها؟",
+                    frequency_choices, survey.attendance_punctuality if survey else none) }}
+                {{ frequency_rating("lesson_preparation",
+                    "٢. هل تقوم بتحضير المادة الدراسية بشكل جيد قبل اللقاء؟",
+                    frequency_choices, survey.lesson_preparation if survey else none) }}
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">تقييم التلاميذ</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">٣. ما هي أهم العقبات التي تحول دون تحقيق تلك الفائدة من خلال تجربتك؟</label>
+                    <textarea name="main_obstacles" class="form-control" rows="3">{{ survey.main_obstacles if survey else '' }}</textarea>
+                </div>
+                {{ frequency_rating("student_punctuality",
+                    "٤. ما هو تقييمك لحضور تلاميذك الدروس في الوقت المحدد؟",
+                    frequency_choices, survey.student_punctuality if survey else none) }}
+                <div class="mb-3">
+                    <label class="form-label">٥. ما هي نسبة تلاميذك الذين يقومون بتحضير الدرس بالشكل المطلوب؟</label>
+                    <input type="text" name="student_preparation_percentage" class="form-control"
+                        placeholder="مثال: 70% أو 8 من 10"
+                        value="{{ survey.student_preparation_percentage if survey else '' }}">
+                </div>
+                {{ frequency_rating("student_comprehension",
+                    "٦. ما هو تقييمك لمدى استيعاب تلاميذك لمحتوى المادة الدراسية؟",
+                    frequency_choices, survey.student_comprehension if survey else none) }}
+                <div class="mb-3">
+                    <label class="form-label">٧. هل لديك ملاحظات تجاه مجموعة أو شخصية من تلاميذك؟ اكتبها باختصار</label>
+                    <textarea name="student_notes" class="form-control" rows="3">{{ survey.student_notes if survey else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">دور الأسرة والاقتراحات</div>
+            <div class="card-body">
+                {{ frequency_rating("family_role_rating",
+                    "٨. كيف هو تقييمك لدور الأسرة في أداء تلاميذك؟",
+                    frequency_choices, survey.family_role_rating if survey else none) }}
+                <div class="mb-3">
+                    <label class="form-label">٩. ما هي رسالتك للآباء والأمهات؟</label>
+                    <textarea name="family_role_message" class="form-control" rows="4">{{ survey.family_role_message if survey else '' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">١٠. ما هي اقتراحاتك لتحسين هذه الجلسات الأسبوعية؟</label>
+                    <textarea name="session_suggestions" class="form-control" rows="3">{{ survey.session_suggestions if survey else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-save"></i> حفظ الاستبيان</button>
+        <a href="{{ url_for('followup_surveys.index', tab='teacher', year=period_year, month=period_month) }}"
+            class="btn btn-outline-secondary">إلغاء</a>
+    </form>
+        </div>
+        <div class="col-lg-4">
+            {{ survey_checklist('قائمة أسئلة استبيان المعلم', teacher_checklist, teacher_field_map|length) }}
+            {% if teacher_students %}
+            <div class="card mb-4">
+                <div class="card-header">استبيانات أسر طلاب هذا المعلم (١٩ سؤال)</div>
+                <ul class="list-group list-group-flush">
+                    {% for s in teacher_students %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>{{ s.full_name_ar or s.full_name }}</span>
+                        <a class="btn btn-sm btn-outline-primary"
+                            href="{{ url_for('followup_surveys.family_form', student_id=s.id, year=period_year, month=period_month) }}">
+                            تعبئة
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

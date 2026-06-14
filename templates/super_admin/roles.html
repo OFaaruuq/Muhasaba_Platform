@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}الأدوار والصلاحيات - المشرف الأعلى{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-key"></i> الأدوار والصلاحيات</h2>
+            <p class="text-muted mb-0">إدارة ديناميكية للأدوار وصلاحياتها — أي تغيير يُطبَّق فوراً على المستخدمين</p>
+        </div>
+        <div class="d-flex gap-2">
+            <form method="POST" action="{{ url_for('super_admin.sync_permissions_route') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-arrow-repeat"></i> مزامنة الصلاحيات
+                </button>
+            </form>
+            <a href="{{ url_for('super_admin.index') }}" class="btn btn-outline-secondary btn-sm">← لوحة المشرف</a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header"><i class="bi bi-list-check"></i> سجل الصلاحيات ({{ permissions|length }})</div>
+        <div class="card-body">
+            <div class="row g-2">
+                {% for module, perms in permissions_grouped.items() %}
+                <div class="col-md-4">
+                    <h6 class="small text-muted">{{ module }}</h6>
+                    <ul class="small mb-0">
+                        {% for p in perms %}
+                        <li>{{ p.name_ar }} <code class="text-muted">{{ p.name }}</code></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header"><i class="bi bi-plus-circle"></i> إنشاء دور جديد</div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('super_admin.create_role') }}" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="col-md-3">
+                    <label class="form-label small">المعرّف (إنجليزي)</label>
+                    <input name="name" class="form-control form-control-sm" placeholder="counselor" required
+                        pattern="[a-z][a-z0-9_]{1,48}" title="حروف إنجليزية صغيرة وأرقام و _">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">الاسم المعروض (عربي)</label>
+                    <input name="name_ar" class="form-control form-control-sm" placeholder="مرشد طلابي" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small">الوصف</label>
+                    <input name="description" class="form-control form-control-sm" placeholder="وصف مختصر">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary btn-sm w-100">إنشاء الدور</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        {% for role in roles %}
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>{{ role.name_ar }}</span>
+                    <code class="small">{{ role.name }}</code>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('super_admin.update_role', role_id=role.id) }}" class="mb-3">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-2">
+                            <label class="form-label small mb-0">الاسم المعروض (عربي)</label>
+                            <input name="name_ar" class="form-control form-control-sm" value="{{ role.name_ar }}" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small mb-0">الوصف</label>
+                            <input name="description" class="form-control form-control-sm"
+                                value="{{ role.description or '' }}" placeholder="وصف مختصر للدور">
+                        </div>
+                        <button class="btn btn-sm btn-warning">
+                            <i class="bi bi-save"></i> حفظ
+                        </button>
+                    </form>
+                    {% if not is_system_role(role) %}
+                    <form method="POST" action="{{ url_for('super_admin.delete_role', role_id=role.id) }}" class="mt-2"
+                        onsubmit="return confirm('حذف هذا الدور؟');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-sm btn-outline-danger">حذف الدور</button>
+                    </form>
+                    {% endif %}
+
+                    <h6 class="small text-muted mb-2">الصلاحيات ({{ role.permissions|length }})</h6>
+                    <ul class="list-group list-group-flush mb-3">
+                        {% for p in role.permissions %}
+                        <li class="list-group-item d-flex justify-content-between py-1 px-0">
+                            <span>{{ p.name_ar }} <small class="text-muted">({{ p.module }})</small></span>
+                            <form method="POST" action="{{ url_for('super_admin.roles') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="role_id" value="{{ role.id }}">
+                                <input type="hidden" name="permission_id" value="{{ p.id }}">
+                                <input type="hidden" name="action" value="revoke">
+                                <button class="btn btn-sm btn-outline-danger">إزالة</button>
+                            </form>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted px-0">لا صلاحيات — أضف صلاحيات لهذا الدور</li>
+                        {% endfor %}
+                    </ul>
+                    <form method="POST" action="{{ url_for('super_admin.roles') }}" class="row g-2">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="role_id" value="{{ role.id }}">
+                        <input type="hidden" name="action" value="grant">
+                        <div class="col-9">
+                            <select name="permission_id" class="form-select form-select-sm">
+                                {% for p in permissions %}
+                                {% if p not in role.permissions %}
+                                <option value="{{ p.id }}">{{ p.name_ar }} ({{ p.module }})</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-3"><button class="btn btn-sm btn-primary w-100">+</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

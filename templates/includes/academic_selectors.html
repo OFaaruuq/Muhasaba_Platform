@@ -1,0 +1,247 @@
+{# Dynamic grade/class selectors — loaded from DB; optional inline create. #}
+{% macro grade_class_fields(school_id, grades, classes, academic_labels, can_create, selected_grade=None, selected_class=None, grade_required=true, class_required=true, show_level=true, school_input_id='academicSchoolId') %}
+<input type="hidden" id="{{ school_input_id }}" value="{{ school_id }}">
+
+<div class="mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+        <label class="form-label mb-0" for="gradeSelect">
+            {{ academic_labels.grade_id.label }}
+            {% if grade_required %}<span class="text-danger">*</span>{% endif %}
+        </label>
+        {% if can_create %}
+        <button type="button" class="btn btn-sm btn-link p-0 academic-create-grade-btn" data-bs-toggle="modal" data-bs-target="#academicCreateGradeModal">
+            <i class="bi bi-plus-circle"></i> {{ academic_labels.grade_id.create_button }}
+        </button>
+        {% endif %}
+    </div>
+    <select name="grade_id" id="gradeSelect" class="form-select" {% if grade_required %}required{% endif %}>
+        <option value="">{{ academic_labels.grade_id.select_empty }}</option>
+        {% for grade in grades %}
+        <option value="{{ grade.id }}" {% if selected_grade == grade.id %}selected{% endif %}>
+            {{ grade.name_ar }}{% if show_level %} (المستوى {{ grade.level }}){% endif %}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+
+<div class="mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+        <label class="form-label mb-0" for="classSelect">
+            {{ academic_labels.class_id.label }}
+            {% if class_required %}<span class="text-danger">*</span>{% endif %}
+        </label>
+        {% if can_create %}
+        <button type="button" class="btn btn-sm btn-link p-0 academic-create-class-btn" data-bs-toggle="modal" data-bs-target="#academicCreateClassModal">
+            <i class="bi bi-plus-circle"></i> {{ academic_labels.class_id.create_button }}
+        </button>
+        {% endif %}
+    </div>
+    <select name="class_id" id="classSelect" class="form-select" {% if class_required %}required{% endif %}>
+        <option value="">{{ academic_labels.class_id.select_empty }}</option>
+        {% for class in classes %}
+        <option value="{{ class.id }}" data-grade-id="{{ class.grade_id }}" {% if selected_class == class.id %}selected{% endif %}>
+            {{ class.name }}
+        </option>
+        {% endfor %}
+    </select>
+    {% if academic_labels.class_id.hint %}
+    <div class="form-text">{{ academic_labels.class_id.hint }}</div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro grade_class_modals(academic_labels) %}
+<div class="modal fade" id="academicCreateGradeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ academic_labels.grade_id.create_title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">اسم المستوى بالعربية *</label>
+                    <input type="text" class="form-control" id="academicNewGradeNameAr">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">رقم المستوى *</label>
+                    <input type="number" class="form-control" id="academicNewGradeLevel" min="1" max="20" value="1">
+                </div>
+                <div id="academicCreateGradeError" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="academicSaveGradeBtn">حفظ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="academicCreateClassModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ academic_labels.class_id.create_title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">اسم المجموعة / الفصل *</label>
+                    <input type="text" class="form-control" id="academicNewClassName">
+                </div>
+                <div id="academicCreateClassError" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="academicSaveClassBtn">حفظ</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro grade_class_scripts(academic_labels, can_create=true, show_level=true, school_input_id='academicSchoolId') %}
+<script>
+(function () {
+    const schoolInput = document.getElementById('{{ school_input_id }}');
+    const schoolSelect = document.getElementById('schoolSelect');
+    const gradeSelect = document.getElementById('gradeSelect');
+    const classSelect = document.getElementById('classSelect');
+    if (!gradeSelect || !classSelect) return;
+
+    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
+    const gradeEmpty = {{ academic_labels.grade_id.select_empty | tojson }};
+    const classEmpty = {{ academic_labels.class_id.select_empty | tojson }};
+    const showLevel = {{ show_level | tojson }};
+    const canCreate = {{ can_create | tojson }};
+
+    function getSchoolId() {
+        if (schoolSelect) return schoolSelect.value || schoolInput?.value;
+        return schoolInput?.value;
+    }
+
+    function fetchJson(url, options = {}) {
+        const headers = Object.assign(
+            {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            options.headers || {}
+        );
+        return fetch(url, Object.assign({credentials: 'same-origin', headers}, options))
+            .then(async (r) => {
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(data.error || 'فشل الطلب');
+                return data;
+            });
+    }
+
+    function fillSelect(select, emptyLabel, items, mapFn, selectedId) {
+        select.innerHTML = `<option value="">${emptyLabel}</option>`;
+        items.forEach((item) => {
+            const opt = document.createElement('option');
+            const mapped = mapFn(item);
+            opt.value = mapped.value;
+            opt.textContent = mapped.label;
+            if (mapped.extra) Object.entries(mapped.extra).forEach(([k, v]) => opt.dataset[k] = v);
+            select.appendChild(opt);
+        });
+        if (selectedId) select.value = String(selectedId);
+    }
+
+    function loadGrades(selectedId) {
+        const schoolId = getSchoolId();
+        if (!schoolId) return Promise.resolve();
+        return fetchJson(`{{ url_for('academic.api_grades') }}?school_id=${schoolId}`)
+            .then((grades) => {
+                fillSelect(gradeSelect, gradeEmpty, grades, (g) => ({
+                    value: g.id,
+                    label: showLevel ? `${g.name_ar} (المستوى ${g.level})` : g.name_ar,
+                }), selectedId);
+            });
+    }
+
+    function loadClasses(selectedId) {
+        const schoolId = getSchoolId();
+        const gradeId = gradeSelect.value;
+        fillSelect(classSelect, classEmpty, [], () => ({value: '', label: ''}));
+        if (!schoolId || !gradeId) return Promise.resolve();
+        return fetchJson(`{{ url_for('academic.api_classes') }}?school_id=${schoolId}&grade_id=${gradeId}`)
+            .then((classes) => {
+                fillSelect(classSelect, classEmpty, classes, (c) => ({
+                    value: c.id,
+                    label: c.name,
+                }), selectedId);
+            });
+    }
+
+    function onSchoolChange() {
+        gradeSelect.value = '';
+        classSelect.value = '';
+        loadGrades().then(loadClasses);
+    }
+
+    if (schoolSelect) schoolSelect.addEventListener('change', onSchoolChange);
+    gradeSelect.addEventListener('change', () => loadClasses());
+
+    if (getSchoolId()) {
+        const currentGrade = gradeSelect.value;
+        const currentClass = classSelect.value;
+        loadGrades(currentGrade).then(() => loadClasses(currentClass));
+    }
+
+    if (!canCreate) return;
+
+    function showErr(el, msg) {
+        if (!el) return;
+        el.textContent = msg;
+        el.classList.remove('d-none');
+    }
+    function hideErr(el) {
+        if (!el) return;
+        el.classList.add('d-none');
+        el.textContent = '';
+    }
+    function closeModal(id) {
+        const el = document.getElementById(id);
+        if (el && window.bootstrap) bootstrap.Modal.getOrCreateInstance(el).hide();
+    }
+
+    document.getElementById('academicSaveGradeBtn')?.addEventListener('click', () => {
+        const err = document.getElementById('academicCreateGradeError');
+        hideErr(err);
+        const schoolId = getSchoolId();
+        if (!schoolId) { showErr(err, 'اختر المدرسة أولاً.'); return; }
+        fetchJson('{{ url_for("academic.api_create_grade") }}', {
+            method: 'POST',
+            body: JSON.stringify({
+                school_id: Number(schoolId),
+                name_ar: document.getElementById('academicNewGradeNameAr').value.trim(),
+                level: document.getElementById('academicNewGradeLevel').value,
+            }),
+        }).then((grade) => {
+            loadGrades(grade.id).then(() => loadClasses());
+            closeModal('academicCreateGradeModal');
+        }).catch((e) => showErr(err, e.message));
+    });
+
+    document.getElementById('academicSaveClassBtn')?.addEventListener('click', () => {
+        const err = document.getElementById('academicCreateClassError');
+        hideErr(err);
+        const schoolId = getSchoolId();
+        const gradeId = gradeSelect.value;
+        if (!schoolId || !gradeId) { showErr(err, 'اختر المستوى الدراسي أولاً.'); return; }
+        fetchJson('{{ url_for("academic.api_create_class") }}', {
+            method: 'POST',
+            body: JSON.stringify({
+                school_id: Number(schoolId),
+                grade_id: Number(gradeId),
+                name: document.getElementById('academicNewClassName').value.trim(),
+            }),
+        }).then((cls) => {
+            loadClasses(cls.id);
+            closeModal('academicCreateClassModal');
+        }).catch((e) => showErr(err, e.message));
+    });
+})();
+</script>
+{% endmacro %}

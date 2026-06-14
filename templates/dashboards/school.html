@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}لوحة المدرسة - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4"><i class="bi bi-building"></i> لوحة المتابعة والتقييم التربوي</h2>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body text-center">
+                    <i class="bi bi-people text-primary stat-icon"></i>
+                    <h3>{{ students_count }}</h3>
+                    <p class="text-muted mb-0">طالب</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body text-center">
+                    <i class="bi bi-graph-up text-{{ perf_color }} stat-icon"></i>
+                    <h3>{{ avg_performance }}%</h3>
+                    <p class="text-muted mb-0">متوسط الأداء الشهري</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body text-center">
+                    <i class="bi bi-calendar-check text-info stat-icon"></i>
+                    <h3>{{ attendance_rate }}%</h3>
+                    <p class="text-muted mb-0">نسبة الحضور (أسبوع)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body text-center">
+                    <i class="bi bi-calendar-month text-warning stat-icon"></i>
+                    <h3>{{ month_status.done }}/{{ month_status.total }}</h3>
+                    <p class="text-muted mb-0">{{ ui_labels.monthly_eval_done }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-light border small">
+        <span class="badge bg-success">{{ perf_thresholds.label_success }}</span> (≥{{ perf_thresholds.green_min|int }}%)
+        <span class="badge bg-warning text-dark">{{ perf_thresholds.label_warning }}</span> ({{ perf_thresholds.yellow_min|int }}–{{ perf_thresholds.green_min|int - 1 }}%)
+        <span class="badge bg-danger">{{ perf_thresholds.label_danger }}</span> (&lt;{{ perf_thresholds.yellow_min|int }}%)
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header text-success"><i class="bi bi-trophy"></i> المجموعات القوية</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            {% for g in strong_groups %}
+                            <tr>
+                                <td>{{ g.name }}</td>
+                                <td><span class="badge bg-{{ g.color }}">{{ g.score }}% — {{ get_performance_label(g.score) }}</span></td>
+                            </tr>
+                            {% else %}
+                            <tr><td class="text-muted p-3">لا توجد بيانات تقييم شهري بعد.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header text-danger"><i class="bi bi-exclamation-triangle"></i> المجموعات الضعيفة</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            {% for g in weak_groups %}
+                            <tr>
+                                <td>{{ g.name }}</td>
+                                <td><span class="badge bg-{{ g.color }}">{{ g.score }}% — {{ get_performance_label(g.score) }}</span></td>
+                            </tr>
+                            {% else %}
+                            <tr><td class="text-muted p-3">لا توجد بيانات بعد.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">اتجاه الأداء الشهري</div>
+                <div class="card-body"><canvas id="trendChart" height="120"></canvas></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">نسبة الحضور</div>
+                <div class="card-body"><canvas id="attendanceChart" height="200"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">إجراءات سريعة</div>
+        <div class="card-body d-flex flex-wrap gap-2">
+            <a href="{{ url_for('evaluations.index', mode='monthly') }}" class="btn btn-primary"><i class="bi bi-calendar-month"></i> التقييم الشهري</a>
+            <a href="{{ url_for('attendance.weekly') }}" class="btn btn-outline-primary"><i class="bi bi-calendar-week"></i> الحضور الأسبوعي</a>
+            <a href="{{ url_for('students.index') }}" class="btn btn-outline-secondary"><i class="bi bi-people"></i> الطلاب</a>
+            {% if user_can('manage_teachers') %}
+            <a href="{{ url_for('teachers.index') }}" class="btn btn-outline-secondary"><i class="bi bi-person-workspace"></i> المعلمون</a>
+            {% endif %}
+            {% if user_can('register_students') %}
+            <a href="{{ url_for('evaluations.register') }}" class="btn btn-outline-primary"><i class="bi bi-person-plus"></i> تسجيل طالب</a>
+            {% endif %}
+            <a href="{{ url_for('reports.index') }}" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-bar-graph"></i> التقارير</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+        labels: {{ trend_labels | tojson }},
+        datasets: [{ label: 'متوسط الأداء %', data: {{ trend_values | tojson }}, borderColor: '#3498db', tension: 0.3 }]
+    },
+    options: { scales: { y: { min: 0, max: 100 } } }
+});
+new Chart(document.getElementById('attendanceChart'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ [attendance_present_label, attendance_absent_label]|tojson }},
+        datasets: [{ data: [{{ attendance_rate }}, {{ 100 - attendance_rate }}], backgroundColor: ['#27ae60', '#e74c3c'] }]
+    },
+    options: { plugins: { legend: { position: 'bottom' } } }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}مؤشرات الأداء - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="mb-0"><i class="bi bi-graph-up"></i> مؤشرات الأداء</h2>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <div class="btn-group">
+                {% for code, label in kpi_period_choices %}
+                <a href="{{ url_for('kpi.index', period=code, class_id=class_id or none, q=search or none) }}"
+                   class="btn btn-sm {% if period == code %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    {{ label }}
+                </a>
+                {% endfor %}
+            </div>
+            {% if can_manage %}
+            <a href="{{ url_for('kpi.manage') }}" class="btn btn-sm btn-outline-primary">إدارة المؤشرات</a>
+            <a href="{{ url_for('admin.index') }}#tab-kpi" class="btn btn-sm btn-outline-secondary">إعدادات النظام</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if not school_id and not current_user.is_teacher %}
+    <div class="alert alert-warning">
+        <i class="bi bi-building"></i> اختر مدرسة من القائمة العلوية لعرض مؤشرات الطلاب.
+    </div>
+    {% endif %}
+
+    {% if kpis %}
+    <div class="alert alert-light border d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span>
+            <i class="bi bi-lightning-charge text-warning"></i>
+            المؤشرات النشطة ({{ kpis|length }}) — مجموع الأوزان: <strong>{{ total_weight }}%</strong>
+        </span>
+        <small class="text-muted">تُحسب الدرجات تلقائياً من بيانات المنصة الحية</small>
+    </div>
+
+    <div class="row g-3 mb-4">
+        {% for item in kpi_summaries %}
+        <div class="col-md-6 col-lg-4 col-xl-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <strong>{{ item.kpi.name_ar }}</strong>
+                        <span class="badge bg-secondary">{{ item.kpi.weight }}%</span>
+                    </div>
+                    {% if item.average is not none %}
+                    <h3 class="mb-1">{{ item.average }}%</h3>
+                    <small class="text-muted">متوسط المدرسة — {{ item.students_with_data }}/{{ item.total_students }} طالب</small>
+                    {% else %}
+                    <h3 class="mb-1 text-muted">—</h3>
+                    <small class="text-muted">لا بيانات بعد</small>
+                    {% endif %}
+                    <div class="progress mt-2" style="height:6px">
+                        <div class="progress-bar" style="width:{{ item.average or 0 }}%"></div>
+                    </div>
+                    <small class="text-muted d-block mt-2">{{ item.kpi.description or get_kpi_source_description(item.kpi.code, school_id) }}</small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">تعريف المؤشرات النشطة</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>المؤشر</th>
+                            <th>الرمز</th>
+                            <th>الوزن</th>
+                            <th>مصدر البيانات</th>
+                            <th>متوسط المدرسة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in kpi_summaries %}
+                        <tr>
+                            <td>{{ item.kpi.name_ar }}</td>
+                            <td><code>{{ item.kpi.code }}</code></td>
+                            <td>{{ item.kpi.weight }}%</td>
+                            <td class="text-muted">{{ item.kpi.description or get_kpi_source_description(item.kpi.code, school_id) }}</td>
+                            <td>
+                                {% if item.average is not none %}
+                                <span class="badge bg-primary">{{ item.average }}%</span>
+                                {% else %}<span class="text-muted">—</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        لا توجد مؤشرات نشطة.
+        {% if can_manage %}<a href="{{ url_for('kpi.manage') }}">أضف مؤشرات من صفحة الإدارة</a>.{% endif %}
+    </div>
+    {% endif %}
+
+    {% if classes or search is not none %}
+    <form method="GET" class="row g-2 mb-3 align-items-end">
+        <input type="hidden" name="period" value="{{ period }}">
+        {% if classes %}
+        <div class="col-md-4">
+            <label class="form-label">الفصل</label>
+            <select name="class_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">كل الفصول</option>
+                {% for class_ in classes %}
+                <option value="{{ class_.id }}" {% if class_id == class_.id %}selected{% endif %}>{{ class_.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        <div class="col-md-4">
+            <label class="form-label">بحث</label>
+            <input name="q" class="form-control form-control-sm" value="{{ search }}" placeholder="اسم الطالب أو الرقم">
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-sm btn-primary w-100">بحث</button>
+        </div>
+    </form>
+    {% endif %}
+
+    {% if students_data %}
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>مؤشرات الطلاب</span>
+            <small class="text-muted">{{ students_data|length }} طالب</small>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>الطالب</th>
+                            <th>المؤشر الكلي</th>
+                            {% for kpi in kpis %}
+                            <th>{{ kpi.name_ar }}</th>
+                            {% endfor %}
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in students_data %}
+                        <tr>
+                            <td>{{ row.student.full_name_ar }}</td>
+                            <td>
+                                <span class="badge bg-primary">{{ row.overall }}%</span>
+                            </td>
+                            {% for kpi in kpis %}
+                            {% set item = row.kpi_scores.get(kpi.code) %}
+                            <td>
+                                {% if item and item.has_data %}
+                                {{ item.score }}%
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                            <td>
+                                <a href="{{ url_for('kpi.student_kpi', student_id=row.student.id, period=period) }}"
+                                   class="btn btn-sm btn-outline-primary">التفاصيل</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% elif school_id or current_user.is_teacher %}
+    <div class="alert alert-secondary">لا يوجد طلاب مطابقون للبحث أو الفصل المحدد.</div>
+    {% endif %}
+</div>
+{% endblock %}

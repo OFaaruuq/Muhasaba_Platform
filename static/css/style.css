@@ -1,0 +1,154 @@
+:root {
+    --muhasaba-primary: #1a5276;
+    --muhasaba-accent: #2e86c1;
+    --muhasaba-success: #27ae60;
+    --muhasaba-warning: #f39c12;
+}
+
+body {
+    font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", sans-serif;
+    background-color: #f4f6f9;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.login-page {
+    background: linear-gradient(135deg, var(--muhasaba-primary) 0%, var(--muhasaba-accent) 100%);
+}
+
+.navbar-dark.bg-primary {
+    background-color: var(--muhasaba-primary) !important;
+}
+
+.stat-card {
+    border: none;
+    border-radius: 12px;
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-card .stat-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+}
+
+.kpi-bar {
+    height: 8px;
+    border-radius: 4px;
+}
+
+.rating-badge {
+    font-size: 0.85rem;
+    padding: 0.35em 0.65em;
+}
+
+.table th {
+    font-weight: 600;
+    color: var(--muhasaba-primary);
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.card-header {
+    background: white;
+    border-bottom: 1px solid #eee;
+    font-weight: 600;
+}
+
+.badge-excellent { background-color: #27ae60; }
+.badge-good { background-color: #2e86c1; }
+.badge-average { background-color: #f39c12; }
+.badge-needs_improvement { background-color: #e74c3c; }
+
+/* Follow-up surveys hub */
+.followup-hub-header h2 {
+    color: var(--muhasaba-primary);
+    font-weight: 700;
+}
+
+.followup-mode-switch .btn {
+    min-width: 7rem;
+}
+
+.followup-period-nav h5 {
+    min-width: 9rem;
+    text-align: center;
+}
+
+.followup-stat-card {
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.followup-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.followup-stat-card .stat-icon {
+    font-size: 2rem;
+    opacity: 0.45;
+}
+
+.followup-status-pills .nav-link {
+    font-size: 0.85rem;
+    color: #555;
+    border-radius: 50rem;
+    margin-left: 0.25rem;
+}
+
+.followup-status-pills .nav-link.active {
+    background-color: var(--muhasaba-primary);
+}
+
+.followup-tabs .nav-link {
+    font-weight: 600;
+    color: #555;
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+}
+
+.followup-tabs .nav-link.active {
+    color: var(--muhasaba-primary);
+    border-bottom-color: var(--muhasaba-accent);
+    background: transparent;
+}
+
+.followup-student-hero {
+    background: linear-gradient(135deg, #1a5276 0%, #2e86c1 100%);
+    color: white;
+    border-radius: 12px;
+}
+
+.followup-student-hero .progress {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.followup-guide-card {
+    border-right: 4px solid;
+    height: 100%;
+}
+
+.followup-action-btn-group .btn {
+    white-space: nowrap;
+}
+
+@media (max-width: 576px) {
+    .followup-mode-switch {
+        width: 100%;
+    }
+    .followup-mode-switch .btn {
+        flex: 1;
+    }
+}

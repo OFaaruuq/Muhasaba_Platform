@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}لوحة الطالب - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4"><i class="bi bi-person"></i> مرحباً {{ student.full_name_ar if student else '' }}</h2>
+
+    {% if student %}
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h2>{{ overall_kpi }}%</h2>
+                    <small>مؤشر الأداء الكلي</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body text-center">
+                    <h2>{{ attendance_pct }}%</h2>
+                    <small class="text-muted">نسبة الحضور</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body text-center">
+                    <h2>{{ student.gpa }}</h2>
+                    <small class="text-muted">المعدل التراكمي</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body text-center">
+                    <h2>{{ student.class_.name if student.class_ else '-' }}</h2>
+                    <small class="text-muted">الفصل</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">مؤشرات الأداء الديناميكية</div>
+                <div class="card-body">
+                    <canvas id="studentKpiChart" height="200"></canvas>
+                    {% for b in kpi_breakdown %}
+                    <div class="mb-2 mt-2">
+                        <div class="d-flex justify-content-between">
+                            <small>{{ b.kpi.name_ar }}</small>
+                            <small>{{ b.score }}%</small>
+                        </div>
+                        <div class="progress kpi-bar"><div class="progress-bar" style="width:{{ b.score }}%"></div></div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">إجراءات</div>
+                <div class="card-body d-grid gap-2">
+                    <a href="{{ url_for('evaluations.self_assess') }}" class="btn btn-primary">
+                        <i class="bi bi-person-check"></i> المحاسبة الذاتية
+                    </a>
+                    <a href="{{ url_for('students.profile', student_id=student.id) }}" class="btn btn-outline-primary">
+                        <i class="bi bi-person"></i> ملفي الشخصي
+                    </a>
+                    <a href="{{ url_for('kpi.index') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-graph-up"></i> مؤشرات الأداء
+                    </a>
+                    <a href="{{ url_for('exams.index') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-journal-text"></i> الاختبارات
+                    </a>
+                    <a href="{{ url_for('followup_surveys.index', tab='family') }}" class="btn btn-outline-success">
+                        <i class="bi bi-clipboard-data"></i> متابعة شهرية
+                    </a>
+                    <a href="{{ url_for('students.self_edit', student_id=student.id) }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-pencil-square"></i> تعديل بياناتي
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+{% if student and kpi_breakdown %}
+<script>
+new Chart(document.getElementById('studentKpiChart'), {
+    type: 'doughnut',
+    data: {
+        labels: [{% for b in kpi_breakdown %}'{{ b.kpi.name_ar }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{ data: [{% for b in kpi_breakdown %}{{ b.score }}{% if not loop.last %},{% endif %}{% endfor %}] }]
+    }
+});
+</script>
+{% endif %}
+{% endblock %}
