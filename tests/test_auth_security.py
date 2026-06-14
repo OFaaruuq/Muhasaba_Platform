@@ -57,11 +57,11 @@ def test_wrong_otp_rejected(client):
     assert "غير صحيح" in resp.get_data(as_text=True)
 
 
-def test_users_create_redirects_to_super_admin(client):
+def test_manager_can_open_user_create_form(client):
     login_session(client, "manager")
-    resp = client.get("/users/create", follow_redirects=True)
+    resp = client.get("/users/create")
     assert resp.status_code == 200
-    assert "المشرف الأعلى" in resp.get_data(as_text=True)
+    assert "مدير المدرسة" in resp.get_data(as_text=True) or "مسؤول" in resp.get_data(as_text=True)
 
 
 def test_super_admin_creates_inactive_unverified_user(client, app):

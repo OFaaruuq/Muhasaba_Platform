@@ -242,7 +242,7 @@ def monthly(student_id):
             url_for("students.profile", student_id=student.id),
         )
         db.session.commit()
-        flash_msg("eval_monthly_saved", "success", sid)
+        flash_msg("eval_monthly_saved", "success", student.school_id)
         return redirect(url_for("evaluations.index", mode="monthly", year=year, month=month))
 
     evaluation = MonthlyEvaluation.query.filter_by(

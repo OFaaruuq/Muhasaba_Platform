@@ -167,15 +167,25 @@ def repair_student_user_links():
     db.session.commit()
 
 
+def upgrade_user_permissions_schema():
+    """Per-user permission grants (additive to role permissions)."""
+    inspector = inspect(db.engine)
+    if "user_permissions" in inspector.get_table_names():
+        return
+    from app.models.user import user_permissions
+    user_permissions.create(db.engine, checkfirst=True)
+    db.session.commit()
+
+
 def upgrade_permissions():
-    """Sync permission registry and ensure system roles have default grants."""
-    from app.services.permission_registry import sync_permissions, apply_default_role_permissions
+    """Sync permission registry, system roles, and default grants."""
+    from app.services.permission_registry import ensure_system_roles
 
     inspector = inspect(db.engine)
     if "permissions" not in inspector.get_table_names():
         return
-    sync_permissions()
-    apply_default_role_permissions(force=False)
+    upgrade_user_permissions_schema()
+    ensure_system_roles()
     db.session.commit()
 
 
@@ -183,24 +193,14 @@ def ensure_super_admin_role():
     """Add super_admin role and default user to existing databases."""
     from app.models import Role, User
     from app.models.seed import SUPER_ADMIN_EMAIL
-    from app.services.permission_registry import sync_permissions, apply_default_role_permissions
+    from app.services.permission_registry import ensure_system_roles
 
     inspector = inspect(db.engine)
     if "roles" not in inspector.get_table_names():
         return
 
+    ensure_system_roles()
     super_role = Role.query.filter_by(name="super_admin").first()
-    if not super_role:
-        super_role = Role(
-            name="super_admin",
-            name_ar="المشرف الأعلى",
-            description="التحكم الكامل بالمنصة",
-        )
-        db.session.add(super_role)
-        db.session.flush()
-
-    sync_permissions()
-    apply_default_role_permissions(force=False)
 
     if not User.query.filter_by(username="superadmin").first():
         user = User(

@@ -30,6 +30,7 @@ def _auto_grade(question, answer):
 
 @bp.route("/")
 @login_required
+@permission_required("manage_exams", "take_exams")
 def index():
     if current_user.is_student and current_user.student_profile:
         student = current_user.student_profile
@@ -233,5 +234,5 @@ def grade_essay(exam_id, result_id):
     )
     db.session.commit()
     sync_kpis_for_student(result.student_id)
-    flash_msg("exam_graded", "success", sid)
+    flash_msg("exam_graded", "success", exam.school_id)
     return redirect(url_for("exams.detail", exam_id=exam.id))

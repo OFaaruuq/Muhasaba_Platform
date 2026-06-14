@@ -52,6 +52,7 @@ def _can_manage(questionnaire):
 
 @bp.route("/")
 @login_required
+@permission_required("manage_questionnaires", "take_questionnaires")
 def index():
     sid = _school_id()
 
@@ -208,7 +209,7 @@ def toggle(questionnaire_id):
         return redirect(url_for("questionnaires.index"))
     q.is_active = not q.is_active
     db.session.commit()
-    flash_msg("questionnaire_status_updated", "success", sid)
+    flash_msg("questionnaire_status_updated", "success", q.school_id)
     return redirect(url_for("questionnaires.index"))
 
 

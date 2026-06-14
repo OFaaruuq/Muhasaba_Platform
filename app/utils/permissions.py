@@ -4,6 +4,9 @@ from flask import g
 
 PROTECTED_USER_ROLES = frozenset({"super_admin", "ministry_admin"})
 
+# Roles considered "administrator" (can manage school / platform users)
+ADMINISTRATOR_ROLE_NAMES = frozenset({"school_manager", "ministry_admin"})
+
 
 def role_name(user):
     return user.role.name if user and user.is_authenticated and user.role else ""
@@ -14,8 +17,9 @@ def _permission_cache(user):
     if cache and cache.get("user_id") == getattr(user, "id", None):
         return cache["names"]
     names = set()
-    if user and user.is_authenticated and user.role:
-        names = {p.name for p in user.role.permissions}
+    if user and user.is_authenticated:
+        from app.services.permission_registry import effective_user_permissions
+        names = effective_user_permissions(user)
     g._user_perm_cache = {"user_id": getattr(user, "id", None), "names": names}
     return names
 
@@ -79,7 +83,34 @@ def assignable_roles(actor):
     return []
 
 
+def is_administrator_role(role_name_value):
+    return role_name_value in ADMINISTRATOR_ROLE_NAMES
+
+
+def can_create_users(actor):
+    return user_has_permission(actor, "create_users") or user_has_permission(actor, "manage_users")
+
+
+def can_assign_administrator_role(actor, role_name_value):
+    if not is_administrator_role(role_name_value):
+        return True
+    if is_super_admin(actor):
+        return True
+    return user_has_permission(actor, "assign_administrator")
+
+
+def resolve_new_user_school_id(actor, school_id):
+    """School managers can only create users in their own school."""
+    if is_super_admin(actor) or is_platform_admin(actor):
+        return school_id
+    if user_has_permission(actor, "manage_school"):
+        return actor.school_id
+    return school_id
+
+
 def can_assign_role(actor, role_name_value):
+    if not can_assign_administrator_role(actor, role_name_value):
+        return False
     if is_super_admin(actor):
         return True
     if role_name_value == "super_admin":

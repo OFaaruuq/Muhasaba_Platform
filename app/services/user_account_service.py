@@ -60,6 +60,51 @@ def create_user_by_super_admin(
     return user
 
 
+def create_user_by_admin(
+    actor,
+    *,
+    username,
+    email,
+    full_name_ar,
+    password,
+    role_id,
+    school_id=None,
+    phone=None,
+    is_active=False,
+    send_verification=True,
+):
+    """Create a user scoped by the acting admin's permissions and school."""
+    from app.models import Role
+    from app.utils.permissions import (
+        can_create_users,
+        can_assign_role,
+        resolve_new_user_school_id,
+    )
+
+    if not can_create_users(actor):
+        raise ValueError("ليس لديك صلاحية إنشاء المستخدمين.")
+
+    role = Role.query.get(role_id)
+    if not role or not can_assign_role(actor, role.name):
+        raise ValueError("لا يمكن تعيين هذا الدور.")
+
+    scoped_school = resolve_new_user_school_id(actor, school_id)
+    if not scoped_school and role.name in ("school_manager", "teacher", "student", "parent"):
+        raise ValueError("يجب تحديد المدرسة لهذا الدور.")
+
+    return create_user_by_super_admin(
+        username=username,
+        email=email,
+        full_name_ar=full_name_ar,
+        password=password,
+        role_id=role_id,
+        school_id=scoped_school,
+        phone=phone,
+        is_active=is_active,
+        send_verification=send_verification,
+    )
+
+
 def resend_verification_email(user):
     if not user.email:
         raise ValueError("لا يوجد بريد إلكتروني لهذا المستخدم.")

@@ -48,6 +48,7 @@
                     <tr>
                         <th>المستخدم</th>
                         <th>الدور</th>
+                        <th>الملفات</th>
                         <th>المدرسة</th>
                         <th>الحالة</th>
                         <th>البريد</th>
@@ -62,6 +63,11 @@
                             <br><small class="text-muted">@{{ u.username }} · {{ u.email or '—' }}</small>
                         </td>
                         <td><span class="badge bg-secondary">{{ u.role_name_ar or u.role.name if u.role else '—' }}</span></td>
+                        <td>
+                            {% if u.teacher_profile %}<span class="badge bg-primary">معلم</span>{% endif %}
+                            {% if u.student_profile %}<span class="badge bg-success">طالب</span>{% endif %}
+                            {% if not u.teacher_profile and not u.student_profile %}<span class="text-muted">—</span>{% endif %}
+                        </td>
                         <td>{{ u.school.name_ar if u.school else '—' }}</td>
                         <td>
                             {% if u.is_active %}
@@ -102,7 +108,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="6" class="text-center text-muted py-4">لا يوجد مستخدمون مطابقون.</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted py-4">لا يوجد مستخدمون مطابقون.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

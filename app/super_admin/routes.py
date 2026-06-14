@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from flask import flash, redirect, render_template, request, url_for
+from flask import flash, redirect, render_template, request, url_for, jsonify
 from app.services.message_service import flash_msg
 from flask_login import login_required, current_user
 
@@ -18,9 +18,15 @@ from app.services.config_service import set_setting, sync_central_admin_role_lab
 from app.utils import permission_required
 from app.utils.permissions import can_manage_user, can_assign_role
 from app.services.user_account_service import create_user_by_super_admin, resend_verification_email
+from app.services.user_profile_service import (
+    provision_user_profiles,
+    sync_user_profiles,
+    school_structure_payload,
+    user_profile_summary,
+)
 from app.services.permission_registry import (
     is_system_role, SYSTEM_ROLE_NAMES, permissions_by_module, sync_permissions,
-    apply_default_role_permissions,
+    apply_default_role_permissions, ensure_system_roles, set_user_extra_permissions,
 )
 from app.utils.permissions import clear_permission_cache
 import re
@@ -79,26 +85,52 @@ def create_user():
             return redirect(url_for("super_admin.create_user"))
 
         try:
+            school_id = request.form.get("school_id", type=int)
             user = create_user_by_super_admin(
                 username=username,
                 email=request.form["email"],
                 full_name_ar=request.form["full_name_ar"],
                 password=request.form["password"],
                 role_id=role_id,
-                school_id=request.form.get("school_id", type=int),
+                school_id=school_id,
                 phone=request.form.get("phone"),
                 is_active=request.form.get("is_active") == "on",
             )
+            profiles = provision_user_profiles(user, request.form, role.name, school_id)
         except ValueError as exc:
             flash(str(exc), "danger")
             return redirect(url_for("super_admin.create_user"))
 
-        log_action("create_user", "users", f"Created {username} as {role.name}")
+        log_action(
+            "create_user", "users",
+            f"Created {username} as {role.name} profiles={profiles}",
+        )
         db.session.commit()
-        flash_msg("sa_user_created", "success")
+        if profiles:
+            flash_msg("sa_user_created_profiles", "success", profiles=", ".join(profiles))
+        else:
+            flash_msg("sa_user_created", "success")
         return redirect(url_for("super_admin.users"))
 
-    return render_template("super_admin/create_user.html", roles=roles, schools=schools)
+    return render_template(
+        "super_admin/create_user.html",
+        roles=roles,
+        schools=schools,
+        role_names={r.id: r.name for r in roles},
+    )
+
+
+@bp.route("/api/school-data")
+@login_required
+@permission_required("manage_system")
+def school_data():
+    school_id = request.args.get("school_id", type=int)
+    if not school_id:
+        return jsonify({"error": "school_id required"}), 400
+    school = School.query.get(school_id)
+    if not school:
+        return jsonify({"error": "not found"}), 404
+    return jsonify(school_structure_payload(school_id))
 
 
 @bp.route("/users/<int:user_id>/edit", methods=["GET", "POST"])
@@ -117,18 +149,47 @@ def edit_user(user_id):
             return redirect(url_for("super_admin.edit_user", user_id=user_id))
 
         user.full_name_ar = request.form["full_name_ar"]
+        user.full_name = request.form["full_name_ar"]
         user.email = request.form["email"]
         user.phone = request.form.get("phone")
         user.role_id = new_role_id
         user.school_id = request.form.get("school_id", type=int)
         if request.form.get("password"):
             user.set_password(request.form["password"])
-        log_action("edit_user", "users", f"Updated user {user.username}")
+
+        try:
+            profile_changes = sync_user_profiles(user, request.form, new_role.name)
+            set_user_extra_permissions(user, request.form.getlist("extra_permission_ids"))
+        except ValueError as exc:
+            flash(str(exc), "danger")
+            return redirect(url_for("super_admin.edit_user", user_id=user_id))
+
+        log_action(
+            "edit_user", "users",
+            f"Updated user {user.username} profiles={profile_changes}",
+        )
         db.session.commit()
+        clear_permission_cache()
         flash_msg("sa_user_updated", "success")
         return redirect(url_for("super_admin.users"))
 
-    return render_template("super_admin/edit_user.html", user=user, roles=roles, schools=schools)
+    teacher_classes = []
+    if user.teacher_profile:
+        teacher_classes = [tc.class_id for tc in user.teacher_profile.class_assignments.all()]
+
+    return render_template(
+        "super_admin/edit_user.html",
+        user=user,
+        roles=roles,
+        schools=schools,
+        role_names={r.id: r.name for r in roles},
+        profile_summary=user_profile_summary(user),
+        teacher_classes=teacher_classes,
+        student_grade_id=user.student_profile.grade_id if user.student_profile else None,
+        student_class_id=user.student_profile.class_id if user.student_profile else None,
+        permissions_grouped=permissions_by_module(),
+        user_extra_permission_ids={p.id for p in user.extra_permissions},
+    )
 
 
 @bp.route("/users/<int:user_id>/resend-verification", methods=["POST"])
@@ -335,8 +396,7 @@ def reset_global_defaults():
 @login_required
 @permission_required("manage_roles")
 def sync_permissions_route():
-    sync_permissions()
-    apply_default_role_permissions(force=False)
+    ensure_system_roles()
     clear_permission_cache()
     log_action("sync_permissions", "roles", "Registry synced to database")
     db.session.commit()

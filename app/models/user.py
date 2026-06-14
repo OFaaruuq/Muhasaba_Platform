@@ -11,6 +11,12 @@ role_permissions = db.Table(
     db.Column("permission_id", db.Integer, db.ForeignKey("permissions.id"), primary_key=True),
 )
 
+user_permissions = db.Table(
+    "user_permissions",
+    db.Column("user_id", db.Integer, db.ForeignKey("users.id"), primary_key=True),
+    db.Column("permission_id", db.Integer, db.ForeignKey("permissions.id"), primary_key=True),
+)
+
 
 class Role(db.Model):
     __tablename__ = "roles"
@@ -58,6 +64,11 @@ class User(UserMixin, db.Model):
 
     role = db.relationship("Role", backref="users")
     school = db.relationship("School", backref="users")
+    extra_permissions = db.relationship(
+        "Permission",
+        secondary=user_permissions,
+        backref="users_with_extra",
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -95,28 +106,15 @@ class User(UserMixin, db.Model):
 
     @property
     def is_teacher(self):
-        if not self.teacher_profile:
-            return False
-        from app.services.permission_registry import has_teacher_capabilities
-        if self.role and self.role.name == "teacher":
-            return True
-        return has_teacher_capabilities(self)
+        return bool(self.teacher_profile and self.teacher_profile.is_active)
 
     @property
     def is_student(self):
-        if not self.student_profile:
-            return False
-        from app.services.permission_registry import has_student_capabilities
-        if self.role and self.role.name == "student":
-            return True
-        return has_student_capabilities(self)
+        return bool(self.student_profile and self.student_profile.is_active)
 
     @property
     def is_parent(self):
-        from app.services.permission_registry import has_parent_capabilities
-        if self.role and self.role.name == "parent":
-            return True
-        return has_parent_capabilities(self) and self.parent_profile is not None
+        return bool(self.parent_profile)
 
     @property
     def role_name_ar(self):

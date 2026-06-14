@@ -57,6 +57,8 @@ from app.services.followup_analytics_service import (
 from app.services.teacher_student_service import students_for_teacher
 from app.utils.school_context import get_active_school_id
 
+_FOLLOWUP_ACCESS = ("manage_followup_surveys", "view_followup_surveys")
+
 
 def _period_from_request():
     today = date.today()
@@ -396,6 +398,7 @@ def index():
 
 @bp.route("/family/<int:student_id>", methods=["GET", "POST"])
 @login_required
+@permission_required(*_FOLLOWUP_ACCESS)
 def family_form(student_id):
     if not can_fill_family_surveys(current_user):
         abort(403)
@@ -469,6 +472,7 @@ def family_view(student_id):
 
 @bp.route("/teacher", methods=["GET", "POST"])
 @login_required
+@permission_required(*_FOLLOWUP_ACCESS)
 def teacher_form():
     if not can_fill_teacher_surveys(current_user) or not current_user.teacher_profile:
         abort(403)
@@ -495,6 +499,7 @@ def teacher_form():
 
 @bp.route("/teacher/<int:teacher_id>", methods=["GET", "POST"])
 @login_required
+@permission_required(*_FOLLOWUP_ACCESS)
 def teacher_form_admin(teacher_id):
     if not (
         current_user.is_school_manager
@@ -528,6 +533,7 @@ def teacher_form_admin(teacher_id):
 
 @bp.route("/teacher/<int:teacher_id>/view")
 @login_required
+@permission_required(*_FOLLOWUP_ACCESS)
 def teacher_view(teacher_id):
     teacher = Teacher.query.get_or_404(teacher_id)
     if not _can_access_teacher_survey(teacher):
@@ -550,6 +556,7 @@ def teacher_view(teacher_id):
 
 @bp.route("/program", methods=["GET", "POST"])
 @login_required
+@permission_required(*_FOLLOWUP_ACCESS)
 def program_form():
     if not can_fill_program_surveys(current_user) or not current_user.teacher_profile:
         abort(403)
@@ -572,6 +579,7 @@ def program_form():
 
 @bp.route("/program/<int:teacher_id>", methods=["GET", "POST"])
 @login_required
+@permission_required(*_FOLLOWUP_ACCESS)
 def program_form_admin(teacher_id):
     if not (
         current_user.is_school_manager
@@ -604,6 +612,7 @@ def program_form_admin(teacher_id):
 
 @bp.route("/program/<int:teacher_id>/view")
 @login_required
+@permission_required(*_FOLLOWUP_ACCESS)
 def program_view(teacher_id):
     teacher = Teacher.query.get_or_404(teacher_id)
     if not _can_access_teacher_survey(teacher):
@@ -630,6 +639,7 @@ def program_view(teacher_id):
 
 @bp.route("/program/student/<int:student_id>", methods=["GET", "POST"])
 @login_required
+@permission_required(*_FOLLOWUP_ACCESS)
 def program_student_form(student_id):
     if not can_fill_student_program_surveys(current_user):
         abort(403)
@@ -655,6 +665,7 @@ def program_student_form(student_id):
 
 @bp.route("/program/student/<int:student_id>/view")
 @login_required
+@permission_required(*_FOLLOWUP_ACCESS)
 def program_student_view(student_id):
     student = Student.query.get_or_404(student_id)
     if not _can_access_student(student):
@@ -729,6 +740,7 @@ def _render_program_form(teacher, year, month, admin_entry=False):
 
 @bp.route("/analytics")
 @login_required
+@permission_required(*_FOLLOWUP_ACCESS)
 def analytics_index():
     if not can_access_followup_surveys(current_user):
         abort(403)
@@ -822,6 +834,7 @@ def analytics_index():
 
 @bp.route("/analytics/student/<int:student_id>")
 @login_required
+@permission_required(*_FOLLOWUP_ACCESS)
 def analytics_student(student_id):
     if not can_access_followup_surveys(current_user):
         abort(403)
@@ -853,6 +866,7 @@ def analytics_student(student_id):
 
 @bp.route("/analytics/teacher/<int:teacher_id>")
 @login_required
+@permission_required(*_FOLLOWUP_ACCESS)
 def analytics_teacher(teacher_id):
     if not can_access_followup_surveys(current_user):
         abort(403)

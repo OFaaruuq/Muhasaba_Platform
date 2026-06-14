@@ -25,6 +25,7 @@ from app.services.kpi_page_service import (
 
 @bp.route("/")
 @login_required
+@permission_required("view_kpi", "view_own_kpi", "view_children_kpi", "manage_kpi")
 def index():
     period = request.args.get("period", "term")
     sid = get_active_school_id() or current_user.school_id
@@ -116,7 +117,7 @@ def manage():
             kpi = KPI.query.get(request.form.get("kpi_id", type=int))
             if kpi:
                 kpi.is_active = not kpi.is_active
-                flash_msg("kpi_status_updated", "success", sid)
+                flash_msg("kpi_status_updated", "success", kpi.school_id)
 
         db.session.commit()
 
@@ -163,9 +164,10 @@ def student_kpi(student_id):
 @login_required
 @permission_required("manage_kpi", "manage_evaluations")
 def recalculate_one(student_id):
+    student = Student.query.get_or_404(student_id)
     period = request.form.get("period", "term")
     recalculate_student_kpis(student_id, period)
-    flash_msg("kpi_recalculated", "success", sid)
+    flash_msg("kpi_recalculated", "success", student.school_id)
     return redirect(url_for("kpi.student_kpi", student_id=student_id, period=period))
 
 

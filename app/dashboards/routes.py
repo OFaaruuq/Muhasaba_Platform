@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from flask import render_template
+from flask import render_template, session, redirect, url_for, request
 from flask_login import login_required, current_user
 from sqlalchemy import func
 
@@ -21,6 +21,17 @@ from app.services.monitoring_analytics import (
 from app.services.teacher_tracking_service import build_teacher_tracking
 from app.services.teacher_student_service import classes_for_teacher
 from app.utils.school_context import get_active_school_id
+
+
+@bp.route("/switch-mode", methods=["POST"])
+@login_required
+def switch_mode():
+    from app.services.permission_registry import user_has_dual_teacher_student_profiles
+
+    mode = request.form.get("mode")
+    if mode in ("teacher", "student") and user_has_dual_teacher_student_profiles(current_user):
+        session["dashboard_mode"] = mode
+    return redirect(url_for("dashboards.index"))
 
 
 @bp.route("/")

@@ -142,12 +142,17 @@ MESSAGES_SEED = {
     "attendance_saved": "تم تسجيل الحضور بنجاح.",
     # Users
     "users_create_super_admin_only": "إنشاء المستخدمين متاح فقط للمشرف الأعلى من لوحة المشرف الأعلى.",
+    "users_create_denied": "ليس لديك صلاحية إنشاء المستخدمين.",
+    "users_created": "تم إنشاء المستخدم وإرسال رابط تفعيل البريد.",
+    "users_created_admin": "تم إنشاء المستخدم بدور مسؤول: {role}.",
+    "users_assigned_admin": "تم تعيين دور المسؤول: {role}.",
     "users_cannot_deactivate_self": "لا يمكن تعطيل حسابك.",
     "users_updated": "تم تحديث المستخدم.",
     "users_status_updated": "تم تحديث حالة المستخدم.",
     "users_role_not_allowed": "لا يمكن تعيين هذا الدور.",
     # Super admin
     "sa_user_created": "تم إنشاء المستخدم وإرسال رابط تفعيل البريد. فعّل الحساب من قائمة المستخدمين.",
+    "sa_user_created_profiles": "تم إنشاء المستخدم مع الملفات: {profiles}.",
     "sa_user_updated": "تم تحديث المستخدم.",
     "sa_username_taken": "اسم المستخدم موجود.",
     "sa_verification_sent": "تم إرسال رابط تفعيل البريد.",
@@ -247,7 +252,8 @@ MESSAGE_GROUPS = {
         "attendance_saved",
     ],
     "المستخدمون والمشرف الأعلى": [
-        "users_create_super_admin_only", "users_cannot_deactivate_self",
+        "users_create_super_admin_only", "users_create_denied", "users_created",
+        "users_created_admin", "users_assigned_admin", "users_cannot_deactivate_self",
         "users_updated", "users_status_updated", "users_role_not_allowed",
         "sa_user_created", "sa_user_updated", "sa_username_taken",
         "sa_verification_sent", "sa_cannot_deactivate_self",

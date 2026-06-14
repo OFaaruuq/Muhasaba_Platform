@@ -18,6 +18,16 @@ SYSTEM_ROLE_NAMES = frozenset({
     "parent",
 })
 
+# Built-in roles created automatically if missing (RBAC bootstrap)
+SYSTEM_ROLE_DEFINITIONS = {
+    "super_admin": ("المشرف الأعلى", "التحكم الكامل بالمنصة"),
+    "ministry_admin": ("مسؤول الوزارة", "إدارة على مستوى الوزارة"),
+    "school_manager": ("مدير المدرسة", "إدارة المدرسة"),
+    "teacher": ("معلم", "تقييم الطلاب وإدارة الفصول"),
+    "student": ("طالب", "عرض الأداء والمحاسبة الذاتية"),
+    "parent": ("ولي أمر", "متابعة أداء الأبناء"),
+}
+
 # name -> (name_ar, module)
 PERMISSIONS = {
     # System / platform
@@ -29,6 +39,8 @@ PERMISSIONS = {
     "view_all_schools": ("عرض جميع المدارس", "schools"),
     "manage_school": ("إدارة المدرسة", "schools"),
     "manage_users": ("إدارة المستخدمين", "users"),
+    "assign_administrator": ("تعيين دور المسؤول (مدير)", "users"),
+    "create_users": ("إنشاء حسابات المستخدمين", "users"),
     "manage_platform_config": ("إعدادات المنصة", "admin"),
     # Staff & students
     "manage_teachers": ("إدارة المعلمين", "teachers"),
@@ -61,7 +73,8 @@ PERMISSIONS = {
 DEFAULT_ROLE_PERMISSIONS = {
     "super_admin": list(PERMISSIONS.keys()),
     "ministry_admin": [
-        "view_all_schools", "manage_school", "manage_users",
+        "view_all_schools", "manage_school", "manage_users", "create_users",
+        "assign_administrator",
         "manage_platform_config", "manage_global_config",
         "manage_teachers", "view_students", "manage_students", "register_students",
         "view_attendance", "record_attendance", "manage_evaluations",
@@ -71,7 +84,8 @@ DEFAULT_ROLE_PERMISSIONS = {
         "view_reports", "view_ai_assistant",
     ],
     "school_manager": [
-        "manage_school", "manage_users", "manage_platform_config",
+        "manage_school", "manage_users", "create_users", "assign_administrator",
+        "manage_platform_config",
         "manage_teachers", "view_students", "manage_students", "register_students",
         "view_attendance", "record_attendance", "manage_evaluations",
         "view_kpi", "manage_kpi", "manage_exams",
@@ -124,6 +138,37 @@ def sync_permissions():
         else:
             db.session.add(Permission(name=name, name_ar=name_ar, module=module))
     db.session.flush()
+
+
+def ensure_system_roles():
+    """Create any missing system roles and ensure default permission grants."""
+    sync_permissions()
+    for role_name, (name_ar, description) in SYSTEM_ROLE_DEFINITIONS.items():
+        role = Role.query.filter_by(name=role_name).first()
+        if not role:
+            db.session.add(Role(name=role_name, name_ar=name_ar, description=description))
+    db.session.flush()
+    apply_default_role_permissions(force=False)
+
+
+def effective_user_permissions(user):
+    """Union of role, profile, and per-user extra permissions."""
+    from app.services.user_profile_service import profile_permissions_for_user
+
+    names = profile_permissions_for_user(user)
+    if user and getattr(user, "extra_permissions", None):
+        names.update(p.name for p in user.extra_permissions)
+    return names
+
+
+def set_user_extra_permissions(user, permission_ids):
+    """Replace direct per-user permission grants (additive to role)."""
+    from app.models import Permission
+
+    ids = {int(pid) for pid in permission_ids if pid}
+    perms = Permission.query.filter(Permission.id.in_(ids)).all() if ids else []
+    user.extra_permissions = perms
+    return perms
 
 
 def apply_default_role_permissions(force=False):
@@ -186,8 +231,15 @@ def has_parent_capabilities(user):
 
 
 def dashboard_type_for_user(user):
-    """Resolve which dashboard view to show based on permissions."""
+    """Resolve which dashboard view to show based on permissions and profiles."""
+    from flask import session
     from app.utils.permissions import user_has_permission
+
+    mode = session.get("dashboard_mode")
+    if mode == "student" and user.student_profile and user.student_profile.is_active:
+        return "student"
+    if mode == "teacher" and user.is_teacher:
+        return "teacher"
 
     if user_has_permission(user, "manage_system"):
         return "super_admin"
@@ -197,13 +249,21 @@ def dashboard_type_for_user(user):
         return "ministry"
     if user_has_permission(user, "manage_school"):
         return "school_manager"
-    if has_teacher_capabilities(user):
+    if user.is_teacher:
         return "teacher"
-    if user.student_profile and has_student_capabilities(user):
+    if user.student_profile and user.student_profile.is_active:
         return "student"
-    if user.parent_profile and has_parent_capabilities(user):
+    if user.parent_profile:
         return "parent"
     return "default"
+
+
+def user_has_dual_teacher_student_profiles(user):
+    return bool(
+        user.is_teacher
+        and user.student_profile
+        and user.student_profile.is_active
+    )
 
 
 def permissions_by_module():

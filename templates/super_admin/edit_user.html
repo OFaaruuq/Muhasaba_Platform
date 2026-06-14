@@ -3,31 +3,97 @@
 {% block content %}
 <div class="container-fluid">
     <h2 class="mb-4">تعديل: {{ user.username }}</h2>
-    <div class="card col-lg-6"><div class="card-body">
+    {% if profile_summary %}
+    <div class="alert alert-info py-2">
+        <strong>الملفات المرتبطة:</strong>
+        {% for p in profile_summary %}<span class="badge bg-secondary me-1">{{ p }}</span>{% endfor %}
+    </div>
+    {% endif %}
+    <div class="card col-lg-8"><div class="card-body">
         <form method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-2"><label>الاسم</label><input name="full_name_ar" class="form-control" value="{{ user.full_name_ar }}" required></div>
             <div class="mb-2"><label>البريد</label><input name="email" type="email" class="form-control" value="{{ user.email }}" required></div>
             <div class="mb-2"><label>الهاتف</label><input name="phone" class="form-control" value="{{ user.phone or '' }}"></div>
             <div class="mb-2"><label>كلمة مرور جديدة</label><input name="password" type="password" class="form-control" placeholder="اتركها فارغة للإبقاء"></div>
-            <div class="mb-2"><label>الدور</label>
-                <select name="role_id" class="form-select" required>
-                    {% for r in roles %}
-                    <option value="{{ r.id }}" {% if user.role_id == r.id %}selected{% endif %}>{{ r.name_ar }}</option>
-                    {% endfor %}
-                </select>
+            <div class="row g-2 mb-3">
+                <div class="col-md-6">
+                    <label>الدور</label>
+                    <select name="role_id" class="form-select" required>
+                        {% for r in roles %}
+                        <option value="{{ r.id }}" {% if user.role_id == r.id %}selected{% endif %}>{{ r.name_ar }} ({{ r.name }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label>المدرسة</label>
+                    <select name="school_id" class="form-select">
+                        <option value="">—</option>
+                        {% for s in schools %}
+                        <option value="{{ s.id }}" {% if user.school_id == s.id %}selected{% endif %}>{{ s.name_ar }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
-            <div class="mb-3"><label>المدرسة</label>
-                <select name="school_id" class="form-select">
-                    <option value="">—</option>
-                    {% for s in schools %}
-                    <option value="{{ s.id }}" {% if user.school_id == s.id %}selected{% endif %}>{{ s.name_ar }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+
+            {% with
+                create_teacher_checked=user.teacher_profile is not none,
+                create_student_checked=user.student_profile is not none,
+                employee_id=user.teacher_profile.employee_id if user.teacher_profile else '',
+                specialization=user.teacher_profile.specialization if user.teacher_profile else '',
+                student_number=user.student_profile.student_id if user.student_profile else '',
+                teacher_classes=teacher_classes,
+                student_grade_id=student_grade_id,
+                student_class_id=student_class_id,
+                role_names=role_names
+            %}
+            {% include "super_admin/_user_profile_fields.html" %}
+            {% endwith %}
+
             <button class="btn btn-primary">حفظ</button>
             <a href="{{ url_for('super_admin.users') }}" class="btn btn-outline-secondary">إلغاء</a>
         </form>
+
+        <div class="card mt-4">
+            <div class="card-header"><strong>صلاحيات إضافية للمستخدم</strong></div>
+            <div class="card-body">
+                <p class="text-muted small">تُضاف إلى صلاحيات الدور وملفات المعلم/الطالب. مثال: منح <code>register_students</code> لمستخدم بدون دور مدير.</p>
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="full_name_ar" value="{{ user.full_name_ar }}">
+                    <input type="hidden" name="email" value="{{ user.email }}">
+                    <input type="hidden" name="phone" value="{{ user.phone or '' }}">
+                    <input type="hidden" name="role_id" value="{{ user.role_id }}">
+                    <input type="hidden" name="school_id" value="{{ user.school_id or '' }}">
+                    {% if user.teacher_profile %}
+                    <input type="hidden" name="create_teacher_profile" value="on">
+                    {% endif %}
+                    {% if user.student_profile %}
+                    <input type="hidden" name="create_student_profile" value="on">
+                    {% endif %}
+                    {% for module, perms in permissions_grouped.items() %}
+                    <div class="mb-3">
+                        <h6 class="text-muted">{{ module }}</h6>
+                        <div class="row g-2">
+                            {% for p in perms %}
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="extra_permission_ids"
+                                        value="{{ p.id }}" id="perm{{ p.id }}"
+                                        {% if p.id in user_extra_permission_ids %}checked{% endif %}>
+                                    <label class="form-check-label" for="perm{{ p.id }}">
+                                        {{ p.name_ar }} <small class="text-muted">({{ p.name }})</small>
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <button class="btn btn-outline-primary btn-sm">حفظ الصلاحيات الإضافية</button>
+                </form>
+            </div>
+        </div>
     </div></div>
 </div>
 {% endblock %}

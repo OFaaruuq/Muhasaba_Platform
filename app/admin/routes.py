@@ -158,7 +158,7 @@ def select_school():
     if school_id:
         set_active_school_id(school_id)
         ensure_school_defaults(school_id)
-        flash_msg("admin_school_selected", "success", sid)
+        flash_msg("admin_school_selected", "success", school_id)
     return redirect(request.referrer or url_for("admin.index"))
 
 

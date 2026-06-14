@@ -27,7 +27,7 @@ def app():
         from app.utils.db_upgrade import (
             upgrade_student_schema, upgrade_kpi_schema, upgrade_config_schema,
             upgrade_attendance_schema, upgrade_reading_schema, upgrade_followup_survey_schema,
-            upgrade_auth_schema, ensure_super_admin_role,
+            upgrade_auth_schema, ensure_super_admin_role, upgrade_user_permissions_schema,
         )
         from app.services.config_service import ensure_school_defaults
 
@@ -38,6 +38,7 @@ def app():
         upgrade_reading_schema()
         upgrade_followup_survey_schema()
         upgrade_auth_schema()
+        upgrade_user_permissions_schema()
         from app.utils.db_upgrade import upgrade_permissions
         upgrade_permissions()
         ensure_school_defaults(None)

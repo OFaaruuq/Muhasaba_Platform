@@ -3,6 +3,9 @@
 {% block content %}
 <div class="container">
     <h2 class="mb-4">تعديل: {{ user.username }}</h2>
+    {% if is_administrator_role(user.role.name) %}
+    <div class="alert alert-warning py-2"><i class="bi bi-shield-check"></i> هذا المستخدم لديه دور مسؤول: <strong>{{ role_label(user.role) }}</strong></div>
+    {% endif %}
     <div class="card"><div class="card-body">
         <form method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -10,10 +13,16 @@
                 <div class="col-md-6"><label class="form-label">الاسم</label><input name="full_name_ar" class="form-control" value="{{ user.full_name_ar or user.full_name }}" required></div>
                 <div class="col-md-6"><label class="form-label">البريد</label><input name="email" type="email" class="form-control" value="{{ user.email }}" required></div>
                 <div class="col-md-6"><label class="form-label">الهاتف</label><input name="phone" class="form-control" value="{{ user.phone or '' }}"></div>
-                <div class="col-md-6"><label class="form-label">الدور</label>
+                <div class="col-md-6">
+                    <label class="form-label">الدور — تعيين مسؤول</label>
                     <select name="role_id" class="form-select" required>
-                        {% for r in roles %}<option value="{{ r.id }}" {% if user.role_id == r.id %}selected{% endif %}>{{ r.name_ar }}</option>{% endfor %}
+                        {% for r in roles %}
+                        <option value="{{ r.id }}" {% if user.role_id == r.id %}selected{% endif %}>
+                            {{ role_label(r) }}{% if is_administrator_role(r.name) %} ★{% endif %}
+                        </option>
+                        {% endfor %}
                     </select>
+                    <small class="text-muted">اختر «مدير المدرسة — مسؤول» لتعيين صلاحيات إدارية.</small>
                 </div>
                 {% if schools %}
                 <div class="col-md-6"><label class="form-label">المدرسة</label>
@@ -26,6 +35,7 @@
                 <div class="col-md-6"><label class="form-label">كلمة مرور جديدة (اختياري)</label><input name="password" type="password" class="form-control"></div>
             </div>
             <button type="submit" class="btn btn-primary mt-4">حفظ</button>
+            <a href="{{ url_for('users.index') }}" class="btn btn-outline-secondary mt-4">إلغاء</a>
         </form>
     </div></div>
 </div>

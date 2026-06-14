@@ -52,7 +52,7 @@ def _demo_attendance_codes(school_id):
 
 
 def seed_database():
-    if Role.query.first():
+    if User.query.filter_by(username="teacher").first():
         return
 
     roles = [
@@ -63,7 +63,10 @@ def seed_database():
         Role(name="student", name_ar="طالب", description="عرض الأداء والمحاسبة الذاتية"),
         Role(name="parent", name_ar="ولي أمر", description="متابعة أداء الأبناء"),
     ]
-    db.session.add_all(roles)
+    for role_def in roles:
+        existing = Role.query.filter_by(name=role_def.name).first()
+        if not existing:
+            db.session.add(role_def)
     db.session.flush()
 
     from app.services.permission_registry import apply_default_role_permissions

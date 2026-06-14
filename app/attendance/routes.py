@@ -150,7 +150,7 @@ def record(class_id):
         db.session.commit()
         for student in students:
             sync_kpis_for_student(student.id)
-        flash_msg("attendance_saved", "success", sid)
+        flash_msg("attendance_saved", "success", class_.school_id)
         return redirect(url_for("attendance.index", date=today.isoformat()))
 
     existing_records = {

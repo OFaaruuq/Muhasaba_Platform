@@ -156,8 +156,10 @@ def create_app(config_class=Config):
 
     @app.context_processor
     def inject_globals():
+        from flask import session
         from flask_login import current_user
         from app.models import Notification
+        from app.services.permission_registry import user_has_dual_teacher_student_profiles
         from app.services.config_service import (
             get_setting, get_kpi_source_description, get_attendance_status_map,
             get_gender_label, get_config_map, get_performance_label,
@@ -226,6 +228,11 @@ def create_app(config_class=Config):
             "get_role_display": get_role_display,
             "user_can": _user_can,
             "user_can_any": _user_can_any,
+            "dual_teacher_student": (
+                user_has_dual_teacher_student_profiles(current_user)
+                if current_user.is_authenticated else False
+            ),
+            "dashboard_mode": session.get("dashboard_mode") if current_user.is_authenticated else None,
         }
 
     return app

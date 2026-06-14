@@ -106,6 +106,20 @@ def register():
 @login_required
 def profile(student_id):
     student = Student.query.get_or_404(student_id)
+    own = (
+        current_user.student_profile
+        and current_user.student_profile.id == student.id
+    )
+    parent_ok = (
+        current_user.parent_profile
+        and student in current_user.parent_profile.children
+    )
+    if not own and not parent_ok and not current_user.has_any_permission(
+        "view_students", "manage_students"
+    ):
+        flash_msg("permission_denied_page", "danger")
+        from flask import abort
+        abort(403)
     denied = _check_student_access(student)
     if denied:
         return denied
