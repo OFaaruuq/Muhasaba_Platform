@@ -26,6 +26,7 @@ from app.models.settings import (
     PlatformSetting, EvaluationCriterion, RatingLevel, AttendanceStatusConfig,
     ConfigOption,
 )
+from app.models.auth_token import LoginOtp
 from app.models.seed import seed_database
 
 __all__ = [
@@ -72,5 +73,6 @@ __all__ = [
     "RatingLevel",
     "AttendanceStatusConfig",
     "ConfigOption",
+    "LoginOtp",
     "seed_database",
 ]

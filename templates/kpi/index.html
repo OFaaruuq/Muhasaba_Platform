@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}مؤشرات الأداء - {{ platform_name }}{% endblock %}
+{% block title %}{{ page_labels.kpi_page_title }} - {{ platform_name }}{% endblock %}
 {% block content %}
 <div class="container-fluid">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-        <h2 class="mb-0"><i class="bi bi-graph-up"></i> مؤشرات الأداء</h2>
+        <h2 class="mb-0"><i class="bi bi-graph-up"></i> {{ page_labels.kpi_page_title }}</h2>
         <div class="d-flex flex-wrap gap-2 align-items-center">
             <div class="btn-group">
                 {% for code, label in kpi_period_choices %}

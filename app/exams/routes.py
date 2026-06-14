@@ -1,6 +1,7 @@
 from datetime import date, datetime, timezone
 
 from flask import flash, redirect, render_template, request, url_for
+from app.services.message_service import flash_msg
 from flask_login import login_required, current_user
 
 from app.exams import bp
@@ -69,7 +70,7 @@ def create():
 
     if request.method == "POST":
         if not teacher:
-            flash("لا يوجد معلم مرتبط.", "danger")
+            flash_msg("teacher_no_profile", "danger")
             return redirect(url_for("exams.create"))
         exam = Exam(
             school_id=current_user.school_id,
@@ -111,7 +112,7 @@ def create():
                 order=i,
             ))
         db.session.commit()
-        flash("تم إنشاء الاختبار.", "success")
+        flash_msg("exam_created", "success", sid)
         return redirect(url_for("exams.detail", exam_id=exam.id))
 
     sid = get_active_school_id() or current_user.school_id
@@ -153,12 +154,12 @@ def take(exam_id):
     if redirect_resp:
         return redirect_resp
     if not exam.is_published:
-        flash("الاختبار غير منشور.", "danger")
+        flash_msg("exam_not_published", "danger")
         return redirect(url_for("exams.index"))
 
     existing = ExamResult.query.filter_by(exam_id=exam.id, student_id=student.id).first()
     if existing and existing.is_graded:
-        flash("لقد أجبت على هذا الاختبار مسبقاً.", "info")
+        flash_msg("exam_already_taken", "info")
         return redirect(url_for("exams.index"))
 
     questions = exam.questions.order_by(ExamQuestion.order).all()
@@ -208,7 +209,7 @@ def take(exam_id):
         notify_parent_of_student(student, title, message, ntype, url_for("exams.index"))
         db.session.commit()
 
-        flash(f"تم تسليم الاختبار. درجتك: {pct}%", "success")
+        flash_msg("exam_submitted", "success", pct=pct)
         return redirect(url_for("exams.index"))
 
     return render_template("exams/take.html", exam=exam, questions=questions)
@@ -232,5 +233,5 @@ def grade_essay(exam_id, result_id):
     )
     db.session.commit()
     sync_kpis_for_student(result.student_id)
-    flash("تم تصحيح الاختبار.", "success")
+    flash_msg("exam_graded", "success", sid)
     return redirect(url_for("exams.detail", exam_id=exam.id))

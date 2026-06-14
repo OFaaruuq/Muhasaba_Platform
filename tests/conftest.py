@@ -27,7 +27,7 @@ def app():
         from app.utils.db_upgrade import (
             upgrade_student_schema, upgrade_kpi_schema, upgrade_config_schema,
             upgrade_attendance_schema, upgrade_reading_schema, upgrade_followup_survey_schema,
-            ensure_super_admin_role,
+            upgrade_auth_schema, ensure_super_admin_role,
         )
         from app.services.config_service import ensure_school_defaults
 
@@ -37,6 +37,7 @@ def app():
         upgrade_attendance_schema()
         upgrade_reading_schema()
         upgrade_followup_survey_schema()
+        upgrade_auth_schema()
         from app.utils.db_upgrade import upgrade_permissions
         upgrade_permissions()
         ensure_school_defaults(None)
@@ -60,22 +61,14 @@ def client(app):
 @pytest.fixture
 def auth_headers(client, app):
     """Return Authorization headers with a valid JWT for teacher user."""
+    from tests.auth_helpers import jwt_headers
     with app.app_context():
-        resp = client.post(
-            "/auth/api/token",
-            json={"username": "teacher", "password": "admin123"},
-        )
-        token = resp.get_json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+        return jwt_headers(client, "teacher")
 
 
 @pytest.fixture
 def manager_auth_headers(client, app):
     """JWT headers for school manager (grades/classes API)."""
+    from tests.auth_helpers import jwt_headers
     with app.app_context():
-        resp = client.post(
-            "/auth/api/token",
-            json={"username": "manager", "password": "admin123"},
-        )
-        token = resp.get_json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+        return jwt_headers(client, "manager")

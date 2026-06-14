@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from flask import flash, redirect, render_template, request, url_for
+from app.services.message_service import flash_msg
 from flask_login import login_required, current_user
 
 from app.schools import bp
@@ -17,7 +18,7 @@ from app.utils import permission_required
 def _school_access(school_id):
     school = School.query.get_or_404(school_id)
     if not current_user.is_platform_admin and school.id != current_user.school_id:
-        flash("ليس لديك صلاحية.", "danger")
+        flash_msg("permission_denied", "danger")
         return None
     return school
 
@@ -90,7 +91,7 @@ def create():
         ensure_school_defaults(school.id)
         provision_school_kpis(school.id)
         db.session.commit()
-        flash("تم تسجيل المدرسة بنجاح مع الإعدادات الافتراضية.", "success")
+        flash_msg("school_registered", "success")
         return redirect(url_for("schools.detail", school_id=school.id))
 
     return render_template("schools/create.html")
@@ -118,11 +119,11 @@ def edit_school(school_id):
                 School.code == request.form["code"], School.id != school.id
             ).first()
             if existing:
-                flash("رمز المدرسة مستخدم مسبقاً.", "danger")
+                flash_msg("school_code_taken", "danger")
                 return redirect(url_for("schools.edit_school", school_id=school.id))
             school.code = request.form["code"]
         db.session.commit()
-        flash("تم تحديث المدرسة.", "success")
+        flash_msg("school_updated", "success", school.id)
         next_url = request.form.get("next") or url_for("schools.detail", school_id=school.id)
         return redirect(next_url)
 
@@ -137,7 +138,7 @@ def toggle_school(school_id):
     school.is_active = not school.is_active
     db.session.commit()
     state = "تفعيل" if school.is_active else "تعطيل"
-    flash(f"تم {state} المدرسة.", "success")
+    flash_msg("school_state_changed", "success", school.id, state=state)
     return redirect(url_for("schools.index", show_inactive="1" if not school.is_active else None))
 
 
@@ -148,7 +149,7 @@ def delete_school(school_id):
     school = School.query.get_or_404(school_id)
     confirm_code = (request.form.get("confirm_code") or "").strip()
     if confirm_code != school.code:
-        flash("رمز التأكيد غير صحيح. اكتب رمز المدرسة للحذف النهائي.", "danger")
+        flash_msg("school_delete_code_wrong", "danger")
         return redirect(url_for("schools.detail", school_id=school.id))
 
     name_ar = school.name_ar
@@ -158,7 +159,7 @@ def delete_school(school_id):
         flash(str(exc), "danger")
         return redirect(url_for("schools.detail", school_id=school_id))
 
-    flash(f"تم حذف المدرسة «{name_ar}» نهائياً.", "success")
+    flash_msg("school_deleted", "success", name=name_ar)
     return redirect(url_for("schools.index", show_inactive="1"))
 
 
@@ -177,7 +178,7 @@ def add_grade(school_id):
             level=request.form["level"],
             name=request.form.get("name") or request.form["name_ar"],
         )
-        flash("تم إضافة المستوى الدراسي.", "success")
+        flash_msg("grade_added", "success", school_id)
     except ValueError as exc:
         flash(str(exc), "danger")
     return redirect(url_for("schools.detail", school_id=school.id))
@@ -199,7 +200,7 @@ def add_class(school_id):
             section=request.form.get("section"),
             capacity=request.form.get("capacity", get_setting("default_class_capacity", school.id, 30)),
         )
-        flash("تم إضافة الفصل.", "success")
+        flash_msg("class_added", "success", school_id)
     except ValueError as exc:
         flash(str(exc), "danger")
     return redirect(url_for("schools.detail", school_id=school.id))
@@ -219,7 +220,7 @@ def add_subject(school_id):
         code=request.form.get("code"),
     ))
     db.session.commit()
-    flash("تم إضافة المادة.", "success")
+    flash_msg("subject_added", "success", school_id)
     return redirect(url_for("schools.detail", school_id=school.id))
 
 
@@ -241,7 +242,7 @@ def add_year(school_id):
         is_current=is_current,
     ))
     db.session.commit()
-    flash("تم إضافة السنة الدراسية.", "success")
+    flash_msg("year_added", "success", school_id)
     return redirect(url_for("schools.detail", school_id=school.id))
 
 
@@ -257,7 +258,7 @@ def edit_grade(school_id, grade_id):
     grade.name_ar = request.form["name_ar"]
     grade.level = int(request.form["level"])
     db.session.commit()
-    flash("تم تحديث الصف.", "success")
+    flash_msg("grade_updated", "success", school_id)
     return redirect(url_for("schools.detail", school_id=school.id))
 
 
@@ -270,11 +271,11 @@ def delete_grade(school_id, grade_id):
         return redirect(url_for("schools.index"))
     grade = Grade.query.filter_by(id=grade_id, school_id=school.id).first_or_404()
     if grade.classes.count():
-        flash("لا يمكن حذف صف مرتبط بفصول.", "danger")
+        flash_msg("grade_delete_blocked", "danger")
         return redirect(url_for("schools.detail", school_id=school.id))
     db.session.delete(grade)
     db.session.commit()
-    flash("تم حذف الصف.", "success")
+    flash_msg("grade_deleted", "success", school_id)
     return redirect(url_for("schools.detail", school_id=school.id))
 
 
@@ -292,7 +293,7 @@ def edit_class(school_id, class_id):
     class_.capacity = int(request.form.get("capacity", class_.capacity))
     class_.academic_year_id = request.form.get("academic_year_id", type=int) or None
     db.session.commit()
-    flash("تم تحديث الفصل.", "success")
+    flash_msg("class_updated", "success", school_id)
     return redirect(url_for("schools.detail", school_id=school.id))
 
 
@@ -305,11 +306,11 @@ def delete_class(school_id, class_id):
         return redirect(url_for("schools.index"))
     class_ = Class.query.filter_by(id=class_id, school_id=school.id).first_or_404()
     if class_.students.filter_by(is_active=True).count():
-        flash("لا يمكن حذف فصل يضم طلاباً.", "danger")
+        flash_msg("class_delete_blocked", "danger")
         return redirect(url_for("schools.detail", school_id=school.id))
     db.session.delete(class_)
     db.session.commit()
-    flash("تم حذف الفصل.", "success")
+    flash_msg("class_deleted", "success", school_id)
     return redirect(url_for("schools.detail", school_id=school.id))
 
 
@@ -325,7 +326,7 @@ def edit_subject(school_id, subject_id):
     subject.name_ar = request.form["name_ar"]
     subject.code = request.form.get("code")
     db.session.commit()
-    flash("تم تحديث المادة.", "success")
+    flash_msg("subject_updated", "success", school_id)
     return redirect(url_for("schools.detail", school_id=school.id))
 
 
@@ -339,7 +340,7 @@ def delete_subject(school_id, subject_id):
     subject = Subject.query.filter_by(id=subject_id, school_id=school.id).first_or_404()
     ok, blockers = can_delete_subject(subject.id)
     if not ok:
-        flash("لا يمكن حذف المادة: " + "؛ ".join(blockers) + ".", "danger")
+        flash_msg("subject_delete_blocked", "danger", reason="؛ ".join(blockers))
         return redirect(url_for("schools.detail", school_id=school.id))
     from app.models import TeacherClass
     TeacherClass.query.filter_by(subject_id=subject.id).update(
@@ -347,7 +348,7 @@ def delete_subject(school_id, subject_id):
     )
     db.session.delete(subject)
     db.session.commit()
-    flash("تم حذف المادة.", "success")
+    flash_msg("subject_deleted", "success", school_id)
     return redirect(url_for("schools.detail", school_id=school.id))
 
 
@@ -367,7 +368,7 @@ def edit_year(school_id, year_id):
         AcademicYear.query.filter_by(school_id=school.id).update({"is_current": False})
     year.is_current = is_current
     db.session.commit()
-    flash("تم تحديث السنة الدراسية.", "success")
+    flash_msg("year_updated", "success", school_id)
     return redirect(url_for("schools.detail", school_id=school.id))
 
 
@@ -380,9 +381,9 @@ def delete_year(school_id, year_id):
         return redirect(url_for("schools.index"))
     year = AcademicYear.query.filter_by(id=year_id, school_id=school.id).first_or_404()
     if Class.query.filter_by(academic_year_id=year.id).count():
-        flash("لا يمكن حذف سنة مرتبطة بفصول.", "danger")
+        flash_msg("year_delete_blocked", "danger")
         return redirect(url_for("schools.detail", school_id=school.id))
     db.session.delete(year)
     db.session.commit()
-    flash("تم حذف السنة الدراسية.", "success")
+    flash_msg("year_deleted", "success", school_id)
     return redirect(url_for("schools.detail", school_id=school.id))

@@ -46,6 +46,8 @@ def test_custom_role_inherits_teacher_capabilities(app, client):
             full_name_ar="مرشد",
             role_id=role.id,
             school_id=1,
+            is_active=True,
+            email_verified=True,
         )
         counselor.set_password("admin123")
         db.session.add(counselor)
@@ -55,12 +57,8 @@ def test_custom_role_inherits_teacher_capabilities(app, client):
         counselor = User.query.filter_by(username="counselor1").first()
         assert user_matches_legacy_roles(counselor, "teacher")
 
-        resp = client.post(
-            "/auth/login",
-            data={"username": "counselor1", "password": "admin123"},
-            follow_redirects=True,
-        )
-        assert resp.status_code == 200
+        from tests.auth_helpers import login_session
+        login_session(client, "counselor1")
         resp = client.get("/attendance/")
         assert resp.status_code == 200
 

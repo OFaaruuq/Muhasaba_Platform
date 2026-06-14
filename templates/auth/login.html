@@ -28,9 +28,15 @@
                                 <label class="form-check-label" for="remember">تذكرني</label>
                             </div>
                             <button type="submit" class="btn btn-primary btn-lg w-100">
-                                <i class="bi bi-box-arrow-in-left"></i> دخول
+                                <i class="bi bi-box-arrow-in-left"></i> متابعة — إرسال OTP
                             </button>
                         </form>
+                        {% if show_resend %}
+                        <form method="POST" action="{{ url_for('auth.resend_verification') }}" class="mt-3">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm w-100">إعادة إرسال رابط تفعيل البريد</button>
+                        </form>
+                        {% endif %}
                         {% if show_demo_logins and demo_accounts %}
                         <div class="mt-4 p-3 bg-light rounded small">
                             <strong>حسابات تجريبية:</strong><br>

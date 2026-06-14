@@ -1,4 +1,5 @@
 from flask import flash, redirect, render_template, request, url_for
+from app.services.message_service import flash_msg
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from app.students import bp
@@ -146,7 +147,7 @@ def profile(student_id):
 def edit(student_id):
     student = Student.query.get_or_404(student_id)
     if not can_edit_student(current_user, student):
-        flash("ليس لديك صلاحية لتعديل هذا الطالب.", "danger")
+        flash_msg("permission_edit_student", "danger")
         return redirect(url_for("students.profile", student_id=student.id))
 
     schools = (
@@ -169,7 +170,7 @@ def edit(student_id):
                 request.form,
                 allow_school_change=current_user.is_platform_admin,
             )
-            flash("تم تحديث بيانات الطالب.", "success")
+            flash_msg("student_updated", "success", sid)
             return redirect(url_for("students.profile", student_id=student.id))
         except ValueError as exc:
             flash(str(exc), "danger")
@@ -195,12 +196,12 @@ def edit(student_id):
 def self_edit(student_id):
     student = Student.query.get_or_404(student_id)
     if not can_student_edit_own(current_user, student):
-        flash("ليس لديك صلاحية لتعديل هذا الملف.", "danger")
+        flash_msg("permission_edit_profile", "danger")
         return redirect(url_for("dashboards.index"))
 
     if request.method == "POST":
         update_student(student, request.form, self_edit=True)
-        flash("تم تحديث بياناتك.", "success")
+        flash_msg("student_self_updated", "success")
         return redirect(url_for("students.profile", student_id=student.id))
 
     return render_template("students/self_edit.html", student=student)
@@ -220,6 +221,7 @@ def bulk_action():
         "q": request.form.get("q") or None,
     }
     redirect_args = {k: v for k, v in redirect_args.items() if v}
+    sid = redirect_args.get("school_id") or current_user.school_id
 
     try:
         count = bulk_manage_students(current_user, student_ids, action)
@@ -229,9 +231,9 @@ def bulk_action():
             f"count={count} ids={','.join(student_ids[:20])}",
         )
         if action == "deactivate":
-            flash(f"تم تعطيل {count} طالب/طلاب.", "success")
+            flash_msg("student_deactivated_bulk", "success", sid, count=count)
         else:
-            flash(f"تم تفعيل {count} طالب/طلاب.", "success")
+            flash_msg("student_activated_bulk", "success", sid, count=count)
     except ValueError as exc:
         flash(str(exc), "danger")
 
@@ -244,13 +246,13 @@ def bulk_action():
 def deactivate(student_id):
     student = Student.query.get_or_404(student_id)
     if not can_manage_student(current_user, student):
-        flash("ليس لديك صلاحية.", "danger")
+        flash_msg("permission_denied", "danger")
         return redirect(url_for("students.index"))
     if not student.is_active:
-        flash("الطالب معطّل مسبقاً.", "info")
+        flash_msg("student_already_inactive", "info")
         return redirect(url_for("students.profile", student_id=student.id))
     deactivate_student(student)
-    flash("تم تعطيل الطالب. لن يظهر في القوائم النشطة.", "success")
+    flash_msg("student_deactivated", "success", student.school_id)
     return redirect(url_for("students.index"))
 
 
@@ -260,10 +262,10 @@ def deactivate(student_id):
 def activate(student_id):
     student = Student.query.get_or_404(student_id)
     if not can_manage_student(current_user, student):
-        flash("ليس لديك صلاحية.", "danger")
+        flash_msg("permission_denied", "danger")
         return redirect(url_for("students.index"))
     activate_student(student)
-    flash("تم تفعيل الطالب.", "success")
+    flash_msg("student_activated", "success", student.school_id)
     return redirect(url_for("students.profile", student_id=student.id))
 
 
@@ -283,7 +285,7 @@ def link_parent(student_id):
     if rel:
         parent.relationship_type = rel
     db.session.commit()
-    flash("تم ربط ولي الأمر بالطالب.", "success")
+    flash_msg("student_parent_linked", "success", student.school_id)
     return redirect(url_for("students.profile", student_id=student_id))
 
 
@@ -299,7 +301,7 @@ def unlink_parent(student_id, parent_id):
     if student in parent.children:
         parent.children.remove(student)
         db.session.commit()
-        flash("تم إلغاء الربط.", "success")
+        flash_msg("student_parent_unlinked", "success", student.school_id)
     return redirect(url_for("students.profile", student_id=student_id))
 
 
@@ -337,17 +339,17 @@ def _check_student_access(student):
         return None
     if current_user.is_student and current_user.student_profile:
         if current_user.student_profile.id != student.id:
-            flash("ليس لديك صلاحية.", "danger")
+            flash_msg("permission_denied", "danger")
             return redirect(url_for("dashboards.index"))
     elif current_user.is_parent and current_user.parent_profile:
         if student not in current_user.parent_profile.children:
-            flash("ليس لديك صلاحية.", "danger")
+            flash_msg("permission_denied", "danger")
             return redirect(url_for("dashboards.index"))
     elif current_user.is_teacher and current_user.teacher_profile:
         if not teacher_can_access_student(current_user, student):
-            flash("ليس لديك صلاحية.", "danger")
+            flash_msg("permission_denied", "danger")
             return redirect(url_for("students.index"))
     elif current_user.school_id and student.school_id != current_user.school_id:
-        flash("ليس لديك صلاحية.", "danger")
+        flash_msg("permission_denied", "danger")
         return redirect(url_for("dashboards.index"))
     return None

@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}لوحة المعلم - {{ platform_name }}{% endblock %}
+{% block title %}{{ page_labels.dashboard_teacher }} - {{ platform_name }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <h2 class="mb-4"><i class="bi bi-person-workspace"></i> لوحة تحكم المعلم</h2>
+    <h2 class="mb-4"><i class="bi bi-person-workspace"></i> {{ page_labels.dashboard_teacher }}</h2>
 
     {% if tracking %}
     <div class="row g-4 mb-4">
@@ -11,7 +11,7 @@
             <div class="card stat-card">
                 <div class="card-body text-center">
                     <h3>{{ tracking.student_count }}</h3>
-                    <p class="text-muted mb-0">طالب تحت متابعتي</p>
+                    <p class="text-muted mb-0">{{ page_labels.teacher_stat_students }}</p>
                 </div>
             </div>
         </div>
@@ -19,7 +19,7 @@
             <div class="card stat-card border-success">
                 <div class="card-body text-center">
                     <h3 class="text-success">{{ tracking.family_complete }}</h3>
-                    <p class="text-muted mb-0">استبيانات مكتملة</p>
+                    <p class="text-muted mb-0">{{ page_labels.teacher_stat_surveys_complete }}</p>
                 </div>
             </div>
         </div>
@@ -27,7 +27,7 @@
             <div class="card stat-card border-warning">
                 <div class="card-body text-center">
                     <h3 class="text-warning">{{ tracking.family_pending + tracking.family_partial }}</h3>
-                    <p class="text-muted mb-0">استبيانات متبقية</p>
+                    <p class="text-muted mb-0">{{ page_labels.teacher_stat_surveys_remaining }}</p>
                 </div>
             </div>
         </div>
@@ -35,7 +35,7 @@
             <div class="card stat-card">
                 <div class="card-body text-center">
                     <h3>{{ tracking.completion_pct }}%</h3>
-                    <p class="text-muted mb-0">إنجاز متابعة {{ tracking.period_month }}/{{ tracking.period_year }}</p>
+                    <p class="text-muted mb-0">{{ page_labels.teacher_stat_completion | plabel(month=tracking.period_month, year=tracking.period_year) }}</p>
                 </div>
             </div>
         </div>
@@ -45,27 +45,27 @@
     <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
             <i class="bi bi-exclamation-triangle"></i>
-            <strong>متابعة شهرية مطلوبة</strong> — يجب تقييم كل طالب عبر استبيانات المتابعة الشهرية
-            ({{ tracking.period_month }}/{{ tracking.period_year }}).
+            <strong>{{ page_labels.teacher_alert_followup_required }}</strong> —
+            {{ page_labels.teacher_alert_followup_body | plabel(month=tracking.period_month, year=tracking.period_year) }}
             {% if not tracking.teacher_survey_done %}
-            <span class="badge bg-secondary ms-1">استبيان المعلم: {{ tracking.teacher_answered }}/{{ tracking.teacher_total }}</span>
+            <span class="badge bg-secondary ms-1">{{ page_labels.teacher_alert_teacher_survey | plabel(answered=tracking.teacher_answered, total=tracking.teacher_total) }}</span>
             {% endif %}
             {% if tracking.family_pending %}
-            <span class="badge bg-danger ms-1">{{ tracking.family_pending }} طالب لم يُقيَّم</span>
+            <span class="badge bg-danger ms-1">{{ page_labels.teacher_alert_pending | plabel(n=tracking.family_pending) }}</span>
             {% endif %}
             {% if tracking.family_partial %}
-            <span class="badge bg-warning text-dark ms-1">{{ tracking.family_partial }} جزئي</span>
+            <span class="badge bg-warning text-dark ms-1">{{ page_labels.teacher_alert_partial | plabel(n=tracking.family_partial) }}</span>
             {% endif %}
         </div>
         <a href="{{ url_for('followup_surveys.teacher_form', year=tracking.period_year, month=tracking.period_month, tab='family') }}"
             class="btn btn-warning">
-            <i class="bi bi-clipboard-data"></i> إكمال التقييمات
+            <i class="bi bi-clipboard-data"></i> {{ page_labels.teacher_btn_complete_surveys }}
         </a>
     </div>
     {% else %}
     <div class="alert alert-success mb-4">
         <i class="bi bi-check-circle"></i>
-        أتممت متابعة جميع طلابك واستبيان المعلم لشهر {{ tracking.period_month }}/{{ tracking.period_year }}.
+        {{ page_labels.teacher_alert_all_done | plabel(month=tracking.period_month, year=tracking.period_year) }}
     </div>
     {% endif %}
     {% endif %}
@@ -73,15 +73,15 @@
     {% if tracking and tracking.rows %}
     <div class="card mb-4">
         <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <span><i class="bi bi-people"></i> أداء طلابي ومتابعتهم الشهرية</span>
+            <span><i class="bi bi-people"></i> {{ page_labels.teacher_students_card_title }}</span>
             <div class="d-flex gap-2">
                 <a href="{{ url_for('followup_surveys.analytics_index', tab='students', year=tracking.period_year, month=tracking.period_month) }}"
                     class="btn btn-sm btn-outline-info">
-                    <i class="bi bi-graph-up"></i> تحليلات
+                    <i class="bi bi-graph-up"></i> {{ page_labels.teacher_btn_analytics }}
                 </a>
                 <a href="{{ url_for('followup_surveys.teacher_form', year=tracking.period_year, month=tracking.period_month) }}"
                     class="btn btn-sm btn-success">
-                    <i class="bi bi-clipboard-data"></i> استبيانات المتابعة
+                    <i class="bi bi-clipboard-data"></i> {{ page_labels.teacher_btn_followup_surveys }}
                 </a>
             </div>
         </div>
@@ -89,10 +89,10 @@
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th>الطالب</th>
-                        <th>المجموعة</th>
-                        <th>مؤشر الأداء</th>
-                        <th>استبيان المتابعة</th>
+                        <th>{{ page_labels.teacher_col_student }}</th>
+                        <th>{{ page_labels.teacher_col_group }}</th>
+                        <th>{{ page_labels.teacher_col_kpi }}</th>
+                        <th>{{ page_labels.teacher_col_survey }}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -109,17 +109,17 @@
                         </td>
                         <td>
                             <span class="badge bg-{{ row.status_class }}">{{ row.status_text }}</span>
-                            <small class="text-muted d-block">{{ row.answered }}/{{ row.total }} سؤال</small>
+                            <small class="text-muted d-block">{{ page_labels.teacher_col_questions | plabel(answered=row.answered, total=row.total) }}</small>
                         </td>
                         <td class="text-nowrap">
-                            <a href="{{ url_for('students.profile', student_id=row.student.id) }}" class="btn btn-sm btn-outline-primary">الملف</a>
+                            <a href="{{ url_for('students.profile', student_id=row.student.id) }}" class="btn btn-sm btn-outline-primary">{{ page_labels.teacher_btn_profile }}</a>
                             <a href="{{ url_for('kpi.student_kpi', student_id=row.student.id) }}" class="btn btn-sm btn-outline-success">KPI</a>
                             {% if row.needs_survey %}
                             <a href="{{ url_for('followup_surveys.family_form', student_id=row.student.id, year=tracking.period_year, month=tracking.period_month) }}"
-                                class="btn btn-sm btn-warning">تقييم</a>
+                                class="btn btn-sm btn-warning">{{ page_labels.teacher_btn_rate }}</a>
                             {% else %}
                             <a href="{{ url_for('followup_surveys.family_view', student_id=row.student.id, year=tracking.period_year, month=tracking.period_month) }}"
-                                class="btn btn-sm btn-outline-info">عرض</a>
+                                class="btn btn-sm btn-outline-info">{{ page_labels.teacher_btn_view }}</a>
                             {% endif %}
                         </td>
                     </tr>
@@ -130,12 +130,12 @@
     </div>
     {% elif tracking %}
     <div class="alert alert-info mb-4">
-        لا يوجد طلاب مرتبطون بمجموعاتك. تأكد من تعيينك كمسؤول أو معلم للفصل.
+        {{ page_labels.teacher_no_students }}
     </div>
     {% endif %}
 
     <div class="card mb-4">
-        <div class="card-header">فصولي الدراسية</div>
+        <div class="card-header">{{ page_labels.teacher_classes_header }}</div>
         <div class="card-body">
             {% if classes %}
             <div class="row g-3">
@@ -146,10 +146,10 @@
                             <h5>{{ class.name }}</h5>
                             <p class="text-muted">{{ class.grade.name_ar if class.grade else '' }}</p>
                             <a href="{{ url_for('attendance.record', class_id=class.id) }}" class="btn btn-sm btn-primary">
-                                <i class="bi bi-calendar-check"></i> تسجيل الحضور
+                                <i class="bi bi-calendar-check"></i> {{ page_labels.teacher_btn_attendance }}
                             </a>
                             <a href="{{ url_for('evaluations.index', class_id=class.id) }}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-clipboard-check"></i> المحاسبة
+                                <i class="bi bi-clipboard-check"></i> {{ page_labels.teacher_btn_evaluations }}
                             </a>
                         </div>
                     </div>
@@ -157,21 +157,21 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="text-muted">لا توجد فصول مخصصة.</p>
+            <p class="text-muted">{{ page_labels.teacher_no_classes }}</p>
             {% endif %}
         </div>
     </div>
 
     <div class="card">
-        <div class="card-header">إجراءات سريعة</div>
+        <div class="card-header">{{ page_labels.teacher_quick_actions }}</div>
         <div class="card-body d-grid gap-2 d-md-flex flex-wrap">
             <a href="{{ url_for('followup_surveys.teacher_form') }}" class="btn btn-success">
-                <i class="bi bi-clipboard-data"></i> استبيانات المتابعة الشهرية
+                <i class="bi bi-clipboard-data"></i> {{ page_labels.teacher_quick_followup }}
             </a>
-            <a href="{{ url_for('students.index') }}" class="btn btn-outline-primary">الطلاب</a>
-            <a href="{{ url_for('evaluations.index') }}" class="btn btn-outline-primary">المحاسبة اليومية</a>
-            <a href="{{ url_for('attendance.index') }}" class="btn btn-outline-primary">الحضور</a>
-            <a href="{{ url_for('followup_surveys.analytics_index') }}" class="btn btn-outline-info">تحليلات المتابعة</a>
+            <a href="{{ url_for('students.index') }}" class="btn btn-outline-primary">{{ page_labels.teacher_quick_students }}</a>
+            <a href="{{ url_for('evaluations.index') }}" class="btn btn-outline-primary">{{ page_labels.teacher_quick_daily_eval }}</a>
+            <a href="{{ url_for('attendance.index') }}" class="btn btn-outline-primary">{{ page_labels.teacher_quick_attendance }}</a>
+            <a href="{{ url_for('followup_surveys.analytics_index') }}" class="btn btn-outline-info">{{ page_labels.teacher_quick_analytics }}</a>
         </div>
     </div>
 </div>

@@ -2,6 +2,7 @@
 
 from app.models import Student, User
 from app.kpi.service import recalculate_student_kpis, get_student_kpi_display
+from tests.auth_helpers import jwt_headers, login_session
 
 
 def test_all_blueprints_registered(app):
@@ -19,14 +20,21 @@ def test_all_blueprints_registered(app):
 
 
 def test_jwt_token_endpoint(client):
+    headers = jwt_headers(client, "teacher")
+    assert "Authorization" in headers
+    resp = client.get("/kpi/api/student/1", headers=headers)
+    assert resp.status_code in (200, 404)
+
+
+def test_jwt_otp_challenge(client):
     resp = client.post(
         "/auth/api/token",
         json={"username": "teacher", "password": "admin123"},
     )
     assert resp.status_code == 200
     data = resp.get_json()
-    assert "access_token" in data
-    assert data["role"] == "teacher"
+    assert data.get("otp_required") is True
+    assert "challenge" in data
 
 
 def test_jwt_api_requires_auth(client):
@@ -70,21 +78,12 @@ def test_kpi_recalculation(app):
 
 
 def test_login_and_dashboard(client):
-    resp = client.post(
-        "/auth/login",
-        data={"username": "teacher", "password": "admin123"},
-        follow_redirects=True,
-    )
-    assert resp.status_code == 200
+    login_session(client, "teacher")
     resp = client.get("/dashboard/")
     assert resp.status_code == 200
 
 
 def test_ai_module_accessible(client):
-    client.post(
-        "/auth/login",
-        data={"username": "teacher", "password": "admin123"},
-        follow_redirects=True,
-    )
+    login_session(client, "teacher")
     resp = client.get("/ai/")
     assert resp.status_code == 200

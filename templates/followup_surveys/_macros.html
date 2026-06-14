@@ -38,3 +38,49 @@
     </div>
 </div>
 {% endmacro %}
+
+{% macro family_field(field, survey=none, prefix='', weekly_meetings_choices=none, education_stage_fields=none, default_family_name='') %}
+{% if field.type == 'stages' and education_stage_fields %}
+<div class="mb-2">
+    <label class="form-label d-block">{{ field.label }}:</label>
+    {% for stage_field, stage_label in education_stage_fields.items() %}
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" name="{{ stage_field }}" id="{{ prefix }}{{ stage_field }}"
+            {% if survey|model_get(stage_field) %}checked{% endif %}>
+        <label class="form-check-label" for="{{ prefix }}{{ stage_field }}">{{ stage_label }}</label>
+    </div>
+    {% endfor %}
+</div>
+{% elif field.type == 'yes_no' %}
+{{ yes_no(field.name, field.label, survey|model_get(field.name), prefix) }}
+{% elif field.type == 'radio' and weekly_meetings_choices %}
+<div class="mb-3">
+    <label class="form-label d-block">{{ field.label }}:</label>
+    {% for code, label in weekly_meetings_choices %}
+    <div class="form-check">
+        <input class="form-check-input" type="radio" name="{{ field.name }}" id="{{ prefix }}wm_{{ code }}" value="{{ code }}"
+            {% if survey|model_get(field.name) == code %}checked{% endif %}>
+        <label class="form-check-label" for="{{ prefix }}wm_{{ code }}">{{ label }}</label>
+    </div>
+    {% endfor %}
+</div>
+{% elif field.type == 'textarea' %}
+<div class="mb-3">
+    <label class="form-label">{{ field.label }}</label>
+    <textarea name="{{ field.name }}" class="form-control" rows="3">{{ survey|model_get(field.name) or '' }}</textarea>
+</div>
+{% elif field.name == 'family_name' %}
+<div class="mb-3">
+    <label class="form-label">{{ field.label }}</label>
+    <input type="text" name="family_name" class="form-control"
+        placeholder="{{ default_family_name }}"
+        value="{{ survey|model_get('family_name') or default_family_name }}">
+</div>
+{% else %}
+<div class="mb-3">
+    <label class="form-label">{{ field.label }}</label>
+    <input type="text" name="{{ field.name }}" class="form-control"
+        value="{{ survey|model_get(field.name) or '' }}">
+</div>
+{% endif %}
+{% endmacro %}

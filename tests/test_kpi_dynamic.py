@@ -34,7 +34,7 @@ def test_build_kpi_summaries_for_school(app):
 def test_kpi_index_page_renders_dynamic_columns(client, app):
     with app.app_context():
         school = School.query.first()
-    client.post("/auth/login", data={"username": "manager", "password": "admin123"})
+    from tests.auth_helpers import login_session; login_session(client, "manager", "admin123")
     resp = client.get("/kpi/?period=term")
     assert resp.status_code == 200
     text = resp.get_data(as_text=True)

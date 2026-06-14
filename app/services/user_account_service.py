@@ -1,0 +1,106 @@
+import secrets
+from datetime import datetime, timezone
+
+from flask import url_for
+
+from app.extensions import db
+from app.models import User
+from app.services.email_service import send_verification_email
+from app.services.otp_service import create_login_otp
+
+
+def generate_email_verification_token():
+    return secrets.token_urlsafe(32)
+
+
+def create_user_by_super_admin(
+    *,
+    username,
+    email,
+    full_name_ar,
+    password,
+    role_id,
+    school_id=None,
+    phone=None,
+    is_active=False,
+    send_verification=True,
+):
+    """Only super admin should call this — new users start inactive until activated."""
+    email = (email or "").strip().lower()
+    if not email:
+        raise ValueError("البريد الإلكتروني مطلوب لتفعيل الحساب وإرسال OTP.")
+
+    if User.query.filter_by(username=username).first():
+        raise ValueError("اسم المستخدم موجود.")
+    if User.query.filter_by(email=email).first():
+        raise ValueError("البريد الإلكتروني مستخدم.")
+
+    token = generate_email_verification_token()
+    user = User(
+        username=username.strip(),
+        email=email,
+        full_name=full_name_ar,
+        full_name_ar=full_name_ar,
+        phone=phone,
+        role_id=role_id,
+        school_id=school_id,
+        is_active=is_active,
+        email_verified=False,
+        email_verification_token=token,
+        email_verification_sent_at=datetime.now(timezone.utc),
+    )
+    user.set_password(password)
+    db.session.add(user)
+    db.session.flush()
+
+    if send_verification:
+        verify_url = url_for("auth.verify_email", token=token, _external=True)
+        send_verification_email(user, verify_url)
+
+    return user
+
+
+def resend_verification_email(user):
+    if not user.email:
+        raise ValueError("لا يوجد بريد إلكتروني لهذا المستخدم.")
+    if user.email_verified:
+        raise ValueError("البريد مُفعَّل مسبقاً.")
+
+    user.email_verification_token = generate_email_verification_token()
+    user.email_verification_sent_at = datetime.now(timezone.utc)
+    db.session.commit()
+    verify_url = url_for("auth.verify_email", token=user.email_verification_token, _external=True)
+    send_verification_email(user, verify_url)
+    return user
+
+
+def verify_email_token(token):
+    user = User.query.filter_by(email_verification_token=token).first()
+    if not user:
+        return None, "invalid"
+    user.email_verified = True
+    user.email_verification_token = None
+    db.session.commit()
+    return user, None
+
+
+def can_user_authenticate(user):
+    """Checks before sending login OTP."""
+    if not user:
+        return False, "invalid"
+    if not user.is_active:
+        return False, "inactive"
+    if not user.email_verified:
+        return False, "unverified"
+    if not user.email:
+        return False, "no_email"
+    return True, None
+
+
+def issue_login_otp(user, ip_address=None):
+    from app.services.email_service import send_login_otp_email
+
+    code = create_login_otp(user, purpose="login", ip_address=ip_address)
+    if not send_login_otp_email(user, code):
+        raise RuntimeError("تعذّر إرسال رمز التحقق إلى البريد الإلكتروني.")
+    return code

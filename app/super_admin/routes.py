@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
 from flask import flash, redirect, render_template, request, url_for
+from app.services.message_service import flash_msg
 from flask_login import login_required, current_user
 
 from app.super_admin import bp
@@ -16,6 +17,7 @@ from app.services.school_service import can_delete_school
 from app.services.config_service import set_setting, sync_central_admin_role_label
 from app.utils import permission_required
 from app.utils.permissions import can_manage_user, can_assign_role
+from app.services.user_account_service import create_user_by_super_admin, resend_verification_email
 from app.services.permission_registry import (
     is_system_role, SYSTEM_ROLE_NAMES, permissions_by_module, sync_permissions,
     apply_default_role_permissions,
@@ -69,27 +71,31 @@ def create_user():
         role_id = int(request.form["role_id"])
         role = Role.query.get(role_id)
         if not role or not can_assign_role(current_user, role.name):
-            flash("لا يمكن تعيين هذا الدور.", "danger")
+            flash_msg("users_role_not_allowed", "danger")
             return redirect(url_for("super_admin.create_user"))
 
         if User.query.filter_by(username=username).first():
-            flash("اسم المستخدم موجود.", "danger")
+            flash_msg("sa_username_taken", "danger")
             return redirect(url_for("super_admin.create_user"))
 
-        user = User(
-            username=username,
-            email=request.form["email"],
-            full_name=request.form["full_name_ar"],
-            full_name_ar=request.form["full_name_ar"],
-            phone=request.form.get("phone"),
-            role_id=role_id,
-            school_id=request.form.get("school_id", type=int),
-        )
-        user.set_password(request.form["password"])
-        db.session.add(user)
+        try:
+            user = create_user_by_super_admin(
+                username=username,
+                email=request.form["email"],
+                full_name_ar=request.form["full_name_ar"],
+                password=request.form["password"],
+                role_id=role_id,
+                school_id=request.form.get("school_id", type=int),
+                phone=request.form.get("phone"),
+                is_active=request.form.get("is_active") == "on",
+            )
+        except ValueError as exc:
+            flash(str(exc), "danger")
+            return redirect(url_for("super_admin.create_user"))
+
         log_action("create_user", "users", f"Created {username} as {role.name}")
         db.session.commit()
-        flash("تم إنشاء المستخدم.", "success")
+        flash_msg("sa_user_created", "success")
         return redirect(url_for("super_admin.users"))
 
     return render_template("super_admin/create_user.html", roles=roles, schools=schools)
@@ -107,7 +113,7 @@ def edit_user(user_id):
         new_role_id = int(request.form["role_id"])
         new_role = Role.query.get(new_role_id)
         if not new_role or not can_assign_role(current_user, new_role.name):
-            flash("لا يمكن تعيين هذا الدور.", "danger")
+            flash_msg("users_role_not_allowed", "danger")
             return redirect(url_for("super_admin.edit_user", user_id=user_id))
 
         user.full_name_ar = request.form["full_name_ar"]
@@ -119,10 +125,24 @@ def edit_user(user_id):
             user.set_password(request.form["password"])
         log_action("edit_user", "users", f"Updated user {user.username}")
         db.session.commit()
-        flash("تم تحديث المستخدم.", "success")
+        flash_msg("sa_user_updated", "success")
         return redirect(url_for("super_admin.users"))
 
     return render_template("super_admin/edit_user.html", user=user, roles=roles, schools=schools)
+
+
+@bp.route("/users/<int:user_id>/resend-verification", methods=["POST"])
+@login_required
+@permission_required("manage_system")
+def resend_user_verification(user_id):
+    user = User.query.get_or_404(user_id)
+    try:
+        resend_verification_email(user)
+        log_action("resend_verification", "users", user.username)
+        flash_msg("sa_verification_sent", "success")
+    except ValueError as exc:
+        flash(str(exc), "warning")
+    return redirect(url_for("super_admin.users"))
 
 
 @bp.route("/users/<int:user_id>/toggle", methods=["POST"])
@@ -131,12 +151,15 @@ def edit_user(user_id):
 def toggle_user(user_id):
     user = User.query.get_or_404(user_id)
     if user.id == current_user.id:
-        flash("لا يمكن تعطيل حسابك.", "danger")
+        flash_msg("sa_cannot_deactivate_self", "danger")
+        return redirect(url_for("super_admin.users"))
+    if not user.is_active and not user.email_verified:
+        flash_msg("sa_activate_requires_email", "danger")
         return redirect(url_for("super_admin.users"))
     user.is_active = not user.is_active
     log_action("toggle_user", "users", f"{user.username} active={user.is_active}")
     db.session.commit()
-    flash("تم تحديث حالة المستخدم.", "success")
+    flash_msg("users_status_updated", "success")
     return redirect(url_for("super_admin.users"))
 
 
@@ -146,13 +169,13 @@ def toggle_user(user_id):
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)
     if user.id == current_user.id:
-        flash("لا يمكن حذف حسابك.", "danger")
+        flash_msg("sa_cannot_delete_self", "danger")
         return redirect(url_for("super_admin.users"))
     username = user.username
     db.session.delete(user)
     log_action("delete_user", "users", f"Deleted {username}")
     db.session.commit()
-    flash("تم حذف المستخدم.", "success")
+    flash_msg("sa_user_deleted", "success")
     return redirect(url_for("super_admin.users"))
 
 
@@ -174,7 +197,7 @@ def roles():
             log_action("revoke_permission", "roles", f"{perm.name} x {role.name}")
         db.session.commit()
         clear_permission_cache()
-        flash("تم تحديث الصلاحيات.", "success")
+        flash_msg("sa_permissions_updated", "success")
         return redirect(url_for("super_admin.roles"))
 
     roles_list = Role.query.order_by(Role.name).all()
@@ -198,23 +221,23 @@ def create_role():
     description = (request.form.get("description") or "").strip()
 
     if not re.match(r"^[a-z][a-z0-9_]{1,48}$", name):
-        flash("معرّف الدور يجب أن يبدأ بحرف ويحتوي أحرفاً إنجليزية صغيرة وأرقام و _ فقط.", "danger")
+        flash_msg("sa_role_id_invalid", "danger")
         return redirect(url_for("super_admin.roles"))
     if name in SYSTEM_ROLE_NAMES:
-        flash("هذا المعرّف محجوز لدور نظامي.", "danger")
+        flash_msg("sa_role_id_reserved", "danger")
         return redirect(url_for("super_admin.roles"))
     if not name_ar:
-        flash("اسم الدور بالعربية مطلوب.", "danger")
+        flash_msg("sa_role_name_required", "danger")
         return redirect(url_for("super_admin.roles"))
     if Role.query.filter_by(name=name).first():
-        flash("معرّف الدور موجود مسبقاً.", "danger")
+        flash_msg("sa_role_id_taken", "danger")
         return redirect(url_for("super_admin.roles"))
 
     role = Role(name=name, name_ar=name_ar, description=description or None)
     db.session.add(role)
     log_action("create_role", "roles", f"Created role {name}")
     db.session.commit()
-    flash(f"تم إنشاء دور «{name_ar}».", "success")
+    flash_msg("sa_role_created", "success", name=name_ar)
     return redirect(url_for("super_admin.roles"))
 
 
@@ -224,16 +247,16 @@ def create_role():
 def delete_role(role_id):
     role = Role.query.get_or_404(role_id)
     if is_system_role(role):
-        flash("لا يمكن حذف الأدوار النظامية.", "danger")
+        flash_msg("sa_role_system_delete", "danger")
         return redirect(url_for("super_admin.roles"))
     if User.query.filter_by(role_id=role.id).count():
-        flash("لا يمكن حذف دور مرتبط بمستخدمين.", "danger")
+        flash_msg("sa_role_has_users", "danger")
         return redirect(url_for("super_admin.roles"))
     label, slug = role.name_ar, role.name
     db.session.delete(role)
     log_action("delete_role", "roles", f"Deleted role {slug}")
     db.session.commit()
-    flash(f"تم حذف دور «{label}».", "success")
+    flash_msg("sa_role_deleted", "success", name=label)
     return redirect(url_for("super_admin.roles"))
 
 
@@ -245,7 +268,7 @@ def update_role(role_id):
     name_ar = (request.form.get("name_ar") or "").strip()
     description = (request.form.get("description") or "").strip()
     if not name_ar:
-        flash("اسم الدور مطلوب.", "danger")
+        flash_msg("sa_role_name_empty", "danger")
         return redirect(url_for("super_admin.roles"))
 
     role.name_ar = name_ar
@@ -254,7 +277,7 @@ def update_role(role_id):
         sync_central_admin_role_label(name_ar, None)
     log_action("update_role", "roles", f"{role.name} -> {name_ar}")
     db.session.commit()
-    flash(f"تم تحديث دور «{name_ar}».", "success")
+    flash_msg("sa_role_updated", "success", name=name_ar)
     return redirect(url_for("super_admin.roles"))
 
 
@@ -278,7 +301,7 @@ def toggle_school(school_id):
     school.is_active = not school.is_active
     log_action("toggle_school", "schools", f"{school.code} active={school.is_active}")
     db.session.commit()
-    flash("تم تحديث حالة المدرسة.", "success")
+    flash_msg("sa_school_status_updated", "success")
     return redirect(url_for("super_admin.schools"))
 
 
@@ -293,7 +316,7 @@ def provision_all():
         count += 1
     log_action("provision_all_schools", "system", f"Provisioned {count} schools")
     db.session.commit()
-    flash(f"تم تهيئة {count} مدرسة.", "success")
+    flash_msg("sa_schools_provisioned", "success", count=count)
     return redirect(url_for("super_admin.index"))
 
 
@@ -304,7 +327,7 @@ def reset_global_defaults():
     ensure_school_defaults(None)
     log_action("reset_global_defaults", "system", "Global defaults refreshed")
     db.session.commit()
-    flash("تم تحديث الإعدادات العامة.", "success")
+    flash_msg("sa_settings_updated", "success")
     return redirect(url_for("super_admin.index"))
 
 
@@ -317,7 +340,7 @@ def sync_permissions_route():
     clear_permission_cache()
     log_action("sync_permissions", "roles", "Registry synced to database")
     db.session.commit()
-    flash("تم مزامنة الصلاحيات من سجل النظام.", "success")
+    flash_msg("sa_permissions_synced", "success")
     return redirect(url_for("super_admin.roles"))
 
 

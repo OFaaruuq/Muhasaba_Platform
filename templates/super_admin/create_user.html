@@ -11,6 +11,11 @@
             <div class="mb-2"><label>البريد</label><input name="email" type="email" class="form-control" required></div>
             <div class="mb-2"><label>الهاتف</label><input name="phone" class="form-control"></div>
             <div class="mb-2"><label>كلمة المرور</label><input name="password" type="password" class="form-control" required></div>
+            <div class="mb-2 form-check">
+                <input type="checkbox" name="is_active" class="form-check-input" id="isActive">
+                <label class="form-check-label" for="isActive">تفعيل الحساب فوراً (يتطلب بريداً مُفعَّلاً للدخول)</label>
+            </div>
+            <p class="text-muted small">يُرسل رابط تفعيل البريد تلقائياً. فقط المشرف الأعلى يمكنه إنشاء المستخدمين.</p>
             <div class="mb-2"><label>الدور</label>
                 <select name="role_id" class="form-select" required>
                     {% for r in roles %}<option value="{{ r.id }}">{{ r.name_ar }} ({{ r.name }})</option>{% endfor %}

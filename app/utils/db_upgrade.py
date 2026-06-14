@@ -182,6 +182,7 @@ def upgrade_permissions():
 def ensure_super_admin_role():
     """Add super_admin role and default user to existing databases."""
     from app.models import Role, User
+    from app.models.seed import SUPER_ADMIN_EMAIL
     from app.services.permission_registry import sync_permissions, apply_default_role_permissions
 
     inspector = inspect(db.engine)
@@ -204,15 +205,21 @@ def ensure_super_admin_role():
     if not User.query.filter_by(username="superadmin").first():
         user = User(
             username="superadmin",
-            email="superadmin@muhasaba.so",
+            email=SUPER_ADMIN_EMAIL,
             full_name="Super Admin",
             full_name_ar="المشرف الأعلى للمنصة",
             role_id=super_role.id,
+            is_active=True,
+            email_verified=True,
         )
         from app.services.config_service import get_setting, ensure_school_defaults
         ensure_school_defaults(None)
         user.set_password(get_setting("demo_login_password", None, "admin123"))
         db.session.add(user)
+    else:
+        user = User.query.filter_by(username="superadmin").first()
+        if user and user.email != SUPER_ADMIN_EMAIL:
+            user.email = SUPER_ADMIN_EMAIL
 
     db.session.commit()
 
@@ -342,6 +349,43 @@ def upgrade_user_email_optional():
             conn.execute(text("ALTER TABLE users ALTER COLUMN email DROP NOT NULL"))
 
 
+def upgrade_auth_schema():
+    """Email verification fields and login OTP table."""
+    inspector = inspect(db.engine)
+    tables = inspector.get_table_names()
+    dialect = db.engine.dialect.name
+
+    if "users" in tables:
+        columns = {c["name"] for c in inspector.get_columns("users")}
+        with db.engine.begin() as conn:
+            if "email_verified" not in columns:
+                default = "1" if dialect == "sqlite" else "TRUE"
+                conn.execute(text(
+                    f"ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT {default}"
+                ))
+            if "email_verification_token" not in columns:
+                conn.execute(text(
+                    "ALTER TABLE users ADD COLUMN email_verification_token VARCHAR(64)"
+                ))
+            if "email_verification_sent_at" not in columns:
+                conn.execute(text(
+                    "ALTER TABLE users ADD COLUMN email_verification_sent_at TIMESTAMP"
+                ))
+            if dialect == "sqlite":
+                conn.execute(text(
+                    "UPDATE users SET email_verified = 1 "
+                    "WHERE email_verified IS NULL OR email_verified = 0"
+                ))
+            else:
+                conn.execute(text(
+                    "UPDATE users SET email_verified = TRUE "
+                    "WHERE email_verified IS NULL OR email_verified IS FALSE"
+                ))
+
+    if "login_otps" not in tables:
+        db.create_all()
+
+
 def upgrade_kpi_data_sources():
     """Seed configurable KPI data sources for existing databases."""
     inspector = inspect(db.engine)
@@ -363,6 +407,7 @@ def apply_schema_upgrades():
 
     # Structural patches first — data seeding below uses full ORM models.
     upgrade_user_email_optional()
+    upgrade_auth_schema()
     upgrade_student_schema()
     upgrade_kpi_schema()
     upgrade_config_schema()

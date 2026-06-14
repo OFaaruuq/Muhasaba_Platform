@@ -25,7 +25,7 @@ def test_concise_registration_minimal_post(client, app):
         class_ = Class.query.filter_by(school_id=school.id, grade_id=grade.id).first()
         before = Student.query.count()
 
-    client.post("/auth/login", data={"username": "manager", "password": "admin123"})
+    from tests.auth_helpers import login_session; login_session(client, "manager", "admin123")
     resp = client.post(
         "/evaluations/register",
         data={

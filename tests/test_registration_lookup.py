@@ -3,8 +3,11 @@
 from app.models import Grade, Class, Teacher, School
 
 
+from tests.auth_helpers import login_session
+
+
 def _login_manager(client):
-    return client.post("/auth/login", data={"username": "manager", "password": "admin123"})
+    return login_session(client, "manager")
 
 
 def test_api_grades_for_manager(client, app):
@@ -124,7 +127,7 @@ def test_teacher_create_edit_show_subject_select(client, app):
             "username": username,
         }
 
-    client.post("/auth/login", data={"username": "manager", "password": "admin123"})
+    from tests.auth_helpers import login_session; login_session(client, "manager", "admin123")
     create_resp = client.get("/teachers/create")
     assert create_resp.status_code == 200
     assert "subjectSelect" in create_resp.get_data(as_text=True)

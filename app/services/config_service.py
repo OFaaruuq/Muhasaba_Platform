@@ -22,6 +22,7 @@ DEFAULT_SETTINGS = {
     "kpi_period_days_term": ("90", "kpi", "أيام الفترة الفصلية"),
     "kpi_period_days_weekly": ("7", "kpi", "أيام فترة KPI الأسبوعية"),
     "kpi_period_days_monthly": ("30", "kpi", "أيام فترة KPI الشهرية"),
+    "kpi_period_days_daily": ("1", "kpi", "أيام فترة KPI اليومية"),
     "perf_green_min": ("80", "performance", "حد اللون الأخضر %"),
     "perf_yellow_min": ("60", "performance", "حد اللون الأصفر %"),
     "monthly_strength_min": ("4", "performance", "حد نقاط القوة (1-5)"),
@@ -73,6 +74,7 @@ DEFAULT_SETTINGS = {
     "kpi_avg_performance": ("متوسط الأداء %", "kpi", "تسمية متوسط الأداء في الرسوم"),
     "kpi_monthly_avg_detail": ("متوسط {count} شهر", "kpi", "تفاصيل KPI الشهري"),
     "ui_counts_as_present": ("يُحسب حاضر", "ui", "تسمية: يُحسب حاضر"),
+    "ui_read_lesson": ("قراءة الدرس", "ui", "تسمية: قراءة الدرس"),
     "kpi_period_term_label": ("فصلي", "kpi", "تسمية فترة KPI: فصلي"),
     "kpi_period_monthly_label": ("شهري", "kpi", "تسمية فترة KPI: شهري"),
     "kpi_period_weekly_label": ("أسبوعي", "kpi", "تسمية فترة KPI: أسبوعي"),
@@ -86,6 +88,8 @@ DEFAULT_SETTINGS = {
     "notify_behavior_message": ("تم تسجيل ملاحظة سلوكية لـ {student}", "notifications", "رسالة إشعار السلوك"),
     "notify_exam_title": ("نتيجة اختبار", "notifications", "عنوان نتيجة الاختبار"),
     "notify_exam_message": ("حصل {student} على {score}% في {exam}", "notifications", "رسالة نتيجة الاختبار"),
+    "notify_attendance_title": ("تنبيه حضور", "notifications", "عنوان إشعار الحضور"),
+    "notify_attendance_message": ("{student}: {status}{time_note} — {date}", "notifications", "رسالة إشعار الحضور"),
     "report_student_label": ("الطالب", "reports", "تسمية الطالب في التقارير"),
     "report_id_label": ("الرقم", "reports", "تسمية الرقم في التقارير"),
     "report_date_label": ("التاريخ", "reports", "تسمية التاريخ في التقارير"),
@@ -137,6 +141,10 @@ CONFIG_SECTION_LABELS = {
     "criterion_category": "تصنيفات المعايير اليومية",
     "notification_type": "أنواع الإشعارات",
     "kpi_data_source": "مصادر بيانات KPI",
+    "survey_frequency": "تكرار التقييم (استبيانات)",
+    "survey_weekly_meetings": "عدد اللقاءات الأسبوعية",
+    "education_stage": "المراحل الدراسية",
+    "arabic_month": "أشهر السنة (عربي)",
 }
 
 SETTING_CATEGORY_LABELS = {
@@ -151,6 +159,9 @@ SETTING_CATEGORY_LABELS = {
     "recommendations": "التوصيات",
     "attendance": "الحضور",
     "registration": "التسجيل",
+    "surveys": "الاستبيانات والمتابعة",
+    "pages": "عناوين الصفحات",
+    "messages": "رسائل النظام",
 }
 
 DEFAULT_MONTHLY_CRITERIA = [
@@ -398,11 +409,13 @@ def ensure_school_defaults(school_id=None):
     db.session.commit()
 
     from app.services.content_seeds import (
-        NAV_LABELS_SEED, REGISTRATION_SECTION_LABELS_SEED, dumps_json,
+        NAV_LABELS_SEED, REGISTRATION_SECTION_LABELS_SEED, PAGE_LABELS_SEED, dumps_json,
     )
     from app.services.survey_config_service import ensure_survey_config
+    from app.services.message_service import ensure_messages
 
     ensure_survey_config(school_id)
+    ensure_messages(school_id)
 
     if not get_setting("nav_labels_json", school_id):
         set_setting(
@@ -425,6 +438,11 @@ def ensure_school_defaults(school_id=None):
         set_setting(
             "registration_academic_labels_json", dumps_json(ACADEMIC_LOOKUP_DEFAULTS),
             school_id=school_id, category="registration", label_ar="تسميات الحقول الدراسية",
+        )
+    if not get_setting("page_labels_json", school_id):
+        set_setting(
+            "page_labels_json", dumps_json(PAGE_LABELS_SEED),
+            school_id=school_id, category="pages", label_ar="عناوين الصفحات والأقسام",
         )
 
 
@@ -803,6 +821,25 @@ def get_ui_labels(school_id=None):
     }
 
 
+def get_page_labels(school_id=None):
+    from app.services.content_seeds import PAGE_LABELS_SEED
+    raw = get_setting("page_labels_json", school_id)
+    if not raw:
+        return dict(PAGE_LABELS_SEED)
+    if isinstance(raw, str):
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            data = {}
+    else:
+        data = raw
+    return {**PAGE_LABELS_SEED, **data}
+
+
+def get_page_label(key, school_id=None, default=""):
+    return get_page_labels(school_id).get(key, default)
+
+
 def get_nav_labels(school_id=None):
     from app.services.content_seeds import NAV_LABELS_SEED
 
@@ -992,7 +1029,13 @@ def get_notification_content(key, school_id=None, **kwargs):
     title = get_setting(f"notify_{key}_title", school_id, "")
     message_tpl = get_setting(f"notify_{key}_message", school_id, "")
     message = message_tpl.format(**kwargs) if kwargs and message_tpl else message_tpl
-    type_map = {"monthly": "evaluation", "daily": "evaluation", "behavior": "behavior", "exam": "grade"}
+    type_map = {
+        "monthly": "evaluation",
+        "daily": "evaluation",
+        "behavior": "behavior",
+        "exam": "grade",
+        "attendance": "attendance",
+    }
     ntype = get_notification_type_code(type_map.get(key, "general"), school_id)
     return title, message, ntype
 

@@ -11,10 +11,14 @@ from app.services.survey_config_service import (
     get_weekly_meetings_choices,
     get_weekly_meetings_label,
     get_survey_field_map,
+    get_survey_field_label_dict,
+    get_teacher_survey_render_fields,
+    count_survey_questions,
     get_arabic_months_map,
     get_arabic_month_name,
     get_survey_status_label,
     get_survey_bool_label,
+    TEACHER_RATING_FIELD_NAMES,
 )
 
 
@@ -50,6 +54,14 @@ def teacher_survey_field_map(school_id=None):
     return get_survey_field_map("teacher", school_id)
 
 
+def family_survey_total(school_id=None):
+    return count_survey_questions("family", school_id) or FAMILY_TOTAL_QUESTIONS_FALLBACK
+
+
+def teacher_survey_total(school_id=None):
+    return count_survey_questions("teacher", school_id) or TEACHER_TOTAL_QUESTIONS_FALLBACK
+
+
 def arabic_months(school_id=None):
     return get_arabic_months_map(school_id)
 
@@ -74,12 +86,8 @@ FAMILY_BOOL_FIELDS = (
     "outdoor_entertainment",
 )
 
-FAMILY_TOTAL_QUESTIONS = (
-    1  # family_name
-    + 1  # education stages
-    + 1  # weekly_meetings_count
-    + len(FAMILY_BOOL_FIELDS)
-    + 6  # text fields: one_reason, other, meeting_notes, curriculum_notes, obstacles, riyadh_progress
+FAMILY_TOTAL_QUESTIONS_FALLBACK = (
+    1 + 1 + 1 + len(FAMILY_BOOL_FIELDS) + 6
 )
 
 TEACHER_RATING_FIELDS = (
@@ -98,17 +106,32 @@ TEACHER_TEXT_FIELDS = (
     "session_suggestions",
 )
 
-TEACHER_TOTAL_QUESTIONS = len(TEACHER_RATING_FIELDS) + len(TEACHER_TEXT_FIELDS)
+TEACHER_TOTAL_QUESTIONS_FALLBACK = len(TEACHER_RATING_FIELDS) + len(TEACHER_TEXT_FIELDS)
+
+# Backward-compatible aliases for imports
+FAMILY_TOTAL_QUESTIONS = FAMILY_TOTAL_QUESTIONS_FALLBACK
+TEACHER_TOTAL_QUESTIONS = TEACHER_TOTAL_QUESTIONS_FALLBACK
 
 
 def _text_answered(value):
     return bool(value and str(value).strip())
 
 
-def family_survey_progress(survey):
+def _family_total_for(survey):
+    sid = getattr(getattr(survey, "student", None), "school_id", None)
+    return family_survey_total(sid)
+
+
+def _teacher_total_for(survey):
+    sid = getattr(getattr(survey, "teacher", None), "school_id", None)
+    return teacher_survey_total(sid)
+
+
+def family_survey_progress(survey, school_id=None):
     """Return (answered_count, total_questions) for a family survey."""
+    total = family_survey_total(school_id) if school_id is not None else _family_total_for(survey)
     if not survey:
-        return 0, FAMILY_TOTAL_QUESTIONS
+        return 0, total
 
     answered = 0
     if _text_answered(survey.family_name):
@@ -130,13 +153,14 @@ def family_survey_progress(survey):
     ):
         if _text_answered(getattr(survey, field)):
             answered += 1
-    return answered, FAMILY_TOTAL_QUESTIONS
+    return answered, total
 
 
-def teacher_survey_progress(survey):
+def teacher_survey_progress(survey, school_id=None):
     """Return (answered_count, total_questions) for a teacher survey."""
+    total = teacher_survey_total(school_id) if school_id is not None else _teacher_total_for(survey)
     if not survey:
-        return 0, TEACHER_TOTAL_QUESTIONS
+        return 0, total
 
     answered = 0
     for field in TEACHER_RATING_FIELDS:
@@ -145,7 +169,7 @@ def teacher_survey_progress(survey):
     for field in TEACHER_TEXT_FIELDS:
         if _text_answered(getattr(survey, field)):
             answered += 1
-    return answered, TEACHER_TOTAL_QUESTIONS
+    return answered, total
 
 
 def get_or_create_family_survey(student, year, month, entered_by_id):

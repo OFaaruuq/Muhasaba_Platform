@@ -1,13 +1,14 @@
 from datetime import date
 
 from flask import flash, redirect, render_template, request, url_for
+from app.services.message_service import flash_msg
 from flask_login import login_required, current_user
 
 from sqlalchemy import or_
 
 from app.teachers import bp
 from app.extensions import db
-from app.models import Teacher, TeacherClass, User, Role, Class, Subject, School
+from app.models import Teacher, TeacherClass, Class, Subject, School
 from app.utils import permission_required
 from app.services.teacher_service import (
     teacher_in_scope,
@@ -29,7 +30,7 @@ from app.utils.contact_fields import normalize_optional_email, normalize_optiona
 def _get_teacher(teacher_id):
     teacher = Teacher.query.get_or_404(teacher_id)
     if not teacher_in_scope(current_user, teacher):
-        flash("ليس لديك صلاحية.", "danger")
+        flash_msg("permission_denied", "danger")
         return None
     return teacher
 
@@ -75,36 +76,13 @@ def create():
 
     if request.method == "POST":
         sid = int(request.form["school_id"]) if current_user.is_platform_admin else school_id
-        username = request.form["username"].strip()
         employee_id = request.form["employee_id"].strip()
 
-        if User.query.filter_by(username=username).first():
-            flash("اسم المستخدم موجود.", "danger")
-            return redirect(url_for("teachers.create"))
         if Teacher.query.filter_by(employee_id=employee_id).first():
-            flash("الرقم الوظيفي مستخدم.", "danger")
+            flash_msg("teacher_employee_id_taken", "danger", sid)
             return redirect(url_for("teachers.create"))
-
-        email = normalize_optional_email(request.form.get("email"))
-        if email and User.query.filter_by(email=email).first():
-            flash("البريد الإلكتروني مستخدم.", "danger")
-            return redirect(url_for("teachers.create"))
-
-        role = Role.query.filter_by(name="teacher").first()
-        user = User(
-            username=username,
-            email=email,
-            full_name=request.form["full_name_ar"],
-            full_name_ar=request.form["full_name_ar"],
-            role_id=role.id,
-            school_id=sid,
-        )
-        user.set_password(request.form["password"])
-        db.session.add(user)
-        db.session.flush()
 
         teacher = Teacher(
-            user_id=user.id,
             school_id=sid,
             employee_id=employee_id,
             full_name=request.form.get("full_name", request.form["full_name_ar"]),
@@ -115,7 +93,7 @@ def create():
         )
         db.session.add(teacher)
         db.session.commit()
-        flash("تم تسجيل المعلم بنجاح.", "success")
+        flash_msg("teacher_registered", "success", sid)
         return redirect(url_for("teachers.detail", teacher_id=teacher.id))
 
     subjects = list_subjects(school_id) if school_id else []
@@ -167,7 +145,7 @@ def edit(teacher_id):
                 request.form,
                 allow_school_change=current_user.is_platform_admin,
             )
-            flash("تم تحديث بيانات المعلم.", "success")
+            flash_msg("teacher_updated", "success", teacher.school_id)
             return redirect(url_for("teachers.detail", teacher_id=teacher.id))
         except ValueError as exc:
             flash(str(exc), "danger")
@@ -190,11 +168,11 @@ def deactivate(teacher_id):
     if not teacher:
         return redirect(url_for("teachers.index"))
     if not teacher.is_active:
-        flash("المعلم معطّل مسبقاً.", "info")
+        flash_msg("teacher_already_inactive", "info")
         return redirect(url_for("teachers.detail", teacher_id=teacher.id))
 
     deactivate_teacher(teacher)
-    flash("تم تعطيل المعلم. لن يظهر في القائمة ولن يتمكن من تسجيل الدخول.", "success")
+    flash_msg("teacher_deactivated", "success", teacher.school_id)
     return redirect(url_for("teachers.index"))
 
 
@@ -207,7 +185,7 @@ def activate(teacher_id):
         return redirect(url_for("teachers.index"))
 
     activate_teacher(teacher)
-    flash("تم تفعيل المعلم.", "success")
+    flash_msg("teacher_activated", "success", teacher.school_id)
     return redirect(url_for("teachers.detail", teacher_id=teacher.id))
 
 
@@ -227,7 +205,7 @@ def assign_class(teacher_id):
         subject_id=subject_id,
     ).first()
     if existing:
-        flash("هذا التعيين موجود مسبقاً.", "warning")
+        flash_msg("teacher_assignment_exists", "warning", teacher.school_id)
         return redirect(url_for("teachers.detail", teacher_id=teacher.id))
 
     db.session.add(TeacherClass(
@@ -236,7 +214,7 @@ def assign_class(teacher_id):
         subject_id=subject_id,
     ))
     db.session.commit()
-    flash("تم تعيين الفصل للمعلم.", "success")
+    flash_msg("teacher_class_assigned", "success", teacher.school_id)
     return redirect(url_for("teachers.detail", teacher_id=teacher.id))
 
 
@@ -249,7 +227,7 @@ def delete_assignment(teacher_id, assignment_id):
         return redirect(url_for("teachers.index"))
     try:
         remove_assignment(teacher, assignment_id)
-        flash("تم إزالة التعيين.", "success")
+        flash_msg("teacher_assignment_removed", "success", teacher.school_id)
     except ValueError as exc:
         flash(str(exc), "danger")
     return redirect(url_for("teachers.detail", teacher_id=teacher.id))

@@ -1,6 +1,7 @@
 from datetime import date
 
 from flask import flash, jsonify, redirect, render_template, request, url_for
+from app.services.message_service import flash_msg
 from flask_login import login_required, current_user
 
 from app.evaluations import bp
@@ -218,7 +219,7 @@ def monthly(student_id):
     if not teacher and current_user.is_school_manager:
         teacher = Teacher.query.filter_by(school_id=student.school_id, is_active=True).first()
     if not teacher:
-        flash("لا يوجد معلم مرتبط.", "danger")
+        flash_msg("teacher_no_profile", "danger")
         return redirect(url_for("evaluations.index", mode="monthly"))
 
     today = date.today()
@@ -241,7 +242,7 @@ def monthly(student_id):
             url_for("students.profile", student_id=student.id),
         )
         db.session.commit()
-        flash("تم حفظ التقييم الشهري.", "success")
+        flash_msg("eval_monthly_saved", "success", sid)
         return redirect(url_for("evaluations.index", mode="monthly", year=year, month=month))
 
     evaluation = MonthlyEvaluation.query.filter_by(
@@ -338,7 +339,7 @@ def daily(student_id):
             url_for("students.profile", student_id=student.id),
         )
         db.session.commit()
-        flash("تم حفظ تقييم المحاسبة اليومي.", "success")
+        flash_msg("eval_daily_saved", "success", sid)
         return redirect(url_for("evaluations.index"))
 
     evaluation = Evaluation.query.filter_by(student_id=student_id, date=today).first()
@@ -395,7 +396,7 @@ def self_assess():
         total = len(answers) or 1
         assessment.self_score = round(len(checked) / total * 100, 1)
         db.session.commit()
-        flash("تم حفظ محاسبتك الذاتية.", "success")
+        flash_msg("eval_self_saved", "success")
         return redirect(url_for("evaluations.self_assess"))
 
     assessment = StudentSelfAssessment.query.filter_by(
@@ -462,7 +463,7 @@ def reading_record(student_id):
     log_action("save_reading_assessment", "evaluations", f"student={student_id}")
     db.session.commit()
     sync_kpis_for_student(student_id)
-    flash("تم تسجيل تقييم القراءة.", "success")
+    flash_msg("eval_reading_saved", "success", sid)
     return redirect(url_for("evaluations.reading_index"))
 
 
@@ -519,7 +520,7 @@ def behavior_record(student_id):
     )
     notify_parent_of_student(student, title, message, ntype)
     db.session.commit()
-    flash("تم تسجيل السلوك.", "success")
+    flash_msg("eval_behavior_saved", "success", sid)
     return redirect(url_for("evaluations.behavior_index"))
 
 

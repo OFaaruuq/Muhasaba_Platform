@@ -33,7 +33,7 @@ def test_teacher_cannot_record_unassigned_class(app):
 
 
 def test_teacher_attendance_index(client, app):
-    client.post("/auth/login", data={"username": "teacher", "password": "admin123"})
+    from tests.auth_helpers import login_session; login_session(client, "teacher", "admin123")
     resp = client.get("/attendance/")
     assert resp.status_code == 200
     text = resp.get_data(as_text=True)
@@ -45,7 +45,7 @@ def test_teacher_can_open_record_form(client, app):
         user = User.query.filter_by(username="teacher").first()
         class_id = user.teacher_profile.class_assignments[0].class_id
 
-    client.post("/auth/login", data={"username": "teacher", "password": "admin123"})
+    from tests.auth_helpers import login_session; login_session(client, "teacher", "admin123")
     resp = client.get(f"/attendance/record/{class_id}")
     assert resp.status_code == 200
     assert "حفظ حضور الفريق" in resp.get_data(as_text=True)

@@ -162,20 +162,22 @@ def _school_defaults(school_id):
 
 def validate_registration_fields(form, school_id=None):
     """Validate POST data against dynamic field config. Returns list of error strings."""
+    from app.services.message_service import msg
+
     config = get_registration_config(school_id)
     fields_map = config["fields_map"]
     errors = []
 
     if not form.get("full_name_ar", "").strip():
-        errors.append("حقل الاسم بالعربية مطلوب.")
+        errors.append(msg("reg_error_name_ar_required", school_id))
 
-    for core_key, label in (
-        ("school_id", "المدرسة"),
-        ("grade_id", "المستوى الدراسي"),
-        ("class_id", "الفصل"),
+    for core_key, msg_key in (
+        ("school_id", "reg_error_school_required"),
+        ("grade_id", "reg_error_grade_required"),
+        ("class_id", "reg_error_class_required"),
     ):
         if not str(form.get(core_key, "")).strip():
-            errors.append(f"حقل {label} مطلوب.")
+            errors.append(msg(msg_key, school_id))
 
     for field in config["fields"]:
         if field["key"] == "full_name_ar":
@@ -186,17 +188,17 @@ def validate_registration_fields(form, school_id=None):
             continue
         value = form.get(field["key"], "")
         if isinstance(value, str) and not value.strip():
-            errors.append(f"حقل {field['label']} مطلوب.")
+            errors.append(msg("reg_error_field_required", school_id, label=field["label"]))
 
     if fields_map.get("create_account", {}).get("visible") and form.get("create_account") == "on":
         if fields_map.get("create_account", {}).get("required"):
             if not form.get("username", "").strip():
-                errors.append("اسم المستخدم مطلوب لإنشاء حساب.")
+                errors.append(msg("reg_error_username_required", school_id))
             if not form.get("password", "").strip():
-                errors.append("كلمة المرور مطلوبة لإنشاء حساب.")
+                errors.append(msg("reg_error_password_required", school_id))
         else:
             if form.get("username", "").strip() and not form.get("password", "").strip():
-                errors.append("كلمة المرور مطلوبة عند إدخال اسم مستخدم.")
+                errors.append(msg("reg_error_password_with_username", school_id))
 
     return errors
 
@@ -247,6 +249,35 @@ def extract_registration_values(form, school_id):
         "email": _form_str(form, "email") if _visible("create_account") else "",
         "student_id": _get("student_id") or "",
     }
+
+
+def save_registration_labels(school_id, label_updates, section_updates):
+    """Update field labels and section titles in DB."""
+    field_defs = get_registration_field_definitions(school_id)
+    changed = False
+    for defn in field_defs:
+        key = defn["key"]
+        if key in label_updates and label_updates[key]:
+            defn["label"] = label_updates[key]
+            changed = True
+    if changed:
+        set_setting(
+            "registration_field_definitions_json",
+            json.dumps(field_defs, ensure_ascii=False),
+            school_id,
+            "registration",
+            "تعريف حقول التسجيل",
+        )
+    if section_updates:
+        sections = get_registration_section_labels(school_id)
+        sections.update({k: v for k, v in section_updates.items() if v})
+        set_setting(
+            "registration_section_labels_json",
+            json.dumps(sections, ensure_ascii=False),
+            school_id,
+            "registration",
+            "تسميات أقسام التسجيل",
+        )
 
 
 def admin_field_rows(school_id=None):

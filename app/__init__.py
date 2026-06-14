@@ -104,6 +104,24 @@ def create_app(config_class=Config):
     app.register_blueprint(academic_bp, url_prefix="/academic/api")
 
     csrf.exempt(app.view_functions["auth.api_token"])
+    csrf.exempt(app.view_functions["auth.api_verify_otp"])
+
+    from app.auth.routes import AUTH_PUBLIC_ENDPOINTS
+
+    @app.before_request
+    def enforce_active_verified_users():
+        from flask import request, redirect, url_for, flash
+        from flask_login import current_user, logout_user
+
+        if request.endpoint in AUTH_PUBLIC_ENDPOINTS or request.endpoint == "static":
+            return None
+        if current_user.is_authenticated:
+            if not current_user.is_active or not current_user.email_verified:
+                logout_user()
+                from app.services.message_service import flash_msg
+                flash_msg("auth_account_inactive", "danger")
+                return redirect(url_for("auth.login"))
+        return None
 
     import json as _json
 
@@ -115,6 +133,17 @@ def create_app(config_class=Config):
             return _json.loads(value)
         except (TypeError, ValueError):
             return {}
+
+    @app.template_filter("model_get")
+    def model_get_filter(obj, attr):
+        return getattr(obj, attr, None) if obj else None
+
+    @app.template_filter("plabel")
+    def plabel_filter(text, **kwargs):
+        result = str(text or "")
+        for key, val in kwargs.items():
+            result = result.replace("{" + key + "}", str(val))
+        return result
 
     @app.route("/")
     def index():
@@ -139,7 +168,7 @@ def create_app(config_class=Config):
             get_monthly_scale_summary, get_bool_choices, get_demo_accounts,
             get_report_labels, get_unspecified_label, get_kpi_period_choices,
             get_org_labels, get_role_labels, get_role_display, get_nav_labels,
-            get_registration_section_labels,
+            get_registration_section_labels, get_page_labels,
         )
         from app.services.survey_config_service import get_education_stage_field_map
         from app.utils.school_context import get_active_school_id, get_schools_for_picker
@@ -189,6 +218,7 @@ def create_app(config_class=Config):
             "unspecified_label": get_unspecified_label(sid),
             "kpi_period_choices": get_kpi_period_choices(sid),
             "nav_labels": get_nav_labels(sid),
+            "page_labels": get_page_labels(sid),
             "registration_section_labels": get_registration_section_labels(sid),
             "education_stage_fields": get_education_stage_field_map(sid),
             "org_labels": get_org_labels(sid),

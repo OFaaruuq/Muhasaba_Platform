@@ -1,6 +1,7 @@
 """Helpers for student-linked user accounts."""
 
 from flask import flash, redirect, url_for
+from app.services.message_service import flash_msg
 from flask_login import current_user
 
 
@@ -23,8 +24,5 @@ def require_linked_student(redirect_endpoint="dashboards.index"):
         student = get_linked_student()
     if student:
         return student, None
-    flash(
-        "لا يوجد ملف طالب مرتبط بحسابك. يرجى التواصل مع مدير المدرسة لربط الحساب.",
-        "danger",
-    )
+    flash_msg("auth_no_student_profile", "danger")
     return None, redirect(url_for(redirect_endpoint))

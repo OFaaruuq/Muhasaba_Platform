@@ -11,6 +11,8 @@ from app.models.questionnaire import Questionnaire, Question
 from app.models.exam import Exam, ExamQuestion
 from app.models.notification import Notification
 
+SUPER_ADMIN_EMAIL = "OmarFaaruuq32@gmail.com"
+
 
 def _demo_category(school_id):
     from app.services.config_service import get_default_questionnaire_category
@@ -166,6 +168,8 @@ def seed_database():
             full_name_ar=full_name_ar,
             role_id=role.id,
             school_id=school_id,
+            is_active=True,
+            email_verified=True,
         )
         user.set_password(password)
         db.session.add(user)
@@ -176,7 +180,7 @@ def seed_database():
     demo_pw = get_setting("demo_login_password", None, "admin123")
 
     create_user(
-        "superadmin", "superadmin@muhasaba.so", demo_pw,
+        "superadmin", SUPER_ADMIN_EMAIL, demo_pw,
         "المشرف الأعلى للمنصة", super_role,
     )
     ministry_user = create_user(

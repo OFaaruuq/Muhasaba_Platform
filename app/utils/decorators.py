@@ -1,6 +1,7 @@
 from functools import wraps
 
 from flask import abort, flash, redirect, url_for
+from app.services.message_service import flash_msg
 from flask_login import current_user
 
 from app.utils.permissions import user_has_any_permission, user_has_all_permissions
@@ -20,7 +21,7 @@ def permission_required(*permission_names, require_all=False):
                 else user_has_any_permission(current_user, *permission_names)
             )
             if not ok:
-                flash("ليس لديك صلاحية للوصول إلى هذه الصفحة.", "danger")
+                flash_msg("permission_denied_page", "danger")
                 abort(403)
             return f(*args, **kwargs)
 
@@ -41,7 +42,7 @@ def role_required(*roles):
 
             if is_super_admin(current_user) or user_matches_legacy_roles(current_user, *roles):
                 return f(*args, **kwargs)
-            flash("ليس لديك صلاحية للوصول إلى هذه الصفحة.", "danger")
+            flash_msg("permission_denied_page", "danger")
             abort(403)
 
         return wrapped

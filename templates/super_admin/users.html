@@ -50,6 +50,7 @@
                         <th>الدور</th>
                         <th>المدرسة</th>
                         <th>الحالة</th>
+                        <th>البريد</th>
                         <th class="text-nowrap">إجراءات</th>
                     </tr>
                 </thead>
@@ -69,6 +70,13 @@
                             <span class="badge bg-danger">{{ ui_labels.inactive }}</span>
                             {% endif %}
                         </td>
+                        <td>
+                            {% if u.email_verified %}
+                            <span class="badge bg-success">مُفعَّل</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">بانتظار التفعيل</span>
+                            {% endif %}
+                        </td>
                         <td class="text-nowrap">
                             <a href="{{ url_for('super_admin.edit_user', user_id=u.id) }}"
                                 class="btn btn-sm btn-outline-warning"><i class="bi bi-pencil"></i> تعديل</a>
@@ -78,6 +86,12 @@
                                     {% if u.is_active %}<i class="bi bi-pause-circle"></i>{% else %}<i class="bi bi-play-circle"></i>{% endif %}
                                 </button>
                             </form>
+                            {% if not u.email_verified %}
+                            <form method="POST" action="{{ url_for('super_admin.resend_user_verification', user_id=u.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-sm btn-outline-info" title="إعادة إرسال التفعيل"><i class="bi bi-envelope"></i></button>
+                            </form>
+                            {% endif %}
                             {% if u.id != current_user.id %}
                             <form method="POST" action="{{ url_for('super_admin.delete_user', user_id=u.id) }}" class="d-inline"
                                 onsubmit="return confirm('حذف المستخدم {{ u.username }}؟')">
@@ -88,7 +102,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="5" class="text-center text-muted py-4">لا يوجد مستخدمون مطابقون.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">لا يوجد مستخدمون مطابقون.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

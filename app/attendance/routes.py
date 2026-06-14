@@ -1,6 +1,7 @@
 from datetime import date
 
 from flask import flash, redirect, render_template, request, url_for
+from app.services.message_service import flash_msg
 from flask_login import login_required, current_user
 
 from app.attendance import bp
@@ -9,6 +10,7 @@ from app.models import Attendance, Student, Class
 from app.services.config_service import (
     get_attendance_statuses, get_notify_status_codes,
     get_attendance_status_map, get_default_attendance_status,
+    get_notification_content,
 )
 from app.services.attendance_service import (
     can_record_class, attendance_teams_summary, records_for_user,
@@ -80,7 +82,7 @@ def weekly():
 def record(class_id):
     class_ = Class.query.get_or_404(class_id)
     if not can_record_class(current_user, class_):
-        flash("ليس لديك صلاحية لتسجيل حضور هذه المجموعة.", "danger")
+        flash_msg("permission_attendance_group", "danger")
         return redirect(url_for("attendance.index"))
 
     students = Student.query.filter_by(class_id=class_id, is_active=True).order_by(
@@ -126,11 +128,19 @@ def record(class_id):
                 ))
             if status in notify_codes:
                 time_note = f" — {format_hhmm(check_in)}" if check_in else ""
+                title, message, ntype = get_notification_content(
+                    "attendance",
+                    class_.school_id,
+                    student=student.full_name_ar,
+                    status=status_labels.get(status, status),
+                    time_note=time_note,
+                    date=today,
+                )
                 notify_parent_of_student(
                     student,
-                    "تنبيه حضور",
-                    f"{student.full_name_ar}: {status_labels.get(status, status)}{time_note} — {today}",
-                    "attendance",
+                    title,
+                    message,
+                    ntype,
                     url_for("students.profile", student_id=student.id),
                 )
         log_action(
@@ -140,7 +150,7 @@ def record(class_id):
         db.session.commit()
         for student in students:
             sync_kpis_for_student(student.id)
-        flash("تم تسجيل الحضور بنجاح.", "success")
+        flash_msg("attendance_saved", "success", sid)
         return redirect(url_for("attendance.index", date=today.isoformat()))
 
     existing_records = {

@@ -7,14 +7,12 @@
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
             <div>
                 <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                    <h2 class="mb-0"><i class="bi bi-file-earmark-bar-graph"></i> مركز التقارير</h2>
+                    <h2 class="mb-0"><i class="bi bi-file-earmark-bar-graph"></i> {{ page_labels.reports_hub_title }}</h2>
                     {% if period_ctx.is_current_period %}
                     <span class="badge bg-primary"><i class="bi bi-calendar-check"></i> الشهر الحالي</span>
                     {% endif %}
                 </div>
-                <p class="text-muted mb-0 small">
-                    تصدير وتنزيل جميع التقارير — أكاديمية (KPI، حضور، تقييم) ومتابعة شهرية (أسرة، معلم، برنامج)
-                </p>
+                <p class="text-muted mb-0 small">{{ page_labels.reports_hub_subtitle }}</p>
             </div>
             <div class="d-flex flex-wrap gap-2">
                 <a href="{{ url_for('followup_surveys.analytics_index', year=period_year, month=period_month) }}"
@@ -39,7 +37,7 @@
         <div class="col-6 col-md-3">
             <div class="card followup-stat-card border-success h-100">
                 <div class="card-body py-3 text-center">
-                    <div class="small text-muted">أسرة مكتملة</div>
+                    <div class="small text-muted">{{ page_labels.reports_family_complete }}</div>
                     <div class="fs-4 fw-bold text-success">{{ summary.family_complete }}/{{ summary.students_total }}</div>
                 </div>
             </div>
@@ -47,7 +45,7 @@
         <div class="col-6 col-md-3">
             <div class="card followup-stat-card border-warning h-100">
                 <div class="card-body py-3 text-center">
-                    <div class="small text-muted">أسرة جزئية/فارغة</div>
+                    <div class="small text-muted">{{ page_labels.reports_family_partial }}</div>
                     <div class="fs-4 fw-bold text-warning">{{ summary.family_partial + summary.family_empty }}</div>
                 </div>
             </div>
@@ -56,7 +54,7 @@
         <div class="col-6 col-md-3">
             <div class="card followup-stat-card border-primary h-100">
                 <div class="card-body py-3 text-center">
-                    <div class="small text-muted">معلم مكتمل</div>
+                    <div class="small text-muted">{{ page_labels.reports_teacher_complete }}</div>
                     <div class="fs-4 fw-bold text-primary">{{ summary.teacher_complete }}/{{ summary.teachers_total }}</div>
                 </div>
             </div>
@@ -64,7 +62,7 @@
         <div class="col-6 col-md-3">
             <div class="card followup-stat-card border-info h-100">
                 <div class="card-body py-3 text-center">
-                    <div class="small text-muted">برنامج مكتمل</div>
+                    <div class="small text-muted">{{ page_labels.reports_program_complete }}</div>
                     <div class="fs-4 fw-bold text-info">{{ summary.program_complete }}/{{ summary.teachers_total }}</div>
                 </div>
             </div>
@@ -78,7 +76,7 @@
         <li class="nav-item">
             <a class="nav-link {% if tab == 'students' %}active{% endif %}"
                 href="{{ url_for('reports.index', tab='students', year=period_year, month=period_month, grade_id=selected_grade, class_id=selected_class, q=search_q or none) }}">
-                <i class="bi bi-people"></i> تقارير الطلاب
+                <i class="bi bi-people"></i> {{ page_labels.reports_tab_students }}
             </a>
         </li>
         {% endif %}
@@ -86,7 +84,7 @@
         <li class="nav-item">
             <a class="nav-link {% if tab == 'teachers' %}active{% endif %}"
                 href="{{ url_for('reports.index', tab='teachers', year=period_year, month=period_month, q=search_q or none) }}">
-                <i class="bi bi-person-workspace"></i> تقارير المعلمين
+                <i class="bi bi-person-workspace"></i> {{ page_labels.reports_tab_teachers }}
             </a>
         </li>
         {% endif %}

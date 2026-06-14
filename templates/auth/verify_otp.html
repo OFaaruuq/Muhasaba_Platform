@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}رمز التحقق - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="login-page d-flex align-items-center justify-content-center min-vh-100">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-5 col-lg-4">
+                <div class="card shadow-lg border-0">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <i class="bi bi-shield-lock text-primary" style="font-size: 3rem;"></i>
+                            <h3 class="mt-2 fw-bold">رمز التحقق OTP</h3>
+                            <p class="text-muted small">أُرسل الرمز إلى<br><strong>{{ masked_email }}</strong></p>
+                        </div>
+                        <form method="POST" action="{{ url_for('auth.verify_otp') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-3">
+                                <label class="form-label">أدخل الرمز المكوّن من 6 أرقام</label>
+                                <input type="text" name="otp" class="form-control form-control-lg text-center"
+                                    inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autofocus
+                                    autocomplete="one-time-code">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="bi bi-check-circle"></i> تأكيد الدخول
+                            </button>
+                        </form>
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('auth.login') }}" class="small">العودة لتسجيل الدخول</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

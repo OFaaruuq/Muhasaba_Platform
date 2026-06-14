@@ -1,6 +1,7 @@
 from datetime import date
 
 from flask import flash, redirect, render_template, request, url_for, abort
+from app.services.message_service import flash_msg
 from flask_login import login_required, current_user
 
 from app.followup_surveys import bp
@@ -10,6 +11,10 @@ from app.models import (
     FamilyFollowupSurvey, TeacherMonthlySurvey,
     EducationalProgramFollowupSurvey,
     StudentEducationalProgramFollowupSurvey,
+)
+from app.services.survey_config_service import (
+    get_teacher_survey_render_fields,
+    get_family_survey_sections_render,
 )
 from app.services.educational_program_service import (
     save_program_survey, save_student_program_survey,
@@ -35,6 +40,7 @@ from app.services.followup_survey_service import (
     weekly_meetings_choices, weekly_meetings_label, bool_label,
     family_survey_progress, teacher_survey_progress, survey_status_label,
     default_family_name, FAMILY_TOTAL_QUESTIONS, TEACHER_TOTAL_QUESTIONS,
+    family_survey_total, teacher_survey_total,
     family_survey_field_map, teacher_survey_field_map,
     family_survey_checklist, teacher_survey_checklist,
     family_entries_for_students,
@@ -133,8 +139,9 @@ def _teacher_hub_context(teacher, year, month, admin_entry=False):
         "frequency_choices": frequency_choices(sid),
         "answered": answered,
         "total": total,
-        "teacher_total_questions": TEACHER_TOTAL_QUESTIONS,
+        "teacher_total_questions": teacher_survey_total(sid),
         "teacher_field_map": teacher_survey_field_map(sid),
+        "teacher_render_fields": get_teacher_survey_render_fields(sid),
         "teacher_checklist": teacher_survey_checklist(survey, sid),
         "family_entries": family_entries,
         "student_program_entries": student_program_entries,
@@ -146,6 +153,8 @@ def _teacher_hub_context(teacher, year, month, admin_entry=False):
         "program_complete": program_complete,
         "weekly_meetings_choices": weekly_meetings_choices(sid),
         "family_field_map": family_survey_field_map(sid),
+        "family_render_sections": get_family_survey_sections_render(sid),
+        "family_total_questions": family_survey_total(sid),
         "admin_entry": admin_entry,
         "active_tab": active_tab,
         "return_teacher_id": teacher.id,
@@ -376,8 +385,8 @@ def index():
         sid=sid,
         teacher_survey_progress=teacher_survey_progress,
         survey_status_label=survey_status_label,
-        family_total_questions=FAMILY_TOTAL_QUESTIONS,
-        teacher_total_questions=TEACHER_TOTAL_QUESTIONS,
+        family_total_questions=family_survey_total(sid),
+        teacher_total_questions=teacher_survey_total(sid),
         program_total_questions=program_total_questions(sid),
         family_field_count=len(family_survey_field_map(sid)),
         teacher_field_count=len(teacher_survey_field_map(sid)),
@@ -395,22 +404,22 @@ def family_form(student_id):
     if not _can_access_student(student):
         abort(403)
 
+    sid = student.school_id
     year, month = _period_from_request()
 
     if request.method == "POST":
         survey = save_family_survey(student, year, month, current_user.id, request.form)
         answered, total = family_survey_progress(survey)
         if answered >= total:
-            flash("تم حفظ استبيان متابعة الأسرة بالكامل.", "success")
+            flash_msg("survey_family_saved_complete", "success", sid)
         else:
-            flash(f"تم حفظ الإجابات ({answered} من {total} سؤال). يمكنك إكمال الباقي لاحقاً.", "success")
+            flash_msg("survey_family_saved_partial", "success", sid, answered=answered, total=total)
         return _redirect_after_family_save(student, year, month)
 
     survey = FamilyFollowupSurvey.query.filter_by(
         student_id=student.id, period_year=year, period_month=month,
     ).first()
     answered, total = family_survey_progress(survey)
-    sid = student.school_id
 
     return render_template(
         "followup_surveys/family_form.html",
@@ -423,8 +432,10 @@ def family_form(student_id):
         default_family_name=default_family_name(student),
         answered=answered,
         total=total,
-        family_total_questions=FAMILY_TOTAL_QUESTIONS,
+        family_total_questions=family_survey_total(sid),
+        teacher_total_questions=teacher_survey_total(sid),
         family_field_map=family_survey_field_map(sid),
+        family_render_sections=get_family_survey_sections_render(sid),
         family_checklist=family_survey_checklist(survey, sid),
     )
 
@@ -463,15 +474,16 @@ def teacher_form():
         abort(403)
 
     teacher = current_user.teacher_profile
+    sid = teacher.school_id
     year, month = _period_from_request()
 
     if request.method == "POST":
         survey = save_teacher_survey(teacher, year, month, request.form)
         answered, total = teacher_survey_progress(survey)
         if answered >= total:
-            flash("تم حفظ الاستبيان الشهري للمعلم بالكامل.", "success")
+            flash_msg("survey_teacher_saved_complete", "success", sid)
         else:
-            flash(f"تم حفظ الإجابات ({answered} من {total} سؤال). يمكنك إكمال الباقي لاحقاً.", "success")
+            flash_msg("survey_teacher_saved_partial", "success", sid, answered=answered, total=total)
         return redirect(url_for(
             "followup_surveys.teacher_form",
             year=year, month=month, tab="teacher",
@@ -495,15 +507,16 @@ def teacher_form_admin(teacher_id):
     if not _can_access_teacher_survey(teacher):
         abort(403)
 
+    sid = teacher.school_id
     year, month = _period_from_request()
 
     if request.method == "POST":
         survey = save_teacher_survey(teacher, year, month, request.form)
         answered, total = teacher_survey_progress(survey)
         if answered >= total:
-            flash("تم حفظ الاستبيان الشهري للمعلم بالكامل.", "success")
+            flash_msg("survey_teacher_saved_complete", "success", sid)
         else:
-            flash(f"تم حفظ الإجابات ({answered} من {total} سؤال). يمكنك إكمال الباقي لاحقاً.", "success")
+            flash_msg("survey_teacher_saved_partial", "success", sid, answered=answered, total=total)
         return redirect(url_for(
             "followup_surveys.teacher_form_admin",
             teacher_id=teacher.id, year=year, month=month, tab="teacher",
@@ -542,15 +555,16 @@ def program_form():
         abort(403)
 
     teacher = current_user.teacher_profile
+    sid = teacher.school_id
     year, month = _period_from_request()
 
     if request.method == "POST":
         survey = save_program_survey(teacher, year, month, current_user.id, request.form)
         answered, total = program_survey_progress(survey)
         if answered >= total:
-            flash("تم حفظ متابعة البرنامج التربوي بالكامل.", "success")
+            flash_msg("survey_program_saved_complete", "success", sid)
         else:
-            flash(f"تم حفظ الإجابات ({answered} من {total}). يمكنك إكمال الباقي لاحقاً.", "success")
+            flash_msg("survey_program_saved_partial", "success", sid, answered=answered, total=total)
         return redirect(url_for("followup_surveys.program_form", year=year, month=month))
 
     return _render_program_form(teacher, year, month, admin_entry=False)
@@ -570,15 +584,16 @@ def program_form_admin(teacher_id):
     if not _can_access_teacher_survey(teacher):
         abort(403)
 
+    sid = teacher.school_id
     year, month = _period_from_request()
 
     if request.method == "POST":
         survey = save_program_survey(teacher, year, month, current_user.id, request.form)
         answered, total = program_survey_progress(survey)
         if answered >= total:
-            flash("تم حفظ متابعة البرنامج التربوي بالكامل.", "success")
+            flash_msg("survey_program_saved_complete", "success", sid)
         else:
-            flash(f"تم حفظ الإجابات ({answered} من {total}). يمكنك إكمال الباقي لاحقاً.", "success")
+            flash_msg("survey_program_saved_partial", "success", sid, answered=answered, total=total)
         return redirect(url_for(
             "followup_surveys.program_form_admin",
             teacher_id=teacher.id, year=year, month=month,
@@ -623,15 +638,16 @@ def program_student_form(student_id):
     if not _can_access_student(student):
         abort(403)
 
+    sid = student.school_id
     year, month = _period_from_request()
 
     if request.method == "POST":
         survey = save_student_program_survey(student, year, month, current_user.id, request.form)
-        answered, total = program_survey_progress(survey)
+        answered, total = program_survey_progress(survey, sid)
         if answered >= total:
-            flash("تم حفظ متابعة البرنامج التربوي للطالب بالكامل.", "success")
+            flash_msg("survey_student_program_saved_complete", "success", sid)
         else:
-            flash(f"تم حفظ الإجابات ({answered} من {total}). يمكنك إكمال الباقي لاحقاً.", "success")
+            flash_msg("survey_student_program_saved_partial", "success", sid, answered=answered, total=total)
         return _redirect_after_student_program_save(student, year, month)
 
     return _render_student_program_form(student, year, month, admin_entry=False)

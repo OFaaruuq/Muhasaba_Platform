@@ -1,10 +1,11 @@
 from datetime import date, datetime
 
 from flask import flash, redirect, render_template, url_for
+from app.services.message_service import flash_msg
 from flask_login import current_user
 
 from app.extensions import db
-from app.models import Student, Grade, Class, School, User, Role, Teacher
+from app.models import Student, Grade, Class, School, Teacher
 from app.kpi.hooks import sync_kpis_for_student
 from app.services.registration_field_service import (
     get_registration_config,
@@ -117,7 +118,7 @@ def process_registration(form, register_url):
 
     class_ = Class.query.filter_by(id=class_id, school_id=school_id, grade_id=grade_id).first()
     if not class_:
-        flash("الفصل المحدد غير صالح لهذا المستوى والمدرسة.", "danger")
+        flash_msg("student_register_invalid_class", "danger", school_id)
         return redirect(register_url)
 
     values = extract_registration_values(form, school_id)
@@ -127,7 +128,7 @@ def process_registration(form, register_url):
         student_number = generate_student_id(school_id)
 
     if Student.query.filter_by(student_id=student_number).first():
-        flash("رقم الطالب مستخدم مسبقاً.", "danger")
+        flash_msg("student_id_taken", "danger", school_id)
         return redirect(register_url)
 
     student = Student(
@@ -149,32 +150,9 @@ def process_registration(form, register_url):
     db.session.add(student)
     db.session.flush()
 
-    if values["create_account"]:
-        username = values["username"]
-        password = values["password"]
-        if username and password:
-            role = Role.query.filter_by(name="student").first()
-            if User.query.filter_by(username=username).first():
-                flash("اسم المستخدم موجود. تم تسجيل الطالب بدون حساب.", "warning")
-            else:
-                account_email = normalize_optional_email(values["email"])
-                if account_email and User.query.filter_by(email=account_email).first():
-                    flash("البريد الإلكتروني مستخدم. تم تسجيل الطالب بدون حساب.", "warning")
-                else:
-                    user = User(
-                        username=username,
-                        email=account_email,
-                        full_name=student.full_name_ar,
-                        full_name_ar=student.full_name_ar,
-                        role_id=role.id,
-                        school_id=school_id,
-                    )
-                    user.set_password(password)
-                    db.session.add(user)
-                    db.session.flush()
-                    student.user_id = user.id
-
     db.session.commit()
     sync_kpis_for_student(student.id)
-    flash(f"تم تسجيل الطالب {student.full_name_ar} بنجاح.", "success")
+    flash_msg("student_registered", "success", school_id, name=student.full_name_ar)
+    if values.get("create_account"):
+        flash_msg("student_register_account_info", "info")
     return redirect(url_for("evaluations.index"))

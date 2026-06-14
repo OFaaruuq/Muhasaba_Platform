@@ -1,4 +1,5 @@
 from flask import flash, redirect, render_template, request, url_for, jsonify
+from app.services.message_service import flash_msg
 from flask_login import login_required, current_user
 
 from app.kpi import bp
@@ -98,7 +99,7 @@ def manage():
                 school_id=sid,
             )
             db.session.add(kpi)
-            flash("تم إضافة مؤشر الأداء.", "success")
+            flash_msg("kpi_added", "success", sid)
 
         elif action == "update_weights":
             sid = get_active_school_id() or current_user.school_id
@@ -109,13 +110,13 @@ def manage():
                 val = request.form.get(f"weight_{kpi.id}")
                 if val is not None:
                     kpi.weight = float(val)
-            flash("تم تحديث الأوزان.", "success")
+            flash_msg("kpi_weights_updated", "success", sid)
 
         elif action == "toggle":
             kpi = KPI.query.get(request.form.get("kpi_id", type=int))
             if kpi:
                 kpi.is_active = not kpi.is_active
-                flash("تم تحديث حالة المؤشر.", "success")
+                flash_msg("kpi_status_updated", "success", sid)
 
         db.session.commit()
 
@@ -164,7 +165,7 @@ def student_kpi(student_id):
 def recalculate_one(student_id):
     period = request.form.get("period", "term")
     recalculate_student_kpis(student_id, period)
-    flash("تم تحديث مؤشرات الأداء ديناميكياً.", "success")
+    flash_msg("kpi_recalculated", "success", sid)
     return redirect(url_for("kpi.student_kpi", student_id=student_id, period=period))
 
 
@@ -174,10 +175,10 @@ def recalculate_one(student_id):
 def recalculate_school():
     sid = get_active_school_id() or current_user.school_id
     if not sid:
-        flash("حدد مدرسة أولاً.", "danger")
+        flash_msg("kpi_select_school", "danger")
         return redirect(url_for("kpi.manage"))
     count = recalculate_school_kpis(sid)
-    flash(f"تم تحديث مؤشرات {count} طالب.", "success")
+    flash_msg("kpi_students_updated", "success", sid, count=count)
     return redirect(url_for("kpi.manage"))
 
 

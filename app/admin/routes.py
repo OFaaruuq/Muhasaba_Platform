@@ -7,6 +7,7 @@ from app.models import (
     PlatformSetting, EvaluationCriterion, RatingLevel,
     AttendanceStatusConfig, ConfigOption, KPI, School,
 )
+from app.services.message_service import flash_msg
 from app.services.config_service import (
     ensure_school_defaults, get_criteria_grouped, get_monthly_criteria_grouped,
     get_rating_choices, get_monthly_rating_choices,
@@ -15,10 +16,22 @@ from app.services.config_service import (
     get_kpi_source_options, get_ui_labels, get_ui_label_schema,
     get_org_labels, get_all_settings_grouped, get_admin_config_sections,
     get_setting_category_labels, get_rating_levels, save_settings_bulk,
-    add_platform_setting, SETTING_CATEGORY_LABELS,
+    add_platform_setting, SETTING_CATEGORY_LABELS,     get_nav_labels, get_page_labels, get_registration_section_labels,
+)
+from app.services.content_seeds import NAV_LABELS_SEED, PAGE_LABELS_SEED, dumps_json
+from app.services.message_service import get_messages, MESSAGE_GROUPS, MESSAGES_SEED
+from app.services.survey_config_service import (
+    admin_family_survey_rows, admin_teacher_survey_rows, admin_program_survey_rows,
+    save_family_survey_fields_admin, save_teacher_survey_fields_admin,
+    save_program_survey_sections_admin,
+    parse_family_survey_admin_form, parse_teacher_survey_admin_form,
+    parse_program_survey_admin_form, FAMILY_SECTION_CODES, SURVEY_FIELD_TYPES,
 )
 from app.services.audit_service import log_action
-from app.services.registration_field_service import admin_field_rows, save_registration_config, apply_preset
+from app.services.registration_field_service import (
+    admin_field_rows, save_registration_config, apply_preset,
+    save_registration_labels,
+)
 from app.services.attendance_time_service import get_attendance_time_settings, save_attendance_time_settings
 from app.utils import permission_required
 from app.utils.school_context import get_active_school_id, set_active_school_id, get_schools_for_picker
@@ -59,6 +72,11 @@ def index():
     monthly_rating_levels = get_rating_levels(sid, "numeric_5")
 
     reg_fields, reg_mode = admin_field_rows(sid)
+    family_survey_rows = admin_family_survey_rows(sid)
+    teacher_survey_rows = admin_teacher_survey_rows(sid)
+    program_survey_rows, program_sections_raw = admin_program_survey_rows(sid)
+    flash_messages = get_messages(sid)
+    registration_section_labels = get_registration_section_labels(sid)
 
     return render_template(
         "admin/index.html",
@@ -116,6 +134,19 @@ def index():
         registration_fields=reg_fields,
         registration_mode=reg_mode,
         attendance_time=get_attendance_time_settings(sid),
+        nav_labels=get_nav_labels(sid),
+        nav_label_keys=NAV_LABELS_SEED,
+        page_labels=get_page_labels(sid),
+        page_label_keys=PAGE_LABELS_SEED,
+        family_survey_rows=family_survey_rows,
+        teacher_survey_rows=teacher_survey_rows,
+        program_sections_raw=program_sections_raw,
+        family_section_codes=FAMILY_SECTION_CODES,
+        survey_field_types=SURVEY_FIELD_TYPES,
+        flash_messages=flash_messages,
+        message_groups=MESSAGE_GROUPS,
+        message_keys=MESSAGES_SEED,
+        registration_section_labels=registration_section_labels,
     )
 
 
@@ -127,7 +158,7 @@ def select_school():
     if school_id:
         set_active_school_id(school_id)
         ensure_school_defaults(school_id)
-        flash("تم اختيار المدرسة.", "success")
+        flash_msg("admin_school_selected", "success", sid)
     return redirect(request.referrer or url_for("admin.index"))
 
 
@@ -181,7 +212,7 @@ def save_settings():
     show_demo = "true" if request.form.get("show_demo_logins") == "on" else "false"
     set_setting("show_demo_logins", show_demo, sid, "general", "حسابات تجريبية")
     log_action("save_settings", "admin", f"school={sid}")
-    flash("تم حفظ الإعدادات.", "success")
+    flash_msg("admin_settings_saved", "success", sid)
     return redirect(url_for("admin.index"))
 
 
@@ -196,8 +227,8 @@ def save_registration_fields():
 
     fields_form = {}
     if mode == "custom":
-        from app.services.registration_field_service import FIELD_DEFINITIONS
-        for defn in FIELD_DEFINITIONS:
+        from app.services.config_service import get_registration_field_definitions
+        for defn in get_registration_field_definitions(sid):
             key = defn["key"]
             fields_form[key] = {
                 "visible": request.form.get(f"reg_{key}_visible") == "on",
@@ -207,8 +238,23 @@ def save_registration_fields():
         fields_form = apply_preset(mode)["fields"]
 
     save_registration_config(sid, mode, fields_form)
+
+    label_updates = {}
+    from app.services.config_service import get_registration_field_definitions
+    for defn in get_registration_field_definitions(sid):
+        val = request.form.get(f"reg_label_{defn['key']}")
+        if val is not None:
+            label_updates[defn["key"]] = val.strip()
+    section_updates = {}
+    for key in get_registration_section_labels(sid):
+        val = request.form.get(f"reg_section_{key}")
+        if val is not None:
+            section_updates[key] = val.strip()
+    if label_updates or section_updates:
+        save_registration_labels(sid, label_updates, section_updates)
+
     log_action("save_registration_fields", "admin", f"mode={mode}, school={sid}")
-    flash("تم حفظ إعدادات حقول التسجيل.", "success")
+    flash_msg("admin_registration_saved", "success", sid)
     return redirect(url_for("admin.index") + "#tab-registration")
 
 
@@ -227,7 +273,7 @@ def add_criterion():
         evaluation_type=request.form.get("evaluation_type", "daily"),
     ))
     db.session.commit()
-    flash("تم إضافة المعيار.", "success")
+    flash_msg("admin_criterion_added", "success", sid)
     return redirect(url_for("admin.index"))
 
 
@@ -240,7 +286,7 @@ def edit_criterion(criterion_id):
     c.kpi_source = request.form.get("kpi_source", c.kpi_source)
     c.order = request.form.get("order", c.order, type=int)
     db.session.commit()
-    flash("تم تحديث المعيار.", "success")
+    flash_msg("admin_criterion_updated", "success", _school_id())
     return redirect(url_for("admin.index"))
 
 
@@ -251,7 +297,7 @@ def toggle_criterion(criterion_id):
     c = EvaluationCriterion.query.get_or_404(criterion_id)
     c.is_active = not c.is_active
     db.session.commit()
-    flash("تم تحديث المعيار.", "success")
+    flash_msg("admin_criterion_updated", "success", _school_id())
     return redirect(url_for("admin.index"))
 
 
@@ -270,7 +316,7 @@ def add_rating():
         scale_type=scale,
     ))
     db.session.commit()
-    flash("تم إضافة مستوى التقييم.", "success")
+    flash_msg("admin_rating_added", "success", sid)
     return redirect(url_for("admin.index"))
 
 
@@ -283,7 +329,7 @@ def edit_rating(rating_id):
     r.score = float(request.form.get("score", r.score))
     r.order = request.form.get("order", r.order, type=int)
     db.session.commit()
-    flash("تم تحديث مستوى التقييم.", "success")
+    flash_msg("admin_rating_updated", "success", _school_id())
     return redirect(url_for("admin.index"))
 
 
@@ -294,7 +340,7 @@ def save_attendance_time():
     sid = _school_id()
     save_attendance_time_settings(sid, request.form)
     log_action("save_attendance_time", "admin", f"school={sid}")
-    flash("تم حفظ إعدادات وقت الحضور.", "success")
+    flash_msg("admin_attendance_time_saved", "success", sid)
     return redirect(url_for("admin.index") + "#tab-attendance")
 
 
@@ -310,7 +356,7 @@ def edit_attendance_status(status_id):
     s.counts_as_present = request.form.get("counts_as_present") == "on"
     s.notify_parent = request.form.get("notify_parent") == "on"
     db.session.commit()
-    flash("تم تحديث حالة الحضور.", "success")
+    flash_msg("admin_attendance_status_updated", "success", _school_id())
     return redirect(url_for("admin.index"))
 
 
@@ -330,7 +376,7 @@ def add_attendance_status():
         order=request.form.get("order", 0, type=int),
     ))
     db.session.commit()
-    flash("تم إضافة حالة الحضور.", "success")
+    flash_msg("admin_attendance_status_added", "success", sid)
     return redirect(url_for("admin.index"))
 
 
@@ -343,7 +389,7 @@ def edit_kpi(kpi_id):
     kpi.weight = float(request.form.get("weight", kpi.weight))
     kpi.description = request.form.get("description", kpi.description)
     db.session.commit()
-    flash("تم تحديث المؤشر.", "success")
+    flash_msg("admin_kpi_updated", "success", _school_id())
     return redirect(url_for("admin.index"))
 
 
@@ -366,7 +412,7 @@ def add_config_option():
         metadata_json=meta,
     ))
     db.session.commit()
-    flash("تم إضافة الخيار.", "success")
+    flash_msg("admin_option_added", "success", sid)
     return redirect(url_for("admin.index"))
 
 
@@ -377,7 +423,7 @@ def toggle_rating(rating_id):
     r = RatingLevel.query.get_or_404(rating_id)
     r.is_active = not r.is_active
     db.session.commit()
-    flash("تم تحديث مستوى التقييم.", "success")
+    flash_msg("admin_rating_updated", "success", _school_id())
     return redirect(request.referrer or url_for("admin.index"))
 
 
@@ -393,7 +439,7 @@ def edit_config_option(option_id):
     if score and opt.option_type == "behavior_type":
         opt.metadata_json = _json.dumps({"score": float(score)})
     db.session.commit()
-    flash("تم تحديث الخيار.", "success")
+    flash_msg("admin_option_updated", "success", _school_id())
     anchor = request.form.get("anchor", "tab-options")
     return redirect((request.referrer or url_for("admin.index")) + f"#{anchor}")
 
@@ -405,7 +451,7 @@ def save_advanced_settings():
     sid = _school_id()
     count = save_settings_bulk(request.form, sid)
     log_action("save_advanced_settings", "admin", f"updated={count}, school={sid}")
-    flash(f"تم حفظ {count} إعداد.", "success")
+    flash_msg("admin_advanced_saved", "success", sid, count=count)
     return redirect(url_for("admin.index") + "#tab-advanced")
 
 
@@ -424,7 +470,7 @@ def create_platform_setting():
             value_type=request.form.get("value_type") or None,
         )
         log_action("add_platform_setting", "admin", f"key={request.form.get('key')}, school={sid}")
-        flash("تم إضافة الإعداد.", "success")
+        flash_msg("admin_setting_added", "success", sid)
     except ValueError as exc:
         flash(str(exc), "danger")
     return redirect(url_for("admin.index") + "#tab-advanced")
@@ -437,8 +483,32 @@ def toggle_config_option(option_id):
     opt = ConfigOption.query.get_or_404(option_id)
     opt.is_active = not opt.is_active
     db.session.commit()
-    flash("تم تحديث الخيار.", "success")
+    flash_msg("admin_option_updated", "success", _school_id())
     return redirect(url_for("admin.index"))
+
+
+@bp.route("/content-labels", methods=["POST"])
+@login_required
+@permission_required("manage_platform_config")
+def save_content_labels():
+    sid = _school_id()
+    nav = dict(get_nav_labels(sid))
+    for key in NAV_LABELS_SEED:
+        val = request.form.get(f"nav_{key}")
+        if val is not None:
+            nav[key] = val.strip()
+    set_setting("nav_labels_json", dumps_json(nav), sid, "ui", "تسميات القائمة الرئيسية")
+
+    pages = dict(get_page_labels(sid))
+    for key in PAGE_LABELS_SEED:
+        val = request.form.get(f"page_{key}")
+        if val is not None:
+            pages[key] = val.strip()
+    set_setting("page_labels_json", dumps_json(pages), sid, "pages", "عناوين الصفحات والأقسام")
+
+    log_action("save_content_labels", "admin", f"school={sid}")
+    flash_msg("admin_content_labels_saved", "success", sid)
+    return redirect(url_for("admin.index") + "#tab-content")
 
 
 @bp.route("/provision-school/<int:school_id>", methods=["POST"])
@@ -447,5 +517,40 @@ def toggle_config_option(option_id):
 def provision_school(school_id):
     ensure_school_defaults(school_id)
     provision_school_kpis(school_id)
-    flash("تم تهيئة إعدادات المدرسة.", "success")
+    flash_msg("admin_school_provisioned", "success", school_id)
     return redirect(url_for("admin.index"))
+
+
+@bp.route("/messages", methods=["POST"])
+@login_required
+@permission_required("manage_platform_config")
+def save_messages():
+    sid = _school_id()
+    messages = dict(get_messages(sid))
+    for key in MESSAGES_SEED:
+        val = request.form.get(f"msg_{key}")
+        if val is not None:
+            messages[key] = val.strip()
+    set_setting("flash_messages_json", dumps_json(messages), sid, "messages", "رسائل النظام")
+    log_action("save_messages", "admin", f"school={sid}")
+    flash_msg("admin_messages_saved", "success", sid)
+    return redirect(url_for("admin.index") + "#tab-messages")
+
+
+@bp.route("/survey-fields", methods=["POST"])
+@login_required
+@permission_required("manage_platform_config")
+def save_survey_fields():
+    sid = _school_id()
+    family_rows = parse_family_survey_admin_form(request.form)
+    teacher_rows = parse_teacher_survey_admin_form(request.form)
+    save_family_survey_fields_admin(family_rows, sid)
+    save_teacher_survey_fields_admin(teacher_rows, sid)
+
+    _, program_sections_raw = admin_program_survey_rows(sid)
+    program_sections = parse_program_survey_admin_form(request.form, program_sections_raw)
+    save_program_survey_sections_admin(program_sections, sid)
+
+    log_action("save_survey_fields", "admin", f"school={sid}")
+    flash_msg("admin_surveys_saved", "success", sid)
+    return redirect(url_for("admin.index") + "#tab-surveys")

@@ -22,7 +22,7 @@ def test_teacher_can_edit_assigned_student(app):
 
 
 def test_manager_students_index(client, app):
-    client.post("/auth/login", data={"username": "manager", "password": "admin123"})
+    from tests.auth_helpers import login_session; login_session(client, "manager", "admin123")
     resp = client.get("/students/")
     assert resp.status_code == 200
     text = resp.get_data(as_text=True)
@@ -30,7 +30,7 @@ def test_manager_students_index(client, app):
 
 
 def test_manager_teachers_index(client, app):
-    client.post("/auth/login", data={"username": "manager", "password": "admin123"})
+    from tests.auth_helpers import login_session; login_session(client, "manager", "admin123")
     resp = client.get("/teachers/")
     assert resp.status_code == 200
     text = resp.get_data(as_text=True)
@@ -45,7 +45,7 @@ def test_manager_can_open_teacher_edit(client, app):
         teacher = Teacher.query.filter_by(is_active=True).first()
         tid = teacher.id
 
-    client.post("/auth/login", data={"username": "manager", "password": "admin123"})
+    from tests.auth_helpers import login_session; login_session(client, "manager", "admin123")
     resp = client.get(f"/teachers/{tid}/edit")
     assert resp.status_code == 200
 
@@ -61,7 +61,7 @@ def test_bulk_deactivate_students(client, app):
         assert students
         ids = [s.id for s in students]
 
-    client.post("/auth/login", data={"username": "manager", "password": "admin123"})
+    from tests.auth_helpers import login_session; login_session(client, "manager", "admin123")
     resp = client.post(
         "/students/bulk-action",
         data={"action": "deactivate", "student_ids": ids},
@@ -78,7 +78,7 @@ def test_manager_can_open_student_edit_with_grade_create(client, app):
         student = Student.query.filter_by(is_active=True).first()
         sid = student.id
 
-    client.post("/auth/login", data={"username": "manager", "password": "admin123"})
+    from tests.auth_helpers import login_session; login_session(client, "manager", "admin123")
     resp = client.get(f"/students/{sid}/edit")
     assert resp.status_code == 200
     text = resp.get_data(as_text=True)
@@ -86,7 +86,7 @@ def test_manager_can_open_student_edit_with_grade_create(client, app):
 
 
 def test_bulk_action_requires_selection(client, app):
-    client.post("/auth/login", data={"username": "manager", "password": "admin123"})
+    from tests.auth_helpers import login_session; login_session(client, "manager", "admin123")
     resp = client.post(
         "/students/bulk-action",
         data={"action": "deactivate"},

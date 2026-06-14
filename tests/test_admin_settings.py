@@ -13,7 +13,7 @@ def _csrf(client):
 
 
 def _login_manager(client):
-    client.post("/auth/login", data={"username": "manager", "password": "admin123"})
+    from tests.auth_helpers import login_session; login_session(client, "manager", "admin123")
 
 
 def test_admin_index_loads(client):

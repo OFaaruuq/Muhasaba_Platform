@@ -1,6 +1,7 @@
 from datetime import date
 
 from flask import flash, redirect, render_template, request, url_for
+from app.services.message_service import flash_msg
 from flask_login import login_required, current_user
 
 from app.questionnaires import bp
@@ -34,7 +35,7 @@ def _check_access(questionnaire):
     if current_user.is_platform_admin:
         return None
     if current_user.school_id and questionnaire.school_id != current_user.school_id:
-        flash("ليس لديك صلاحية لهذا الاستبيان.", "danger")
+        flash_msg("permission_questionnaire", "danger")
         return redirect(url_for("questionnaires.index"))
     return None
 
@@ -105,7 +106,7 @@ def create():
     if not teacher and (current_user.is_school_manager or current_user.is_ministry_admin):
         teacher = Teacher.query.filter_by(school_id=sid, is_active=True).first()
     if not teacher:
-        flash("لا يوجد معلم مرتبط.", "danger")
+        flash_msg("teacher_no_profile", "danger")
         return redirect(url_for("questionnaires.index"))
 
     classes = Class.query.filter_by(school_id=sid).order_by(Class.name).all()
@@ -126,7 +127,7 @@ def create():
         db.session.flush()
         save_questions_from_form(q, request.form)
         db.session.commit()
-        flash("تم إنشاء الاستبيان.", "success")
+        flash_msg("questionnaire_created", "success", sid)
         return redirect(url_for("questionnaires.detail", questionnaire_id=q.id))
 
     return render_template(
@@ -147,7 +148,7 @@ def edit(questionnaire_id):
     if denied:
         return denied
     if not _can_manage(q):
-        flash("ليس لديك صلاحية التعديل.", "danger")
+        flash_msg("permission_questionnaire_edit", "danger")
         return redirect(url_for("questionnaires.detail", questionnaire_id=q.id))
 
     classes = Class.query.filter_by(school_id=q.school_id).order_by(Class.name).all()
@@ -169,7 +170,7 @@ def edit(questionnaire_id):
 
         save_questions_from_form(q, request.form)
         db.session.commit()
-        flash("تم تحديث الاستبيان.", "success")
+        flash_msg("questionnaire_updated", "success", sid)
         return redirect(url_for("questionnaires.detail", questionnaire_id=q.id))
 
     questions = q.questions.order_by(Question.order).all()
@@ -203,11 +204,11 @@ def toggle(questionnaire_id):
     if denied:
         return denied
     if not _can_manage(q):
-        flash("ليس لديك صلاحية.", "danger")
+        flash_msg("permission_denied", "danger")
         return redirect(url_for("questionnaires.index"))
     q.is_active = not q.is_active
     db.session.commit()
-    flash("تم تحديث حالة الاستبيان.", "success")
+    flash_msg("questionnaire_status_updated", "success", sid)
     return redirect(url_for("questionnaires.index"))
 
 
@@ -265,7 +266,7 @@ def take(questionnaire_id):
 
             val = request.form.get(f"q_{question.id}")
             if question.is_required and not val:
-                flash(f"يرجى الإجابة على: {question.text_ar or question.text}", "danger")
+                flash_msg("questionnaire_answer_required", "danger", question=question.text_ar or question.text)
                 return redirect(url_for("questionnaires.take", questionnaire_id=q.id))
 
             answer = StudentAnswer(student_id=student.id, question_id=question.id)
@@ -279,7 +280,7 @@ def take(questionnaire_id):
                 answer.text_answer = val or ""
             db.session.add(answer)
         db.session.commit()
-        flash("تم إرسال إجاباتك.", "success")
+        flash_msg("questionnaire_submitted", "success")
         return redirect(url_for("questionnaires.index"))
 
     answered_ids = {

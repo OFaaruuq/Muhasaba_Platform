@@ -18,7 +18,7 @@ def test_teacher_tracking_includes_students(client, app):
 
 
 def test_teacher_dashboard_shows_tracking(client, app):
-    client.post("/auth/login", data={"username": "teacher", "password": "admin123"})
+    from tests.auth_helpers import login_session; login_session(client, "teacher", "admin123")
     resp = client.get("/dashboard/")
     assert resp.status_code == 200
     text = resp.get_data(as_text=True)

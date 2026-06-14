@@ -49,7 +49,10 @@ class User(UserMixin, db.Model):
     phone = db.Column(db.String(20))
     role_id = db.Column(db.Integer, db.ForeignKey("roles.id"), nullable=False)
     school_id = db.Column(db.Integer, db.ForeignKey("schools.id"))
-    is_active = db.Column(db.Boolean, default=True)
+    is_active = db.Column(db.Boolean, default=False)
+    email_verified = db.Column(db.Boolean, default=False)
+    email_verification_token = db.Column(db.String(64), nullable=True, index=True)
+    email_verification_sent_at = db.Column(db.DateTime, nullable=True)
     last_login = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 

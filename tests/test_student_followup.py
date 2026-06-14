@@ -3,12 +3,11 @@
 from app.models import Student, User
 
 
+from tests.auth_helpers import login_session
+
+
 def _login(client, username):
-    return client.post(
-        "/auth/login",
-        data={"username": username, "password": "admin123"},
-        follow_redirects=True,
-    )
+    return login_session(client, username)
 
 
 def test_student_self_edit_page(client, app):

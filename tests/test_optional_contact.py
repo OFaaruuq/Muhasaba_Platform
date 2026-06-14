@@ -25,6 +25,8 @@ def test_user_email_nullable(app):
             full_name_ar="اختبار",
             role_id=role.id,
             school_id=school.id,
+            is_active=True,
+            email_verified=True,
         )
         user.set_password("admin123")
         db.session.add(user)
@@ -77,28 +79,25 @@ def test_create_teacher_without_email_or_phone(client, app):
     with app.app_context():
         school = School.query.first()
 
-    client.post("/auth/login", data={"username": "manager", "password": "admin123"})
-    username = "teacher_no_contact"
+    from tests.auth_helpers import login_session
+    login_session(client, "manager")
     resp = client.post(
         "/teachers/create",
         data={
             "school_id": school.id,
             "full_name_ar": "معلم بدون تواصل",
             "employee_id": "EMP-NO-CONTACT",
-            "username": username,
-            "password": "admin123",
-            "email": "",
             "phone": "",
         },
         follow_redirects=True,
     )
     assert resp.status_code == 200
+    assert "المشرف الأعلى" in resp.get_data(as_text=True)
 
     with app.app_context():
-        user = User.query.filter_by(username=username).first()
-        assert user is not None
-        assert user.email is None
-        assert user.teacher_profile.phone is None
-        db.session.delete(user.teacher_profile)
-        db.session.delete(user)
+        teacher = Teacher.query.filter_by(employee_id="EMP-NO-CONTACT").first()
+        assert teacher is not None
+        assert teacher.user_id is None
+        assert teacher.phone is None
+        db.session.delete(teacher)
         db.session.commit()

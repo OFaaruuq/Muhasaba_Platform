@@ -1,4 +1,5 @@
 from flask import flash, redirect, render_template, request, url_for
+from app.services.message_service import flash_msg
 from flask_login import login_required, current_user
 
 from app.users import bp
@@ -26,39 +27,8 @@ def index():
 @login_required
 @permission_required("manage_users")
 def create():
-    roles = assignable_roles(current_user)
-    schools = School.query.filter_by(is_active=True).all() if is_platform_admin(current_user) else []
-
-    if request.method == "POST":
-        username = request.form["username"].strip()
-        if User.query.filter_by(username=username).first():
-            flash("اسم المستخدم موجود.", "danger")
-            return redirect(url_for("users.create"))
-
-        role_id = int(request.form["role_id"])
-        role = next((r for r in roles if r.id == role_id), None)
-        if not role or not can_assign_role(current_user, role.name):
-            flash("لا يمكن تعيين هذا الدور.", "danger")
-            return redirect(url_for("users.create"))
-
-        school_id = request.form.get("school_id", type=int) or current_user.school_id
-        user = User(
-            username=username,
-            email=request.form["email"],
-            full_name=request.form["full_name_ar"],
-            full_name_ar=request.form["full_name_ar"],
-            phone=request.form.get("phone"),
-            role_id=role_id,
-            school_id=school_id,
-        )
-        user.set_password(request.form["password"])
-        db.session.add(user)
-        log_action("create_user", "users", f"Created {username}")
-        db.session.commit()
-        flash("تم إنشاء المستخدم.", "success")
-        return redirect(url_for("users.index"))
-
-    return render_template("users/create.html", roles=roles, schools=schools)
+    flash_msg("users_create_super_admin_only", "warning")
+    return redirect(url_for("users.index"))
 
 
 @bp.route("/<int:user_id>/toggle", methods=["POST"])
@@ -67,15 +37,15 @@ def create():
 def toggle_active(user_id):
     user = User.query.get_or_404(user_id)
     if user.id == current_user.id:
-        flash("لا يمكن تعطيل حسابك.", "danger")
+        flash_msg("users_cannot_deactivate_self", "danger")
         return redirect(url_for("users.index"))
     if not can_manage_user(current_user, user):
-        flash("ليس لديك صلاحية.", "danger")
+        flash_msg("permission_denied", "danger")
         return redirect(url_for("users.index"))
     user.is_active = not user.is_active
     log_action("toggle_user", "users", f"{user.username} active={user.is_active}")
     db.session.commit()
-    flash("تم تحديث حالة المستخدم.", "success")
+    flash_msg("users_status_updated", "success")
     return redirect(url_for("users.index"))
 
 
@@ -85,7 +55,7 @@ def toggle_active(user_id):
 def edit(user_id):
     user = User.query.get_or_404(user_id)
     if not can_manage_user(current_user, user):
-        flash("ليس لديك صلاحية.", "danger")
+        flash_msg("permission_denied", "danger")
         return redirect(url_for("users.index"))
 
     roles = assignable_roles(current_user)
@@ -95,7 +65,7 @@ def edit(user_id):
         new_role_id = int(request.form["role_id"])
         new_role = next((r for r in roles if r.id == new_role_id), None)
         if not new_role or not can_assign_role(current_user, new_role.name):
-            flash("لا يمكن تعيين هذا الدور.", "danger")
+            flash_msg("users_role_not_allowed", "danger")
             return redirect(url_for("users.edit", user_id=user_id))
 
         user.full_name_ar = request.form["full_name_ar"]
@@ -108,7 +78,7 @@ def edit(user_id):
             user.set_password(request.form["password"])
         log_action("edit_user", "users", f"Updated {user.username}")
         db.session.commit()
-        flash("تم تحديث المستخدم.", "success")
+        flash_msg("users_updated", "success")
         return redirect(url_for("users.index"))
 
     return render_template("users/edit.html", user=user, roles=roles, schools=schools)
