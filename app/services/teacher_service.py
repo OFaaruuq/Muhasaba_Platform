@@ -3,6 +3,7 @@
 from app.extensions import db
 from app.utils.contact_fields import normalize_optional_email, normalize_optional_phone
 from app.services.subject_service import resolve_subject_from_form
+from app.services.attendance_limit_service import parse_weekly_limit
 from app.models import (
     Teacher, TeacherClass, User, Student, Exam,
     Evaluation, TeacherMonthlySurvey, EducationalProgramFollowupSurvey,
@@ -36,6 +37,8 @@ def update_teacher(teacher, form, allow_school_change=False):
     teacher.full_name = (form.get("full_name") or full_name_ar).strip()
     teacher.specialization = resolve_subject_from_form(teacher.school_id, form)
     teacher.phone = normalize_optional_phone(form.get("phone"))
+    if "weekly_class_limit" in form:
+        teacher.weekly_class_limit = parse_weekly_limit(form.get("weekly_class_limit"))
 
     hire_date = form.get("hire_date")
     if hire_date:

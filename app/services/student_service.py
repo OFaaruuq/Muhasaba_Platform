@@ -5,6 +5,7 @@ from datetime import datetime
 from app.extensions import db
 from app.models import Student, User, Class, Grade
 from app.utils.contact_fields import normalize_optional_email, normalize_optional_phone
+from app.services.attendance_limit_service import parse_weekly_limit
 from app.services.teacher_student_service import teacher_can_access_student
 
 
@@ -142,6 +143,8 @@ def update_student(student, form, *, allow_school_change=False, self_edit=False)
     student.full_name_ar = full_name_ar
     student.full_name = (form.get("full_name") or full_name_ar).strip()
     student.gender = form.get("gender") or student.gender
+    if "weekly_class_limit" in form:
+        student.weekly_class_limit = parse_weekly_limit(form.get("weekly_class_limit"))
     student.date_of_birth = parse_date(form.get("date_of_birth")) or student.date_of_birth
     student.enrollment_date = parse_date(form.get("enrollment_date")) or student.enrollment_date
     student.region = (form.get("region") or "").strip() or student.region

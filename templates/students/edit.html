@@ -65,6 +65,13 @@
                     </select>
                 </div>
                 <div class="col-md-4">
+                    <label class="form-label">حد الحصص الأسبوعية</label>
+                    <input name="weekly_class_limit" type="number" min="1" class="form-control"
+                        value="{{ student.weekly_class_limit or '' }}"
+                        placeholder="افتراضي: {{ attendance_weekly.student_classes }}">
+                    <div class="form-text">عدد الحصص المسموح بها أسبوعياً (لكل فصل).</div>
+                </div>
+                <div class="col-md-4">
                     <label class="form-label">المنطقة</label>
                     <input name="region" class="form-control" value="{{ student.region }}" required>
                 </div>

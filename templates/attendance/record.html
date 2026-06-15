@@ -34,6 +34,20 @@
     </div>
     {% endif %}
 
+    {% if weekly_settings.enabled %}
+    <div class="alert alert-light border mb-4 small">
+        <i class="bi bi-calendar-week"></i>
+        الحصص الأسبوعية: حد الطالب {{ weekly_settings.student_classes }} —
+        يُمنع الدخول بعد {{ weekly_settings.absence_deny }} غيابات دون موافقة الإدارة.
+    </div>
+    {% endif %}
+
+    {% if teacher_limit_note %}
+    <div class="alert alert-danger">
+        <i class="bi bi-x-circle"></i> تجاوزت الحد الأسبوعي لحصص المعلم — لا يمكن تسجيل حصة جديدة.
+    </div>
+    {% endif %}
+
     {% if not students %}
     <div class="alert alert-info">لا يوجد طلاب نشطون في هذه المجموعة.</div>
     {% else %}
@@ -69,9 +83,23 @@
                     </thead>
                     <tbody>
                         {% for student in students %}
-                        <tr data-student-id="{{ student.id }}">
+                        <tr data-student-id="{{ student.id }}" class="{% if student_contexts[student.id].denied %}table-danger{% endif %}">
                             <td>{{ loop.index }}</td>
-                            <td>{{ student.full_name_ar or student.full_name }}</td>
+                            <td>
+                                {{ student.full_name_ar or student.full_name }}
+                                {% set ctx = student_contexts[student.id] %}
+                                {% if ctx.denied %}
+                                <span class="badge bg-danger ms-1">منع الدخول</span>
+                                {% elif ctx.approved %}
+                                <span class="badge bg-success ms-1">مسموح</span>
+                                {% endif %}
+                                {% if weekly_settings.enabled %}
+                                <div class="small text-muted">
+                                    هذا الأسبوع: {{ ctx.week_stats.present }} حاضر / {{ ctx.week_stats.absences }} غائب
+                                    (حد {{ ctx.weekly_limit }})
+                                </div>
+                                {% endif %}
+                            </td>
                             <td><small class="text-muted">{{ student.student_id }}</small></td>
                             {% if time_settings.record_time %}
                             <td>
@@ -81,13 +109,24 @@
                             </td>
                             {% endif %}
                             <td>
-                                <select name="status_{{ student.id }}" class="form-select form-select-sm student-status" style="width:auto">
+                                {% set ctx = student_contexts[student.id] %}
+                                <select name="status_{{ student.id }}" class="form-select form-select-sm student-status" style="width:auto"
+                                    {% if ctx.denied %}data-denied="1"{% endif %}>
                                     {% for value, label in statuses %}
-                                    <option value="{{ value }}" {% if existing.get(student.id) == value %}selected{% elif not existing.get(student.id) and value == default_status %}selected{% endif %}>
+                                    <option value="{{ value }}" {% if existing.get(student.id) == value %}selected{% elif not existing.get(student.id) and value == default_status %}selected{% endif %}
+                                        {% if ctx.denied and value in present_codes %}disabled{% endif %}>
                                         {{ label }}
                                     </option>
                                     {% endfor %}
                                 </select>
+                                {% if ctx.denied and can_manage %}
+                                <div class="form-check mt-1">
+                                    <input type="checkbox" class="form-check-input" name="approve_{{ student.id }}" value="1" id="approve-{{ student.id }}">
+                                    <label class="form-check-label small" for="approve-{{ student.id }}">السماح بالدخول</label>
+                                </div>
+                                {% elif ctx.denied %}
+                                <div class="small text-danger mt-1">يتطلب موافقة الإدارة</div>
+                                {% endif %}
                                 <input type="hidden" name="manual_{{ student.id }}" class="manual-flag" value="">
                             </td>
                         </tr>

@@ -3,7 +3,7 @@
 import re
 
 from app.models import ConfigOption, PlatformSetting
-from app.services.config_service import get_admin_config_sections
+from app.services.config_service import get_admin_config_sections, get_kpi_source_options
 
 
 def _csrf(client):
@@ -23,6 +23,7 @@ def test_admin_index_loads(client):
     assert "مركز إعدادات المنصة" in resp.get_data(as_text=True)
     assert "إعدادات متقدمة" in resp.get_data(as_text=True)
     assert "مصادر بيانات KPI" in resp.get_data(as_text=True)
+    assert "فترات عرض KPI" in resp.get_data(as_text=True)
 
 
 def test_edit_config_option(client, app):
@@ -111,3 +112,35 @@ def test_get_admin_config_sections_includes_kpi_source(app):
         sections, labels = get_admin_config_sections()
         assert "kpi_data_source" in sections
         assert "مصادر بيانات KPI" in labels.values()
+
+
+def test_admin_add_kpi(client, app):
+    _login_manager(client)
+    token = _csrf(client)
+    with app.app_context():
+        from app.models import KPI
+        before = KPI.query.count()
+        sources = dict(get_kpi_source_options(None))
+        code = next(iter(sources.keys()))
+
+    resp = client.post(
+        "/admin/kpi/add",
+        data={
+            "name_ar": "مؤشر تجريبي",
+            "code": code,
+            "weight": 5,
+            "description": "وصف تجريبي",
+            "csrf_token": token,
+        },
+        follow_redirects=True,
+    )
+    assert resp.status_code == 200
+    assert "تم إضافة المؤشر" in resp.get_data(as_text=True)
+    with app.app_context():
+        from app.extensions import db
+        from app.models import KPI
+        assert KPI.query.count() == before + 1
+        kpi = KPI.query.filter_by(name_ar="مؤشر تجريبي").first()
+        assert kpi is not None
+        db.session.delete(kpi)
+        db.session.commit()

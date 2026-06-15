@@ -27,5 +27,8 @@ class Attendance(db.Model):
     recorder = db.relationship("User", backref="recorded_attendance")
 
     __table_args__ = (
-        db.UniqueConstraint("student_id", "date", name="uq_student_attendance_date"),
+        db.UniqueConstraint(
+            "student_id", "class_id", "date",
+            name="uq_student_class_attendance_date",
+        ),
     )

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}موافقات الحضور - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-shield-check"></i> السماح بدخول الحصص</h2>
+            <p class="text-muted mb-0 small">
+                الأسبوع: {{ week_start }} — {{ week_end }}
+                · حد الطالب {{ settings.student_classes }} حصة
+                · منع بعد {{ settings.absence_deny }} غيابات
+            </p>
+        </div>
+        <a href="{{ url_for('attendance.index') }}" class="btn btn-outline-secondary btn-sm">رجوع للحضور</a>
+    </div>
+
+    <div class="card">
+        <div class="card-header">طلاب محظورون من الدخول</div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>الطالب</th>
+                        <th>المجموعة</th>
+                        <th>هذا الأسبوع</th>
+                        <th>السبب</th>
+                        <th>السماح لتاريخ</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in denied_rows %}
+                    <tr>
+                        <td>{{ row.student.full_name_ar or row.student.full_name }}</td>
+                        <td>{{ row.class.name if row.class else '—' }}</td>
+                        <td>
+                            <span class="badge bg-success">{{ row.stats.present }} حاضر</span>
+                            <span class="badge bg-danger">{{ row.stats.absences }} غائب</span>
+                            <span class="text-muted small">/ حد {{ row.limit }}</span>
+                        </td>
+                        <td>
+                            {% if row.reason == 'absence_threshold' %}
+                            <span class="text-danger">تجاوز غيابات الأسبوع</span>
+                            {% elif row.reason == 'weekly_limit' %}
+                            <span class="text-warning">استنفاد حصص الأسبوع</span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('attendance.approve_entry') }}" class="d-flex gap-2 align-items-center">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="student_id" value="{{ row.student.id }}">
+                                <input type="hidden" name="class_id" value="{{ row.student.class_id }}">
+                                <input type="date" name="session_date" class="form-control form-control-sm" value="{{ week_start.isoformat() }}" required>
+                                <input type="text" name="reason" class="form-control form-control-sm" placeholder="ملاحظة (اختياري)">
+                                <button class="btn btn-sm btn-success">سماح</button>
+                            </form>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('students.edit', student_id=row.student.id) }}" class="btn btn-sm btn-outline-secondary">تعديل الحد</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-muted text-center py-4">لا يوجد طلاب محظورون هذا الأسبوع.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

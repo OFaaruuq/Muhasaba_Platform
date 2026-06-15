@@ -111,6 +111,10 @@ DEFAULT_SETTINGS = {
     "attendance_absent_after": ("08:46", "attendance", "غائب بعد"),
     "attendance_auto_suggest": ("true", "attendance", "اقتراح الحالة تلقائياً من الوقت"),
     "attendance_record_time": ("true", "attendance", "تسجيل وقت الحضور"),
+    "attendance_weekly_limit_enabled": ("true", "attendance", "تفعيل حد الحصص الأسبوعية"),
+    "attendance_weekly_classes_student": ("3", "attendance", "عدد حصص الطالب الأسبوعية"),
+    "attendance_weekly_classes_teacher": ("12", "attendance", "عدد حصص المعلم الأسبوعية"),
+    "attendance_weekly_absence_deny": ("2", "attendance", "غيابات قبل منع الدخول"),
 }
 
 DEMO_USERNAMES = ("superadmin", "ministry", "manager", "teacher", "student", "parent")
@@ -1137,9 +1141,12 @@ def _find_active_kpi(code, school_id=None):
 
 
 def get_kpi_display_source(kpi_code, school_id=None):
+    for opt in get_config_options("kpi_data_source", school_id):
+        if opt.code == kpi_code:
+            return opt.name_ar
     kpi = _find_active_kpi(kpi_code, school_id)
     if kpi:
-        return kpi.name_ar
+        return kpi.description or kpi.name_ar
     return KPI_SOURCE_DESCRIPTIONS.get(kpi_code, kpi_code)
 
 
@@ -1349,7 +1356,7 @@ def get_kpi_source_description(code, school_id=None):
     for opt in get_config_options("kpi_data_source", school_id):
         if opt.code == code:
             return opt.name_ar
-    return KPI_SOURCE_DESCRIPTIONS.get(code, "بيانات مرتبطة بالمعايير")
+    return KPI_SOURCE_DESCRIPTIONS.get(code, code)
 
 
 def _cast(value, value_type):

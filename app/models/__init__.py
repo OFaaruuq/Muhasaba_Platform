@@ -3,6 +3,7 @@ from app.models.school import School, AcademicYear, Grade, Class, Subject, Class
 from app.models.student import Student, Parent, parent_student
 from app.models.teacher import Teacher, TeacherClass
 from app.models.attendance import Attendance
+from app.models.attendance_access import AttendanceEntryApproval
 from app.models.kpi import KPI, StudentKPI
 from app.models.evaluation import (
     Evaluation,
@@ -46,6 +47,7 @@ __all__ = [
     "Teacher",
     "TeacherClass",
     "Attendance",
+    "AttendanceEntryApproval",
     "KPI",
     "StudentKPI",
     "Evaluation",

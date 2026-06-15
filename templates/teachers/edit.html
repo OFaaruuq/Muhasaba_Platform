@@ -49,6 +49,13 @@
                         <input name="hire_date" type="date" class="form-control"
                             value="{{ teacher.hire_date.isoformat() if teacher.hire_date else '' }}">
                     </div>
+                    <div class="col-md-4">
+                        <label class="form-label">حد الحصص الأسبوعية</label>
+                        <input name="weekly_class_limit" type="number" min="1" class="form-control"
+                            value="{{ teacher.weekly_class_limit or '' }}"
+                            placeholder="افتراضي: {{ attendance_weekly.teacher_classes }}">
+                        <div class="form-text">عدد الحصص التي يمكن للمعلم تسجيلها أسبوعياً.</div>
+                    </div>
                 </div>
 
                 {% if teacher.user %}

@@ -17,6 +17,7 @@ from app.services.config_service import (
     get_org_labels, get_all_settings_grouped, get_admin_config_sections,
     get_setting_category_labels, get_rating_levels, save_settings_bulk,
     add_platform_setting, SETTING_CATEGORY_LABELS,     get_nav_labels, get_page_labels, get_registration_section_labels,
+    get_kpi_period_choices,
 )
 from app.services.content_seeds import NAV_LABELS_SEED, PAGE_LABELS_SEED, dumps_json
 from app.services.message_service import get_messages, MESSAGE_GROUPS, MESSAGES_SEED
@@ -32,7 +33,17 @@ from app.services.registration_field_service import (
     admin_field_rows, save_registration_config, apply_preset,
     save_registration_labels,
 )
-from app.services.attendance_time_service import get_attendance_time_settings, save_attendance_time_settings
+from app.services.attendance_time_service import (
+    get_attendance_time_settings, save_attendance_time_settings,
+)
+from app.services.attendance_limit_service import (
+    get_attendance_weekly_settings, save_attendance_weekly_settings,
+)
+from app.services.kpi_admin_service import (
+    kpi_query_for_school, total_active_kpi_weight, add_kpi_for_school,
+    update_kpi_from_form, toggle_kpi, delete_kpi, update_kpi_weights,
+    save_kpi_period_settings,
+)
 from app.utils import permission_required
 from app.utils.school_context import get_active_school_id, set_active_school_id, get_schools_for_picker
 
@@ -58,9 +69,8 @@ def index():
     ratings = get_rating_choices(sid)
     monthly_ratings = get_monthly_rating_choices(sid)
     statuses = get_attendance_statuses(sid)
-    kpis = KPI.query.filter(
-        (KPI.school_id == sid) | (KPI.school_id.is_(None)) if sid else KPI.school_id.is_(None)
-    ).filter_by(is_active=True).all()
+    kpis = kpi_query_for_school(sid).all()
+    total_kpi_weight = total_active_kpi_weight(kpis)
 
     settings = PlatformSetting.query.filter(
         (PlatformSetting.school_id == sid) | (PlatformSetting.school_id.is_(None))
@@ -90,6 +100,17 @@ def index():
         monthly_rating_levels=monthly_rating_levels,
         statuses=statuses,
         kpis=kpis,
+        total_kpi_weight=total_kpi_weight,
+        kpi_period_choices=get_kpi_period_choices(sid),
+        kpi_period_days_term=get_setting("kpi_period_days_term", sid, 90),
+        kpi_period_days_monthly=get_setting("kpi_period_days_monthly", sid, 30),
+        kpi_period_days_weekly=get_setting("kpi_period_days_weekly", sid, 7),
+        kpi_period_days_daily=get_setting("kpi_period_days_daily", sid, 1),
+        kpi_period_term_label=get_setting("kpi_period_term_label", sid, "فصلي"),
+        kpi_period_monthly_label=get_setting("kpi_period_monthly_label", sid, "شهري"),
+        kpi_period_weekly_label=get_setting("kpi_period_weekly_label", sid, "أسبوعي"),
+        kpi_period_daily_label=get_setting("kpi_period_daily_label", sid, "يومي"),
+        kpi_data_sources=config_sections.get("kpi_data_source", []),
         settings=settings,
         settings_grouped=settings_grouped,
         setting_category_labels=get_setting_category_labels(),
@@ -134,6 +155,7 @@ def index():
         registration_fields=reg_fields,
         registration_mode=reg_mode,
         attendance_time=get_attendance_time_settings(sid),
+        attendance_weekly=get_attendance_weekly_settings(sid),
         nav_labels=get_nav_labels(sid),
         nav_label_keys=NAV_LABELS_SEED,
         page_labels=get_page_labels(sid),
@@ -150,6 +172,11 @@ def index():
     )
 
 
+def _admin_redirect(anchor=""):
+    url = url_for("admin.index")
+    if anchor:
+        url = f"{url}#{anchor}"
+    return redirect(url)
 @bp.route("/school/select", methods=["POST"])
 @login_required
 @permission_required("manage_global_config", "manage_platform_config")
@@ -333,6 +360,17 @@ def edit_rating(rating_id):
     return redirect(url_for("admin.index"))
 
 
+@bp.route("/attendance-weekly", methods=["POST"])
+@login_required
+@permission_required("manage_platform_config")
+def save_attendance_weekly():
+    sid = _school_id()
+    save_attendance_weekly_settings(sid, request.form)
+    log_action("save_attendance_weekly", "admin", f"school={sid}")
+    flash_msg("admin_attendance_weekly_saved", "success", sid)
+    return redirect(url_for("admin.index") + "#tab-attendance")
+
+
 @bp.route("/attendance-time", methods=["POST"])
 @login_required
 @permission_required("manage_platform_config")
@@ -385,12 +423,81 @@ def add_attendance_status():
 @permission_required("manage_platform_config")
 def edit_kpi(kpi_id):
     kpi = KPI.query.get_or_404(kpi_id)
-    kpi.name_ar = request.form.get("name_ar", kpi.name_ar)
-    kpi.weight = float(request.form.get("weight", kpi.weight))
-    kpi.description = request.form.get("description", kpi.description)
+    try:
+        update_kpi_from_form(kpi, request.form)
+    except ValueError as exc:
+        flash(str(exc), "danger")
+        return _admin_redirect("tab-kpi")
     db.session.commit()
     flash_msg("admin_kpi_updated", "success", _school_id())
-    return redirect(url_for("admin.index"))
+    return _admin_redirect("tab-kpi")
+
+
+@bp.route("/kpi/add", methods=["POST"])
+@login_required
+@permission_required("manage_platform_config")
+def add_kpi():
+    sid = _school_id()
+    try:
+        add_kpi_for_school(sid, request.form)
+        log_action("add_kpi", "admin", f"school={sid} code={request.form.get('code')}")
+        db.session.commit()
+        flash_msg("admin_kpi_added", "success", sid)
+    except ValueError as exc:
+        flash(str(exc), "danger")
+    return _admin_redirect("tab-kpi")
+
+
+@bp.route("/kpi/<int:kpi_id>/toggle", methods=["POST"])
+@login_required
+@permission_required("manage_platform_config")
+def toggle_kpi_route(kpi_id):
+    try:
+        toggle_kpi(kpi_id)
+        db.session.commit()
+        flash_msg("admin_kpi_toggled", "success", _school_id())
+    except ValueError as exc:
+        flash(str(exc), "danger")
+    return _admin_redirect("tab-kpi")
+
+
+@bp.route("/kpi/<int:kpi_id>/delete", methods=["POST"])
+@login_required
+@permission_required("manage_platform_config")
+def delete_kpi_route(kpi_id):
+    try:
+        kpi, action = delete_kpi(kpi_id)
+        log_action("delete_kpi", "admin", f"kpi={kpi_id} action={action}")
+        db.session.commit()
+        if action == "deleted":
+            flash_msg("admin_kpi_deleted", "success", _school_id())
+        else:
+            flash_msg("admin_kpi_deactivated_has_scores", "warning", _school_id())
+    except ValueError as exc:
+        flash(str(exc), "danger")
+    return _admin_redirect("tab-kpi")
+
+
+@bp.route("/kpi/weights", methods=["POST"])
+@login_required
+@permission_required("manage_platform_config")
+def save_kpi_weights():
+    sid = _school_id()
+    update_kpi_weights(request.form, sid)
+    db.session.commit()
+    flash_msg("admin_kpi_weights_saved", "success", sid)
+    return _admin_redirect("tab-kpi")
+
+
+@bp.route("/kpi/period-settings", methods=["POST"])
+@login_required
+@permission_required("manage_platform_config")
+def save_kpi_period():
+    sid = _school_id()
+    save_kpi_period_settings(sid, request.form)
+    db.session.commit()
+    flash_msg("admin_kpi_period_saved", "success", sid)
+    return _admin_redirect("tab-kpi")
 
 
 @bp.route("/config-option", methods=["POST"])
@@ -413,7 +520,8 @@ def add_config_option():
     ))
     db.session.commit()
     flash_msg("admin_option_added", "success", sid)
-    return redirect(url_for("admin.index"))
+    anchor = request.form.get("anchor", "tab-options")
+    return _admin_redirect(anchor)
 
 
 @bp.route("/ratings/<int:rating_id>/toggle", methods=["POST"])
@@ -484,7 +592,8 @@ def toggle_config_option(option_id):
     opt.is_active = not opt.is_active
     db.session.commit()
     flash_msg("admin_option_updated", "success", _school_id())
-    return redirect(url_for("admin.index"))
+    anchor = request.form.get("anchor", "tab-options")
+    return _admin_redirect(anchor)
 
 
 @bp.route("/content-labels", methods=["POST"])
@@ -518,7 +627,7 @@ def provision_school(school_id):
     ensure_school_defaults(school_id)
     provision_school_kpis(school_id)
     flash_msg("admin_school_provisioned", "success", school_id)
-    return redirect(url_for("admin.index"))
+    return _admin_redirect("tab-kpi")
 
 
 @bp.route("/messages", methods=["POST"])

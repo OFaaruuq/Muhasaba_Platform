@@ -4,7 +4,11 @@ from flask_login import login_required, current_user
 
 from app.kpi import bp
 from app.extensions import db
-from app.models import KPI, Student, StudentKPI
+from app.models import Student
+from app.services.kpi_admin_service import (
+    kpi_query_for_school, total_active_kpi_weight, add_kpi_for_school,
+    toggle_kpi, update_kpi_weights,
+)
 from app.kpi.service import (
     get_active_kpis, recalculate_student_kpis, recalculate_school_kpis,
     get_student_kpi_display,
@@ -83,61 +87,35 @@ def index():
 @login_required
 @permission_required("manage_kpi")
 def manage():
+    sid = get_active_school_id() or current_user.school_id
     if request.method == "POST":
         action = request.form.get("action", "add")
-
-        if action == "add":
-            code = request.form.get("code", "").strip()
-            if not code:
-                code = request.form["name"].lower().replace(" ", "_")
-            sid = get_active_school_id() or current_user.school_id
-            kpi = KPI(
-                code=code,
-                name=request.form["name"],
-                name_ar=request.form["name_ar"],
-                weight=float(request.form["weight"]),
-                description=request.form.get("description"),
-                school_id=sid,
-            )
-            db.session.add(kpi)
-            flash_msg("kpi_added", "success", sid)
-
-        elif action == "update_weights":
-            sid = get_active_school_id() or current_user.school_id
-            query = KPI.query.filter_by(is_active=True)
-            if sid:
-                query = query.filter((KPI.school_id == sid) | (KPI.school_id.is_(None)))
-            for kpi in query.all():
-                val = request.form.get(f"weight_{kpi.id}")
-                if val is not None:
-                    kpi.weight = float(val)
-            flash_msg("kpi_weights_updated", "success", sid)
-
-        elif action == "toggle":
-            kpi = KPI.query.get(request.form.get("kpi_id", type=int))
-            if kpi:
-                kpi.is_active = not kpi.is_active
-                flash_msg("kpi_status_updated", "success", kpi.school_id)
+        try:
+            if action == "add":
+                add_kpi_for_school(sid, request.form)
+                flash_msg("kpi_added", "success", sid)
+            elif action == "update_weights":
+                update_kpi_weights(request.form, sid)
+                flash_msg("kpi_weights_updated", "success", sid)
+            elif action == "toggle":
+                toggle_kpi(request.form.get("kpi_id", type=int))
+                flash_msg("kpi_status_updated", "success", sid)
+        except ValueError as exc:
+            flash(str(exc), "danger")
+            return redirect(url_for("kpi.manage"))
 
         db.session.commit()
-
-        sid = get_active_school_id() or current_user.school_id
         if sid:
             recalculate_school_kpis(sid)
-
         return redirect(url_for("kpi.manage"))
 
-    sid = get_active_school_id() or current_user.school_id
-    kpi_query = KPI.query
-    if sid:
-        kpi_query = kpi_query.filter((KPI.school_id == sid) | (KPI.school_id.is_(None)))
-    kpis = kpi_query.order_by(KPI.is_active.desc(), KPI.weight.desc()).all()
-    total_weight = sum(k.weight for k in kpis if k.is_active)
+    kpis = kpi_query_for_school(sid).all()
+    total_weight = total_active_kpi_weight(kpis)
     return render_template(
         "kpi/manage.html",
         kpis=kpis,
         total_weight=total_weight,
-        sources=get_kpi_source_options(get_active_school_id() or current_user.school_id),
+        sources=get_kpi_source_options(sid),
     )
 
 

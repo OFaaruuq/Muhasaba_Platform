@@ -10,9 +10,16 @@
             <p class="text-muted mb-0 small">سجّل حضور فريقك (مجموعاتك الدراسية) يومياً</p>
             {% endif %}
         </div>
-        <a href="{{ url_for('attendance.weekly') }}" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-calendar-week"></i> عرض أسبوعي
-        </a>
+        <div>
+            <a href="{{ url_for('attendance.weekly') }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-calendar-week"></i> عرض أسبوعي
+            </a>
+            {% if can_manage_denied and denied_count %}
+            <a href="{{ url_for('attendance.approvals') }}" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-shield-exclamation"></i> منع الدخول ({{ denied_count }})
+            </a>
+            {% endif %}
+        </div>
     </div>
 
     <form class="mb-4" method="GET">

@@ -24,6 +24,7 @@ from app.services.subject_service import (
     teacher_selected_subject_id,
     list_subjects,
 )
+from app.services.attendance_limit_service import get_attendance_weekly_settings
 from app.utils.contact_fields import normalize_optional_email, normalize_optional_phone
 
 
@@ -157,6 +158,7 @@ def edit(teacher_id):
         subjects=list_subjects(teacher.school_id),
         selected_subject_id=teacher_selected_subject_id(teacher),
         school_id=teacher.school_id,
+        attendance_weekly=get_attendance_weekly_settings(teacher.school_id),
     )
 
 

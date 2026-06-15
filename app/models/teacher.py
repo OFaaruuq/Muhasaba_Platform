@@ -15,6 +15,7 @@ class Teacher(db.Model):
     specialization = db.Column(db.String(100))
     phone = db.Column(db.String(20))
     hire_date = db.Column(db.Date)
+    weekly_class_limit = db.Column(db.Integer)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 

@@ -224,6 +224,82 @@ def ensure_super_admin_role():
     db.session.commit()
 
 
+def upgrade_attendance_weekly_schema():
+    """Per-class attendance uniqueness, weekly limits, entry approvals."""
+    from app.models.attendance_access import AttendanceEntryApproval
+
+    inspector = inspect(db.engine)
+    tables = inspector.get_table_names()
+    dialect = db.engine.dialect.name
+
+    with db.engine.begin() as conn:
+        if "students" in tables:
+            columns = {c["name"] for c in inspector.get_columns("students")}
+            if "weekly_class_limit" not in columns:
+                conn.execute(text(
+                    "ALTER TABLE students ADD COLUMN weekly_class_limit INTEGER"
+                ))
+
+        if "teachers" in tables:
+            columns = {c["name"] for c in inspector.get_columns("teachers")}
+            if "weekly_class_limit" not in columns:
+                conn.execute(text(
+                    "ALTER TABLE teachers ADD COLUMN weekly_class_limit INTEGER"
+                ))
+
+        if "attendance_entry_approvals" not in tables:
+            AttendanceEntryApproval.__table__.create(conn)
+
+        if "attendance" not in tables:
+            return
+
+        constraints = {c["name"] for c in inspector.get_unique_constraints("attendance")}
+        if "uq_student_class_attendance_date" in constraints:
+            return
+
+        if dialect == "sqlite":
+            conn.execute(text("PRAGMA foreign_keys=OFF"))
+            conn.execute(text("""
+                CREATE TABLE attendance__per_class (
+                    id INTEGER NOT NULL PRIMARY KEY,
+                    student_id INTEGER NOT NULL,
+                    school_id INTEGER NOT NULL,
+                    class_id INTEGER NOT NULL,
+                    date DATE NOT NULL,
+                    check_in_time TIME,
+                    status VARCHAR(20) NOT NULL,
+                    notes TEXT,
+                    recorded_by INTEGER,
+                    created_at DATETIME,
+                    FOREIGN KEY(student_id) REFERENCES students (id),
+                    FOREIGN KEY(school_id) REFERENCES schools (id),
+                    FOREIGN KEY(class_id) REFERENCES classes (id),
+                    FOREIGN KEY(recorded_by) REFERENCES users (id),
+                    UNIQUE (student_id, class_id, date)
+                )
+            """))
+            conn.execute(text("""
+                INSERT INTO attendance__per_class
+                    (id, student_id, school_id, class_id, date, check_in_time,
+                     status, notes, recorded_by, created_at)
+                SELECT id, student_id, school_id, class_id, date, check_in_time,
+                       status, notes, recorded_by, created_at
+                FROM attendance
+            """))
+            conn.execute(text("DROP TABLE attendance"))
+            conn.execute(text("ALTER TABLE attendance__per_class RENAME TO attendance"))
+            conn.execute(text("PRAGMA foreign_keys=ON"))
+        elif dialect in ("postgresql", "postgres"):
+            if "uq_student_attendance_date" in constraints:
+                conn.execute(text(
+                    "ALTER TABLE attendance DROP CONSTRAINT uq_student_attendance_date"
+                ))
+            conn.execute(text(
+                "ALTER TABLE attendance ADD CONSTRAINT uq_student_class_attendance_date "
+                "UNIQUE (student_id, class_id, date)"
+            ))
+
+
 def upgrade_attendance_schema():
     """Add check-in time and per-status time windows."""
     inspector = inspect(db.engine)
@@ -412,6 +488,7 @@ def apply_schema_upgrades():
     upgrade_kpi_schema()
     upgrade_config_schema()
     upgrade_attendance_schema()
+    upgrade_attendance_weekly_schema()
     upgrade_reading_schema()
     upgrade_followup_survey_schema()
     upgrade_permissions()

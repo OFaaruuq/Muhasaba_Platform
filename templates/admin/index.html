@@ -138,29 +138,207 @@
         </div>
 
         <div class="tab-pane fade" id="tab-kpi">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between">
-                    <span>مؤشرات الأداء (KPI)</span>
-                    <a href="{{ url_for('kpi.manage') }}" class="btn btn-sm btn-outline-primary">إدارة متقدمة</a>
+            <div class="alert alert-info d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+                <span>
+                    كل مؤشر مرتبط بمصدر بيانات حي من قاعدة البيانات. مجموع الأوزان النشطة:
+                    <strong>{{ total_kpi_weight }}%</strong>
+                </span>
+                <div class="d-flex flex-wrap gap-2">
+                    {% if active_school_id %}
+                    <form method="POST" action="{{ url_for('admin.provision_school', school_id=active_school_id) }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-sm btn-outline-secondary">تهيئة مؤشرات المدرسة الافتراضية</button>
+                    </form>
+                    {% endif %}
+                    {% if current_user.has_permission('manage_kpi') %}
+                    <a href="{{ url_for('kpi.manage') }}" class="btn btn-sm btn-outline-primary">إعادة حساب KPI</a>
+                    {% endif %}
                 </div>
-                <div class="card-body p-0">
-                    <table class="table table-sm mb-0">
-                        <thead><tr><th>المؤشر</th><th>الرمز</th><th>الوزن</th><th>المصدر</th><th></th></tr></thead>
-                        <tbody>
-                            {% for k in kpis %}
-                            <tr>
-                                <form method="POST" action="{{ url_for('admin.edit_kpi', kpi_id=k.id) }}">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <td><input name="name_ar" class="form-control form-control-sm" value="{{ k.name_ar }}"></td>
-                                    <td><code>{{ k.code }}</code></td>
-                                    <td><input name="weight" type="number" step="0.1" class="form-control form-control-sm" value="{{ k.weight }}" style="width:70px"></td>
-                                    <td class="small text-muted">{{ get_kpi_source_description(k.code) }}</td>
-                                    <td><button class="btn btn-sm btn-outline-primary">حفظ</button></td>
-                                </form>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="card mb-4">
+                        <div class="card-header">إضافة مؤشر</div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('admin.add_kpi') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="mb-2">
+                                    <label class="form-label small">الاسم (عربي)</label>
+                                    <input name="name_ar" class="form-control form-control-sm" required>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">الاسم (إنجليزي — اختياري)</label>
+                                    <input name="name" class="form-control form-control-sm" placeholder="يُستمد من العربي إن تُرك فارغاً">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">مصدر البيانات</label>
+                                    <select name="code" class="form-select form-select-sm" required>
+                                        <option value="">— اختر المصدر —</option>
+                                        {% for code, label in kpi_sources %}
+                                        <option value="{{ code }}">{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">الوزن %</label>
+                                    <input name="weight" type="number" step="0.1" class="form-control form-control-sm" value="10" required>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">وصف المصدر (اختياري)</label>
+                                    <textarea name="description" class="form-control form-control-sm" rows="2"></textarea>
+                                </div>
+                                <button class="btn btn-primary btn-sm">إضافة مؤشر</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header">فترات عرض KPI</div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('admin.save_kpi_period') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label class="form-label small">{{ kpi_period_term_label }}</label>
+                                        <input name="kpi_period_term_label" class="form-control form-control-sm mb-1" value="{{ kpi_period_term_label }}">
+                                        <input name="kpi_period_days_term" type="number" min="1" class="form-control form-control-sm" value="{{ kpi_period_days_term }}" placeholder="أيام">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small">{{ kpi_period_monthly_label }}</label>
+                                        <input name="kpi_period_monthly_label" class="form-control form-control-sm mb-1" value="{{ kpi_period_monthly_label }}">
+                                        <input name="kpi_period_days_monthly" type="number" min="1" class="form-control form-control-sm" value="{{ kpi_period_days_monthly }}" placeholder="أيام">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small">{{ kpi_period_weekly_label }}</label>
+                                        <input name="kpi_period_weekly_label" class="form-control form-control-sm mb-1" value="{{ kpi_period_weekly_label }}">
+                                        <input name="kpi_period_days_weekly" type="number" min="1" class="form-control form-control-sm" value="{{ kpi_period_days_weekly }}" placeholder="أيام">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small">{{ kpi_period_daily_label }}</label>
+                                        <input name="kpi_period_daily_label" class="form-control form-control-sm mb-1" value="{{ kpi_period_daily_label }}">
+                                        <input name="kpi_period_days_daily" type="number" min="1" class="form-control form-control-sm" value="{{ kpi_period_days_daily }}" placeholder="أيام">
+                                    </div>
+                                </div>
+                                <p class="text-muted small mt-2 mb-2">تظهر هذه التسميات في صفحة KPI وقوائم الفترة.</p>
+                                <button class="btn btn-primary btn-sm">حفظ الفترات</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">{{ config_section_labels.get('kpi_data_source', 'مصادر بيانات KPI') }}</div>
+                        <div class="card-body">
+                            <p class="text-muted small">أضف أو عدّل مصادر البيانات المتاحة عند إنشاء مؤشر جديد أو ربط المعايير.</p>
+                            <ul class="list-group list-group-flush mb-2">
+                                {% for opt in kpi_data_sources %}
+                                <li class="list-group-item px-0 py-2">
+                                    <form method="POST" action="{{ url_for('admin.edit_config_option', option_id=opt.id) }}" class="row g-2 align-items-center">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="anchor" value="tab-kpi">
+                                        <div class="col-3"><code class="small">{{ opt.code }}</code></div>
+                                        <div class="col-5"><input name="name_ar" class="form-control form-control-sm" value="{{ opt.name_ar }}"></div>
+                                        <div class="col-2"><input name="order" type="number" class="form-control form-control-sm" value="{{ opt.order }}"></div>
+                                        <div class="col-2 d-flex gap-1">
+                                            <button class="btn btn-sm btn-outline-primary">حفظ</button>
+                                            <button type="submit" formaction="{{ url_for('admin.toggle_config_option', option_id=opt.id) }}" class="btn btn-sm btn-outline-secondary" name="anchor" value="tab-kpi">
+                                                {% if opt.is_active %}إيقاف{% else %}تفعيل{% endif %}
+                                            </button>
+                                        </div>
+                                        {% if not opt.is_active %}<div class="col-12"><span class="badge bg-secondary">{{ ui_labels.inactive }}</span></div>{% endif %}
+                                    </form>
+                                </li>
+                                {% else %}
+                                <li class="list-group-item px-0 text-muted small">لا توجد مصادر بعد — أضف أول مصدر أدناه.</li>
+                                {% endfor %}
+                            </ul>
+                            <form method="POST" action="{{ url_for('admin.add_config_option') }}" class="row g-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="option_type" value="kpi_data_source">
+                                <input type="hidden" name="anchor" value="tab-kpi">
+                                <div class="col-3"><input name="code" class="form-control form-control-sm" placeholder="رمز" required></div>
+                                <div class="col-7"><input name="name_ar" class="form-control form-control-sm" placeholder="الاسم" required></div>
+                                <div class="col-2"><button class="btn btn-sm btn-primary w-100">+</button></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>مؤشرات الأداء (KPI)</span>
+                            <span class="badge bg-primary">{{ kpis|length }} مؤشر</span>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('admin.save_kpi_weights') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>المؤشر</th>
+                                                <th>الرمز</th>
+                                                <th>الوزن %</th>
+                                                <th>المصدر / الوصف</th>
+                                                <th>الحالة</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for k in kpis %}
+                                            <tr class="{% if not k.is_active %}table-secondary{% endif %}">
+                                                <td style="min-width:140px">
+                                                    <input form="kpi-edit-{{ k.id }}" name="name_ar" class="form-control form-control-sm" value="{{ k.name_ar }}">
+                                                </td>
+                                                <td style="min-width:100px">
+                                                    <input form="kpi-edit-{{ k.id }}" name="code" class="form-control form-control-sm" value="{{ k.code }}" {% if k.is_default %}readonly{% endif %}>
+                                                </td>
+                                                <td style="width:80px">
+                                                    <input name="weight_{{ k.id }}" type="number" step="0.1" class="form-control form-control-sm" value="{{ k.weight }}">
+                                                </td>
+                                                <td class="small text-muted" style="min-width:160px">
+                                                    <div>{{ get_kpi_source_description(k.code, active_school_id) }}</div>
+                                                    <input form="kpi-edit-{{ k.id }}" name="description" class="form-control form-control-sm mt-1" value="{{ k.description or '' }}" placeholder="وصف مخصص">
+                                                </td>
+                                                <td>
+                                                    {% if k.is_active %}
+                                                    <span class="badge bg-success">{{ ui_labels.active }}</span>
+                                                    {% else %}
+                                                    <span class="badge bg-secondary">{{ ui_labels.inactive }}</span>
+                                                    {% endif %}
+                                                    {% if k.is_default %}<span class="badge bg-info text-dark">نظام</span>{% endif %}
+                                                    {% if k.school_id %}<span class="badge bg-light text-dark">مدرسة</span>{% endif %}
+                                                </td>
+                                                <td class="text-nowrap">
+                                                    <form id="kpi-edit-{{ k.id }}" method="POST" action="{{ url_for('admin.edit_kpi', kpi_id=k.id) }}" class="d-inline">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    </form>
+                                                    <button type="submit" form="kpi-edit-{{ k.id }}" class="btn btn-sm btn-outline-primary">حفظ</button>
+                                                    <form method="POST" action="{{ url_for('admin.toggle_kpi_route', kpi_id=k.id) }}" class="d-inline">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                        <button class="btn btn-sm btn-outline-warning">{% if k.is_active %}تعطيل{% else %}تفعيل{% endif %}</button>
+                                                    </form>
+                                                    {% if not k.is_default %}
+                                                    <form method="POST" action="{{ url_for('admin.delete_kpi_route', kpi_id=k.id) }}" class="d-inline" onsubmit="return confirm('حذف المؤشر؟ إن وُجدت درجات سيُعطّل فقط.');">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                        <button class="btn btn-sm btn-outline-danger">حذف</button>
+                                                    </form>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% else %}
+                                            <tr><td colspan="6" class="text-muted text-center py-4">لا توجد مؤشرات — أضف مؤشراً أو استخدم «تهيئة مؤشرات المدرسة».</td></tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% if kpis %}
+                                <button type="submit" class="btn btn-primary btn-sm mt-3">حفظ جميع الأوزان</button>
+                                {% endif %}
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -381,8 +559,44 @@
                     </form>
                 </div>
             </div>
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-calendar-week"></i> حدود الحصص الأسبوعية (لكل فصل)</div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        حدّد عدد الحصص المسموح بها أسبوعياً للطلاب والمعلمين. عند تجاوز الغيابات الحد، يُمنع تسجيل الحضور حتى موافقة الإدارة.
+                        يمكن تخصيص الحد لكل طالب/معلم من صفحة التعديل.
+                    </p>
+                    <form method="POST" action="{{ url_for('admin.save_attendance_weekly') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="attendance_weekly_limit_enabled" id="weeklyLimitEnabled"
+                                        {% if attendance_weekly.enabled %}checked{% endif %}>
+                                    <label class="form-check-label" for="weeklyLimitEnabled">تفعيل القواعد</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">حصص الطالب / أسبوع</label>
+                                <input type="number" min="1" name="attendance_weekly_classes_student" class="form-control form-control-sm"
+                                    value="{{ attendance_weekly.student_classes }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">حصص المعلم / أسبوع</label>
+                                <input type="number" min="1" name="attendance_weekly_classes_teacher" class="form-control form-control-sm"
+                                    value="{{ attendance_weekly.teacher_classes }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">غيابات قبل المنع</label>
+                                <input type="number" min="1" name="attendance_weekly_absence_deny" class="form-control form-control-sm"
+                                    value="{{ attendance_weekly.absence_deny }}">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">حفظ حدود الحصص</button>
+                    </form>
+                </div>
+            </div>
             <div class="card">
-                <div class="card-header">حالات الحضور ونوافذها الزمنية</div>
                 <div class="card-body">
                     <table class="table table-sm">
                         <thead>

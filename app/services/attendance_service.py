@@ -61,6 +61,7 @@ def class_day_status(class_, on_date):
     if student_ids:
         recorded = Attendance.query.filter(
             Attendance.student_id.in_(student_ids),
+            Attendance.class_id == class_.id,
             Attendance.date == on_date,
         ).count()
     total = len(students)

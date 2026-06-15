@@ -29,6 +29,7 @@ class Student(db.Model):
     address = db.Column(db.Text, nullable=False)
     phone = db.Column(db.String(20))
     gpa = db.Column(db.Float, default=0.0)
+    weekly_class_limit = db.Column(db.Integer)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 

@@ -17,6 +17,7 @@ from app.services.config_service import (
     get_attendance_status_map, get_config_choices, get_config_map,
     get_criterion_category_labels, get_unspecified_label, get_daily_category_field_map,
 )
+from app.services.attendance_limit_service import get_attendance_weekly_settings
 from app.services.teacher_student_service import students_for_teacher, teacher_can_access_student
 from app.services.teacher_tracking_service import tracking_by_student_id
 from app.services.registration_lookup_service import registration_form_meta
@@ -200,6 +201,7 @@ def edit(student_id):
         school_id=sid,
         selected_grade=student.grade_id,
         selected_class=student.class_id,
+        attendance_weekly=get_attendance_weekly_settings(sid),
         **academic_meta,
     )
 
