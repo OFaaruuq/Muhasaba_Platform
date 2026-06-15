@@ -35,7 +35,8 @@
         </div>
         <div class="col-md-7">
             <div class="card"><div class="card-header">السجل</div><div class="card-body">
-                <table class="table table-sm">
+                <div class="table-responsive">
+                    <table class="table table-sm">
                     <thead><tr><th>الطالب</th><th>النوع</th><th>التصنيف</th><th>التاريخ</th><th>الوصف</th></tr></thead>
                     <tbody>
                         {% for r in records %}
@@ -49,6 +50,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                </div>
             </div></div>
         </div>
     </div>

@@ -7,7 +7,8 @@
     <div class="card mb-4">
         <div class="card-header">{{ item.student.full_name_ar or item.student.full_name }}</div>
         <div class="card-body p-0">
-            <table class="table mb-0">
+            <div class="table-responsive">
+                <table class="table mb-0">
                 <thead><tr><th>الاستبيان</th><th>التصنيف</th><th>الحالة</th><th>التقدم</th></tr></thead>
                 <tbody>
                     {% for row in item.questionnaires %}
@@ -26,6 +27,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            </div>
         </div>
     </div>
     {% else %}

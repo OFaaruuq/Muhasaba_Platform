@@ -8,7 +8,8 @@
     </div>
     <p class="text-muted">آخر 30 يوماً — {{ logs|length }} سجل</p>
     <div class="card"><div class="card-body p-0">
-        <table class="table table-sm table-hover mb-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
             <thead><tr><th>التاريخ</th><th>المستخدم</th><th>الوحدة</th><th>الإجراء</th><th>التفاصيل</th><th>IP</th></tr></thead>
             <tbody>
                 {% for log in logs %}
@@ -25,6 +26,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div></div>
 </div>
 {% endblock %}

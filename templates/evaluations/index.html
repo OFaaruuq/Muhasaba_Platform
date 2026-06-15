@@ -93,7 +93,8 @@
                     <span class="badge bg-secondary">{{ items|length }} طالب</span>
                 </div>
                 <div class="card-body p-0">
-                    <table class="table table-hover mb-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
                         <thead>
                             <tr>
                                 <th>الرقم</th>
@@ -139,6 +140,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
             {% endfor %}
@@ -157,7 +159,8 @@
         <div class="card-header">سجل التقييمات اليومية الأخيرة</div>
         <div class="card-body">
             {% if evaluations %}
-            <table class="table table-sm table-hover">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
                 <thead><tr><th>الطالب</th><th>التاريخ</th><th>الدرجة</th></tr></thead>
                 <tbody>
                     {% for ev in evaluations %}
@@ -169,6 +172,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            </div>
             {% else %}
             <p class="text-muted mb-0">لا توجد تقييمات مسجلة بعد.</p>
             {% endif %}

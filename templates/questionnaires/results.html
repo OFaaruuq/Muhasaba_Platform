@@ -15,7 +15,8 @@
             <div class="card">
                 <div class="card-header">حالة الطلاب</div>
                 <div class="card-body p-0" style="max-height:320px;overflow:auto">
-                    <table class="table table-sm mb-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
                         <thead><tr><th>الطالب</th><th>التقدم</th></tr></thead>
                         <tbody>
                             {% for row in student_status %}
@@ -30,6 +31,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -60,7 +62,8 @@
                     {% endif %}
                 </div>
                 <div class="col-md-7">
-                    <table class="table table-sm">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
                         <thead><tr><th>الخيار</th><th>العدد</th><th>النسبة</th></tr></thead>
                         <tbody>
                             {% for b in stats.breakdown %}
@@ -77,6 +80,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
             {% endif %}

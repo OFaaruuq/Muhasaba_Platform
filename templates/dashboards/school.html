@@ -55,7 +55,8 @@
             <div class="card">
                 <div class="card-header text-success"><i class="bi bi-trophy"></i> المجموعات القوية</div>
                 <div class="card-body p-0">
-                    <table class="table table-sm mb-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
                         <tbody>
                             {% for g in strong_groups %}
                             <tr>
@@ -67,6 +68,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -74,7 +76,8 @@
             <div class="card">
                 <div class="card-header text-danger"><i class="bi bi-exclamation-triangle"></i> المجموعات الضعيفة</div>
                 <div class="card-body p-0">
-                    <table class="table table-sm mb-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
                         <tbody>
                             {% for g in weak_groups %}
                             <tr>
@@ -86,6 +89,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
         </div>

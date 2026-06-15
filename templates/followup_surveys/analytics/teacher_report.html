@@ -102,7 +102,8 @@
         </div>
         {% if report.teacher_survey %}
         <div class="card-body p-0">
-            <table class="table mb-0">
+            <div class="table-responsive">
+                <table class="table mb-0">
                 <tbody>
                     {% for row in report.teacher_rows %}
                     <tr>
@@ -112,6 +113,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            </div>
         </div>
         {% else %}
         <div class="card-body"><div class="alert alert-info mb-0">لم يُعبَّأ بعد.</div></div>
@@ -135,7 +137,8 @@
                 {% if section.subtitle %}<br><small class="text-muted">{{ section.subtitle }}</small>{% endif %}
             </div>
             <div class="card-body p-0">
-                <table class="table table-sm mb-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
                     <tbody>
                         {% for row in section.rows %}
                         <tr>
@@ -145,6 +148,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
         {% endfor %}

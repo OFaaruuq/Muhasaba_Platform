@@ -56,7 +56,8 @@
                     <span class="badge bg-secondary">{{ grades|length }}</span>
                 </div>
                 <div class="card-body p-0">
-                    <table class="table table-sm mb-0 align-middle">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0 align-middle">
                         <thead class="table-light">
                             <tr><th>الاسم عربي</th><th>إنجليزي</th><th>المستوى</th><th></th></tr>
                         </thead>
@@ -81,6 +82,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                     <form method="POST" action="{{ url_for('schools.add_grade', school_id=school.id) }}" class="p-3 border-top row g-2">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="col-md-3"><input name="name_ar" class="form-control form-control-sm" placeholder="الاسم عربي *" required></div>

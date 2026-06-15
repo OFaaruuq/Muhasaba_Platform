@@ -4,7 +4,8 @@
 <div class="container-fluid">
     <h2 class="mb-4">اختباراتي</h2>
     <div class="card"><div class="card-body">
-        <table class="table">
+        <div class="table-responsive">
+            <table class="table">
             <thead><tr><th>الاختبار</th><th>التاريخ</th><th>الحالة</th><th></th></tr></thead>
             <tbody>
                 {% for exam in exams %}
@@ -27,6 +28,7 @@
                 {% else %}<tr><td colspan="4" class="text-muted">لا اختبارات متاحة.</td></tr>{% endfor %}
             </tbody>
         </table>
+        </div>
     </div></div>
 </div>
 {% endblock %}

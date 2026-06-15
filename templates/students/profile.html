@@ -148,7 +148,8 @@
             <div class="card mb-4">
                 <div class="card-header">تقييمات المحاسبة</div>
                 <div class="card-body">
-                    <table class="table table-sm">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
                         <thead><tr><th>التاريخ</th><th>اليومي</th>{% for code, label in category_labels.items() %}<th>{{ label }}</th>{% endfor %}</tr></thead>
                         <tbody>
                             {% for ev in evaluations %}
@@ -162,12 +163,14 @@
                             {% else %}<tr><td colspan="{{ 2 + daily_category_fields|length }}" class="text-muted">لا تقييمات</td></tr>{% endfor %}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
             <div class="card mb-4">
                 <div class="card-header">سجل الحضور الأخير</div>
                 <div class="card-body">
-                    <table class="table table-sm">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
                         <thead><tr><th>التاريخ</th><th>الحالة</th></tr></thead>
                         <tbody>
                             {% for a in attendance %}
@@ -185,6 +188,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
         </div>

@@ -71,7 +71,8 @@
             <form method="POST" id="attendanceForm">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="date" value="{{ today.isoformat() }}">
-                <table class="table">
+                <div class="table-responsive">
+                    <table class="table">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -133,6 +134,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                </div>
                 <button type="submit" class="btn btn-primary btn-lg">
                     <i class="bi bi-save"></i> حفظ حضور الفريق
                 </button>

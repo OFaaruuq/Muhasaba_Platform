@@ -169,11 +169,209 @@ body {
     font-size: 0.875rem;
 }
 
-@media (max-width: 576px) {
-    .followup-mode-switch {
+/* ===== Global responsive ===== */
+html {
+    overflow-x: clip;
+}
+
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Horizontal scroll for tables not wrapped in .table-responsive */
+.card-body:has(table),
+.card:has(> table),
+form:has(table) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.card-header.d-flex {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.followup-tabs,
+.followup-status-pills,
+.nav-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.followup-tabs .nav-link,
+.followup-status-pills .nav-link,
+.nav-tabs .nav-link {
+    white-space: nowrap;
+}
+
+.reports-action-group,
+.followup-action-btn-group,
+.btn-group-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.chart-container {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+}
+
+@media (max-width: 991.98px) {
+    main.container-fluid {
+        padding-left: 0.875rem !important;
+        padding-right: 0.875rem !important;
+    }
+
+    .navbar .nav-link .badge.bg-light {
+        display: none;
+    }
+
+    .navbar-nav .nav-link {
+        padding-top: 0.45rem;
+        padding-bottom: 0.45rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .d-flex.justify-content-between:not(.flex-nowrap) {
+        flex-wrap: wrap;
+        gap: 0.625rem;
+    }
+
+    h2,
+    .h2 {
+        font-size: 1.35rem;
+    }
+
+    h3,
+    .h3 {
+        font-size: 1.2rem;
+    }
+
+    .stat-card .stat-icon,
+    .followup-stat-card .stat-icon {
+        font-size: 1.65rem;
+    }
+
+    .followup-period-nav h5 {
+        min-width: 0;
+        font-size: 1rem;
+    }
+
+    .followup-period-nav form .form-control-sm,
+    .followup-period-nav form .form-select-sm {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .followup-period-nav form {
         width: 100%;
     }
+
+    .followup-period-nav form > div {
+        flex: 1 1 auto;
+        min-width: 5.5rem;
+    }
+
+    .table {
+        font-size: 0.875rem;
+    }
+
+    .table .btn-sm {
+        padding: 0.2rem 0.45rem;
+        font-size: 0.78rem;
+    }
+
+    .card-body canvas {
+        max-width: 100%;
+    }
+
+    .login-page .card-body.p-5 {
+        padding: 1.75rem !important;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    td.text-nowrap {
+        white-space: normal !important;
+    }
+}
+
+@media (max-width: 576px) {
+    main.container-fluid {
+        padding-left: 0.625rem !important;
+        padding-right: 0.625rem !important;
+        padding-top: 0.75rem !important;
+    }
+
+    .navbar-brand {
+        font-size: 0.95rem;
+        max-width: calc(100vw - 4.5rem);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .followup-mode-switch,
+    .reports-hub-header .followup-mode-switch {
+        width: 100%;
+    }
+
     .followup-mode-switch .btn {
         flex: 1;
+        min-width: 0;
+        padding-left: 0.35rem;
+        padding-right: 0.35rem;
+        font-size: 0.78rem;
+    }
+
+    .followup-hub-header h2 {
+        font-size: 1.2rem;
+    }
+
+    .col-6 .fs-4 {
+        font-size: 1.25rem !important;
+    }
+
+    .login-page .card-body.p-5 {
+        padding: 1.25rem !important;
+    }
+
+    .login-page .card-body .bi-mortarboard-fill {
+        font-size: 2.25rem !important;
+    }
+
+    .form-control-lg,
+    .btn-lg {
+        font-size: 1rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    td.text-nowrap .btn,
+    td.text-nowrap form {
+        display: block;
+        width: 100%;
+        margin-bottom: 0.25rem;
+    }
+
+    td.text-nowrap .btn:last-child,
+    td.text-nowrap form:last-child {
+        margin-bottom: 0;
+    }
+
+    .login-page .container {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
     }
 }

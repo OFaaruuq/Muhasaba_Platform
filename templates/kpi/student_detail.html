@@ -23,7 +23,8 @@
         <div class="col-md-5"><div class="card"><div class="card-body"><canvas id="kpiBar" height="200"></canvas></div></div></div>
         <div class="col-md-7">
             <div class="card"><div class="card-body p-0">
-                <table class="table mb-0">
+                <div class="table-responsive">
+                    <table class="table mb-0">
                     <thead><tr><th>المؤشر</th><th>الدرجة</th><th>الوزن</th><th>المصدر</th><th>التفاصيل</th></tr></thead>
                     <tbody>
                         {% for b in breakdown %}
@@ -37,6 +38,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                </div>
             </div></div>
         </div>
     </div>

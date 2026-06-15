@@ -86,7 +86,8 @@
             </div>
         </div>
         <div class="card-body p-0">
-            <table class="table table-hover mb-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
                 <thead>
                     <tr>
                         <th>{{ page_labels.teacher_col_student }}</th>
@@ -126,6 +127,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            </div>
         </div>
     </div>
     {% elif tracking %}

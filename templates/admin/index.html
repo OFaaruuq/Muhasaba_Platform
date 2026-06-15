@@ -598,7 +598,8 @@
             </div>
             <div class="card">
                 <div class="card-body">
-                    <table class="table table-sm">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
                         <thead>
                             <tr>
                                 <th>الحالة</th>
@@ -627,6 +628,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                     <form method="POST" action="{{ url_for('admin.add_attendance_status') }}" class="row g-2">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="col-2"><input name="code" class="form-control form-control-sm" placeholder="رمز" required></div>
@@ -750,7 +752,8 @@
                         </h2>
                         <div id="adv-{{ cat }}" class="accordion-collapse collapse" data-bs-parent="#advancedSettingsAccordion">
                             <div class="accordion-body">
-                                <table class="table table-sm align-middle">
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle">
                                     <thead>
                                         <tr>
                                             <th style="width:18%">المفتاح</th>
@@ -781,6 +784,7 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -940,7 +944,8 @@
                             {% endfor %}
                         </div>
                         <div id="customFieldsTable" class="{% if registration_mode != 'custom' %}d-none{% endif %}">
-                            <table class="table table-sm table-bordered">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
                                 <thead>
                                     <tr>
                                         <th>الحقل</th>
@@ -966,6 +971,7 @@
                                     {% endfor %}
                                 </tbody>
                             </table>
+                            </div>
                             <input type="hidden" name="reg_full_name_ar_visible" value="on">
                             <input type="hidden" name="reg_full_name_ar_required" value="on">
                         </div>
@@ -984,7 +990,8 @@
                             <div class="card-header">استبيان الأسرة — الحقول والأقسام</div>
                             <div class="card-body" style="max-height:480px;overflow-y:auto">
                                 <input type="hidden" name="family_count" value="{{ family_survey_rows|length }}">
-                                <table class="table table-sm">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
                                     <thead><tr><th>الحقل</th><th>السؤال</th><th>القسم</th><th>النوع</th></tr></thead>
                                     <tbody>
                                     {% for row in family_survey_rows %}
@@ -1009,6 +1016,7 @@
                                     {% endfor %}
                                     </tbody>
                                 </table>
+                                </div>
                                 <div class="border rounded p-2 bg-light">
                                     <small class="text-muted">إضافة حقل جديد</small>
                                     <div class="row g-1 mt-1">
@@ -1038,7 +1046,8 @@
                             <div class="card-header">استبيان المعلم — الحقول</div>
                             <div class="card-body" style="max-height:480px;overflow-y:auto">
                                 <input type="hidden" name="teacher_count" value="{{ teacher_survey_rows|length }}">
-                                <table class="table table-sm">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
                                     <thead><tr><th>الحقل</th><th>السؤال</th><th>النوع</th></tr></thead>
                                     <tbody>
                                     {% for row in teacher_survey_rows %}
@@ -1056,6 +1065,7 @@
                                     {% endfor %}
                                     </tbody>
                                 </table>
+                                </div>
                                 <div class="border rounded p-2 bg-light">
                                     <small class="text-muted">إضافة حقل جديد</small>
                                     <div class="row g-1 mt-1">

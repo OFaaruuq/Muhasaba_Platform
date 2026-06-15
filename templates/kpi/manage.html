@@ -40,7 +40,8 @@
                 <form method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="action" value="update_weights">
-                    <table class="table">
+                    <div class="table-responsive">
+                        <table class="table">
                         <thead><tr><th>المؤشر</th><th>المصدر</th><th>الوصف</th><th>الوزن %</th><th>الحالة</th><th></th></tr></thead>
                         <tbody>
                             {% for k in kpis %}
@@ -62,6 +63,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                     <button type="submit" class="btn btn-primary">حفظ الأوزان</button>
                 </form>
             </div></div>

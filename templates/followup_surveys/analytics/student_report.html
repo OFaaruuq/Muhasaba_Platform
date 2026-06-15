@@ -91,7 +91,8 @@
     <div class="card mb-3 shadow-sm">
         <div class="card-header fw-semibold">{{ section.title }}</div>
         <div class="card-body p-0">
-            <table class="table mb-0">
+            <div class="table-responsive">
+                <table class="table mb-0">
                 <tbody>
                     {% for row in section.rows %}
                     <tr>
@@ -107,6 +108,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            </div>
         </div>
     </div>
     {% endfor %}
@@ -126,7 +128,8 @@
     <div class="card mb-3 shadow-sm">
         <div class="card-header fw-semibold">{{ section.title }}</div>
         <div class="card-body p-0">
-            <table class="table mb-0">
+            <div class="table-responsive">
+                <table class="table mb-0">
                 <tbody>
                     {% for row in section.rows %}
                     <tr>
@@ -142,6 +145,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            </div>
         </div>
     </div>
     {% endfor %}
