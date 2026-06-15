@@ -215,9 +215,7 @@ def api_create_school():
 @permission_required("manage_evaluations")
 def monthly(student_id):
     student = Student.query.get_or_404(student_id)
-    teacher = current_user.teacher_profile
-    if not teacher and current_user.is_school_manager:
-        teacher = Teacher.query.filter_by(school_id=student.school_id, is_active=True).first()
+    teacher = _resolve_evaluation_teacher(student)
     if not teacher:
         flash_msg("teacher_no_profile", "danger")
         return redirect(url_for("evaluations.index", mode="monthly"))
@@ -277,10 +275,13 @@ def monthly(student_id):
 @permission_required("manage_evaluations")
 def daily(student_id):
     student = Student.query.get_or_404(student_id)
-    teacher = current_user.teacher_profile
+    teacher = _resolve_evaluation_teacher(student)
     today = date.today()
 
     if request.method == "POST":
+        if not teacher:
+            flash_msg("teacher_no_profile", "danger")
+            return redirect(url_for("evaluations.index"))
         evaluation = Evaluation.query.filter_by(student_id=student_id, date=today).first()
         if not evaluation:
             evaluation = Evaluation(
@@ -457,13 +458,15 @@ def reading_index():
 @permission_required("manage_evaluations")
 def reading_record(student_id):
     student = Student.query.get_or_404(student_id)
-    teacher = current_user.teacher_profile
-    today = date.today()
+    teacher = _resolve_evaluation_teacher(student)
+    if not teacher:
+        flash_msg("teacher_no_profile", "danger")
+        return redirect(url_for("evaluations.reading_index"))
     db.session.add(build_reading_assessment(student, teacher, request.form))
     log_action("save_reading_assessment", "evaluations", f"student={student_id}")
     db.session.commit()
     sync_kpis_for_student(student_id)
-    flash_msg("eval_reading_saved", "success", sid)
+    flash_msg("eval_reading_saved", "success", student.school_id)
     return redirect(url_for("evaluations.reading_index"))
 
 
@@ -496,7 +499,10 @@ def behavior_index():
 @permission_required("manage_evaluations")
 def behavior_record(student_id):
     student = Student.query.get_or_404(student_id)
-    teacher = current_user.teacher_profile
+    teacher = _resolve_evaluation_teacher(student)
+    if not teacher:
+        flash_msg("teacher_no_profile", "danger")
+        return redirect(url_for("evaluations.behavior_index"))
     today = date.today()
     score = float(request.form.get("score", 0))
     db.session.add(BehaviorRecord(
@@ -520,8 +526,18 @@ def behavior_record(student_id):
     )
     notify_parent_of_student(student, title, message, ntype)
     db.session.commit()
-    flash_msg("eval_behavior_saved", "success", sid)
+    flash_msg("eval_behavior_saved", "success", student.school_id)
     return redirect(url_for("evaluations.behavior_index"))
+
+
+def _resolve_evaluation_teacher(student):
+    """Teacher for evaluation records when the logged-in user has no teacher profile."""
+    teacher = current_user.teacher_profile
+    if teacher:
+        return teacher
+    if student.responsible_teacher and student.responsible_teacher.is_active:
+        return student.responsible_teacher
+    return Teacher.query.filter_by(school_id=student.school_id, is_active=True).first()
 
 
 def _eval_school_id():

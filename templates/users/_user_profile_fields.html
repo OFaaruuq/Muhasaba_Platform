@@ -1,0 +1,145 @@
+{# Teacher/student profile fields for /users/ create & edit #}
+<div class="card mb-3 mt-4" id="profileCard">
+    <div class="card-header">
+        <strong>ملفات المستخدم (معلم / طالب)</strong>
+        <p class="small text-muted mb-0">اربط الحساب بملف معلم و/أو طالب ليعمل في الحضور والتقييمات.</p>
+    </div>
+    <div class="card-body">
+        <div class="row g-2 mb-3">
+            <div class="col-md-6">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" name="create_teacher_profile" id="createTeacherProfile"
+                        {% if create_teacher_checked %}checked{% endif %}>
+                    <label class="form-check-label" for="createTeacherProfile">ملف معلم</label>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" name="create_student_profile" id="createStudentProfile"
+                        {% if create_student_checked %}checked{% endif %}>
+                    <label class="form-check-label" for="createStudentProfile">ملف طالب</label>
+                </div>
+            </div>
+        </div>
+
+        <div id="teacherProfileFields" class="border rounded p-3 mb-3 {% if not create_teacher_checked %}d-none{% endif %}">
+            <h6 class="text-primary">ملف المعلم</h6>
+            <div class="mb-2">
+                <label class="form-label">الرقم الوظيفي</label>
+                <input name="employee_id" class="form-control" value="{{ employee_id or '' }}" placeholder="يُولَّد تلقائياً">
+            </div>
+            <div class="mb-2">
+                <label class="form-label">التخصص / المادة</label>
+                <input name="specialization" class="form-control" value="{{ specialization or '' }}">
+            </div>
+            <div class="mb-2">
+                <label class="form-label">فصول التدريس</label>
+                <select name="teacher_class_ids" id="teacherClassIds" class="form-select" multiple size="5"></select>
+            </div>
+        </div>
+
+        <div id="studentProfileFields" class="border rounded p-3 {% if not create_student_checked %}d-none{% endif %}">
+            <h6 class="text-success">ملف الطالب</h6>
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <label class="form-label">رقم الطالب</label>
+                    <input name="student_id" class="form-control" value="{{ student_number or '' }}" placeholder="يُولَّد تلقائياً">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">الصف</label>
+                    <select name="grade_id" id="studentGradeId" class="form-select">
+                        <option value="">— اختر —</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">الفصل</label>
+                    <select name="class_id" id="studentClassId" class="form-select">
+                        <option value="">— اختر —</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const roleSelect = document.querySelector('select[name="role_id"]');
+    const schoolSelect = document.getElementById('userSchoolSelect');
+    const teacherCb = document.getElementById('createTeacherProfile');
+    const studentCb = document.getElementById('createStudentProfile');
+    const teacherBox = document.getElementById('teacherProfileFields');
+    const studentBox = document.getElementById('studentProfileFields');
+    const gradeSelect = document.getElementById('studentGradeId');
+    const classSelect = document.getElementById('studentClassId');
+    const teacherClassSelect = document.getElementById('teacherClassIds');
+    const roleNames = {{ role_names | tojson }};
+    const preTeacherClasses = {{ teacher_classes | default([]) | tojson }};
+    const preGradeId = {{ student_grade_id | default('null') }};
+    const preClassId = {{ student_class_id | default('null') }};
+
+    function toggleSections() {
+        if (teacherBox) teacherBox.classList.toggle('d-none', !teacherCb.checked);
+        if (studentBox) studentBox.classList.toggle('d-none', !studentCb.checked);
+    }
+
+    function applyRoleDefaults() {
+        if (!roleSelect) return;
+        const roleName = roleNames[roleSelect.value];
+        if (roleName === 'teacher') teacherCb.checked = true;
+        if (roleName === 'student') studentCb.checked = true;
+        toggleSections();
+    }
+
+    async function loadSchoolData() {
+        const schoolId = schoolSelect && schoolSelect.value;
+        if (!schoolId || !gradeSelect) return;
+        const resp = await fetch(`{{ url_for('users.school_data') }}?school_id=${schoolId}`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+
+        gradeSelect.innerHTML = '<option value="">— اختر —</option>';
+        data.grades.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g.id;
+            opt.textContent = g.name_ar;
+            if (preGradeId && String(g.id) === String(preGradeId)) opt.selected = true;
+            gradeSelect.appendChild(opt);
+        });
+
+        if (teacherClassSelect) {
+            teacherClassSelect.innerHTML = '';
+            data.classes.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                const grade = data.grades.find(g => g.id === c.grade_id);
+                opt.textContent = `${grade ? grade.name_ar + ' / ' : ''}${c.name}${c.section ? ' - ' + c.section : ''}`;
+                if (preTeacherClasses.map(String).includes(String(c.id))) opt.selected = true;
+                teacherClassSelect.appendChild(opt);
+            });
+        }
+
+        function fillClasses() {
+            const gradeId = gradeSelect.value;
+            classSelect.innerHTML = '<option value="">— اختر —</option>';
+            data.classes.filter(c => String(c.grade_id) === String(gradeId)).forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = `${c.name}${c.section ? ' - ' + c.section : ''}`;
+                if (preClassId && String(c.id) === String(preClassId)) opt.selected = true;
+                classSelect.appendChild(opt);
+            });
+        }
+        gradeSelect.onchange = fillClasses;
+        fillClasses();
+    }
+
+    teacherCb && teacherCb.addEventListener('change', toggleSections);
+    studentCb && studentCb.addEventListener('change', toggleSections);
+    roleSelect && roleSelect.addEventListener('change', applyRoleDefaults);
+    schoolSelect && schoolSelect.addEventListener('change', loadSchoolData);
+
+    applyRoleDefaults();
+    loadSchoolData();
+})();
+</script>

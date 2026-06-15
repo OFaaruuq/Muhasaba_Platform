@@ -1,0 +1,34 @@
+<div class="followup-hub-header reports-hub-header mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                <h2 class="mb-0">
+                    <i class="bi bi-file-earmark-bar-graph"></i> {{ page_labels.reports_hub_title }}
+                </h2>
+                {% if period_ctx.is_current_period %}
+                <span class="badge bg-primary"><i class="bi bi-calendar-check"></i> الشهر الحالي</span>
+                {% endif %}
+                {% if school_name %}
+                <span class="badge bg-light text-dark border">{{ school_name }}</span>
+                {% endif %}
+            </div>
+            <p class="text-muted mb-0 small">{{ page_labels.reports_hub_subtitle }}</p>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="btn-group followup-mode-switch shadow-sm" role="group">
+                <a href="{{ url_for('reports.index', year=period_year, month=period_month, tab=tab) }}"
+                    class="btn btn-sm btn-primary">
+                    <i class="bi bi-file-earmark-bar-graph"></i> التقارير
+                </a>
+                <a href="{{ url_for('followup_surveys.analytics_index', year=period_year, month=period_month) }}"
+                    class="btn btn-sm btn-outline-info">
+                    <i class="bi bi-graph-up-arrow"></i> التحليلات
+                </a>
+                <a href="{{ url_for('followup_surveys.index', year=period_year, month=period_month) }}"
+                    class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-clipboard-data"></i> التعبئة
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

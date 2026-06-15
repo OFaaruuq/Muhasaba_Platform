@@ -105,6 +105,39 @@ def create_user_by_admin(
     )
 
 
+def update_user_by_admin(actor, user, form):
+    """Update user fields with validation (email uniqueness, role assignment)."""
+    from app.models import Role
+    from app.utils.permissions import can_assign_role, is_platform_admin
+
+    new_role_id = int(form["role_id"])
+    new_role = Role.query.get(new_role_id)
+    if not new_role or not can_assign_role(actor, new_role.name):
+        raise ValueError("لا يمكن تعيين هذا الدور.")
+
+    email = (form.get("email") or "").strip().lower()
+    if not email:
+        raise ValueError("البريد الإلكتروني مطلوب.")
+    if User.query.filter(User.email == email, User.id != user.id).first():
+        raise ValueError("البريد الإلكتروني مستخدم.")
+
+    user.full_name_ar = (form.get("full_name_ar") or "").strip()
+    user.full_name = user.full_name_ar
+    user.email = email
+    user.phone = form.get("phone")
+    user.role_id = new_role_id
+
+    if is_platform_admin(actor):
+        school_id = form.get("school_id", type=int)
+        if school_id:
+            user.school_id = school_id
+
+    if form.get("password"):
+        user.set_password(form["password"])
+
+    return user, new_role
+
+
 def resend_verification_email(user):
     if not user.email:
         raise ValueError("لا يوجد بريد إلكتروني لهذا المستخدم.")

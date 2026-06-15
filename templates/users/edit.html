@@ -1,20 +1,37 @@
 {% extends "base.html" %}
 {% block title %}تعديل مستخدم - {{ platform_name }}{% endblock %}
 {% block content %}
-<div class="container">
+<div class="container-fluid">
     <h2 class="mb-4">تعديل: {{ user.username }}</h2>
     {% if is_administrator_role(user.role.name) %}
-    <div class="alert alert-warning py-2"><i class="bi bi-shield-check"></i> هذا المستخدم لديه دور مسؤول: <strong>{{ role_label(user.role) }}</strong></div>
+    <div class="alert alert-warning py-2"><i class="bi bi-shield-check"></i> دور مسؤول: <strong>{{ role_label(user.role) }}</strong></div>
     {% endif %}
-    <div class="card"><div class="card-body">
+    {% if profile_summary %}
+    <div class="mb-3">
+        {% for p in profile_summary %}
+        <span class="badge bg-light text-dark border">{{ p }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if not user.email_verified %}
+    <form method="POST" action="{{ url_for('users.resend_verification', user_id=user.id) }}" class="mb-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-sm btn-outline-info"><i class="bi bi-envelope"></i> إعادة إرسال رابط تفعيل البريد</button>
+    </form>
+    {% endif %}
+    <div class="card col-lg-9"><div class="card-body">
         <form method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">اسم المستخدم</label>
+                    <input class="form-control" value="{{ user.username }}" readonly disabled>
+                </div>
                 <div class="col-md-6"><label class="form-label">الاسم</label><input name="full_name_ar" class="form-control" value="{{ user.full_name_ar or user.full_name }}" required></div>
                 <div class="col-md-6"><label class="form-label">البريد</label><input name="email" type="email" class="form-control" value="{{ user.email }}" required></div>
                 <div class="col-md-6"><label class="form-label">الهاتف</label><input name="phone" class="form-control" value="{{ user.phone or '' }}"></div>
                 <div class="col-md-6">
-                    <label class="form-label">الدور — تعيين مسؤول</label>
+                    <label class="form-label">الدور</label>
                     <select name="role_id" class="form-select" required>
                         {% for r in roles %}
                         <option value="{{ r.id }}" {% if user.role_id == r.id %}selected{% endif %}>
@@ -22,18 +39,32 @@
                         </option>
                         {% endfor %}
                     </select>
-                    <small class="text-muted">اختر «مدير المدرسة — مسؤول» لتعيين صلاحيات إدارية.</small>
                 </div>
                 {% if schools %}
                 <div class="col-md-6"><label class="form-label">المدرسة</label>
-                    <select name="school_id" class="form-select">
+                    <select name="school_id" id="userSchoolSelect" class="form-select" required>
                         <option value="">—</option>
                         {% for s in schools %}<option value="{{ s.id }}" {% if user.school_id == s.id %}selected{% endif %}>{{ s.name_ar }}</option>{% endfor %}
                     </select>
                 </div>
+                {% else %}
+                <input type="hidden" name="school_id" id="userSchoolSelect" value="{{ user.school_id or '' }}">
                 {% endif %}
                 <div class="col-md-6"><label class="form-label">كلمة مرور جديدة (اختياري)</label><input name="password" type="password" class="form-control"></div>
+                <div class="col-md-6">
+                    <label class="form-label">حالة البريد</label>
+                    <div class="form-control-plaintext">
+                        {% if user.email_verified %}
+                        <span class="badge bg-success">مُفعَّل</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">غير مُفعَّل</span>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
+
+            {% include "users/_user_profile_fields.html" %}
+
             <button type="submit" class="btn btn-primary mt-4">حفظ</button>
             <a href="{{ url_for('users.index') }}" class="btn btn-outline-secondary mt-4">إلغاء</a>
         </form>

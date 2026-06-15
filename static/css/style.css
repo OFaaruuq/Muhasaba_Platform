@@ -144,6 +144,31 @@ body {
     white-space: nowrap;
 }
 
+/* Reports hub */
+.reports-hub-header .followup-mode-switch .btn-primary {
+    pointer-events: none;
+}
+
+.reports-table thead th {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: #666;
+    border-bottom-width: 2px;
+}
+
+.reports-table tbody tr:hover {
+    background-color: rgba(26, 82, 118, 0.04);
+}
+
+.reports-action-group .btn {
+    padding: 0.25rem 0.5rem;
+}
+
+.reports-action-group .dropdown-menu {
+    font-size: 0.875rem;
+}
+
 @media (max-width: 576px) {
     .followup-mode-switch {
         width: 100%;

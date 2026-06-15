@@ -80,24 +80,60 @@ def list_teachers_for_reports(user, search_q=""):
     return teachers
 
 
-def student_report_cards(students, year, month):
-    """Build report hub rows for students with follow-up status."""
+def reports_completion_pct(complete, total):
+    if not total:
+        return 0
+    return int(round(complete * 100 / total))
+
+
+def _matches_followup_filter(row, status_filter):
+    if not status_filter or status_filter == "all":
+        return True
+    answered, total = row.get("answered", 0), row.get("total", 0)
+    if status_filter == "complete":
+        return total and answered >= total
+    if status_filter == "partial":
+        return answered > 0 and answered < total
+    if status_filter == "empty":
+        return answered == 0
+    return True
+
+
+def student_report_cards(students, year, month, status_filter=None, include_kpi=True):
+    """Build report hub rows for students with follow-up status and optional KPI."""
+    from app.kpi.service import get_student_kpi_display
+
     cards = []
     for student in students:
         row = student_analytics_row(student, year, month)
+        if not _matches_followup_filter(row, status_filter):
+            continue
+        kpi_overall = None
+        if include_kpi:
+            _, kpi_overall, _ = get_student_kpi_display(student.id, "term")
         cards.append({
             "student": student,
             "grade_name": row["grade_name"],
             "class_name": row["class_name"],
+            "teacher_name": row.get("teacher_name", "—"),
             "followup": row,
+            "kpi_overall": kpi_overall,
         })
     return cards
 
 
-def teacher_report_cards(teachers, year, month):
+def teacher_report_cards(teachers, year, month, status_filter=None):
     cards = []
     for teacher in teachers:
         row = teacher_analytics_row(teacher, year, month)
+        if status_filter and status_filter != "all":
+            t_ok = row.get("teacher_answered", 0) >= row.get("teacher_total", 1) if row.get("teacher_total") else False
+            if status_filter == "complete" and not t_ok:
+                continue
+            if status_filter == "partial" and (row.get("teacher_answered", 0) == 0 or t_ok):
+                continue
+            if status_filter == "empty" and row.get("teacher_answered", 0) > 0:
+                continue
         cards.append({"teacher": teacher, "followup": row})
     return cards
 
@@ -142,9 +178,14 @@ def reports_summary(students, teachers, year, month):
         "family_complete": fam_complete,
         "family_partial": fam_partial,
         "family_empty": fam_empty,
+        "family_pct": reports_completion_pct(fam_complete, len(students)),
         "teachers_total": len(teachers),
         "teacher_complete": t_complete,
         "teacher_partial": t_partial,
+        "teacher_empty": len(teachers) - t_complete - t_partial,
+        "teacher_pct": reports_completion_pct(t_complete, len(teachers)),
         "program_complete": p_complete,
         "program_partial": p_partial,
+        "program_empty": len(teachers) - p_complete - p_partial,
+        "program_pct": reports_completion_pct(p_complete, len(teachers)),
     }

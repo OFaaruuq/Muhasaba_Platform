@@ -6,7 +6,7 @@ from flask_login import login_required, current_user
 from openpyxl import Workbook
 
 from app.reports import bp
-from app.models import Student, Teacher, Attendance, Evaluation, MonthlyEvaluation, Grade, Class
+from app.models import Student, Teacher, School, Attendance, Evaluation, MonthlyEvaluation, Grade, Class
 from app.kpi.service import get_student_kpi_display
 from app.services.config_service import get_setting, get_attendance_status_map
 from app.services.followup_survey_service import (
@@ -26,6 +26,7 @@ from app.services.report_service import (
     student_report_cards,
     teacher_report_cards,
     reports_summary,
+    reports_completion_pct,
 )
 from app.services.report_export_service import (
     export_kpi_pdf,
@@ -55,8 +56,14 @@ def index():
     search_q = (request.args.get("q") or "").strip()
     grade_id = request.args.get("grade_id", type=int)
     class_id = request.args.get("class_id", type=int)
+    status_filter = (request.args.get("status") or "all").strip()
     sid = resolve_followup_school_id(current_user)
     period_ctx = followup_period_context(year, month, sid)
+
+    school_name = None
+    if sid:
+        school = School.query.get(sid)
+        school_name = school.name_ar if school else None
 
     students = list_students_for_reports(current_user, search_q, grade_id, class_id)
     teachers = list_teachers_for_reports(current_user, search_q)
@@ -71,8 +78,14 @@ def index():
     if tab not in allowed_tabs and allowed_tabs:
         tab = allowed_tabs[0]
 
-    student_cards = student_report_cards(students, year, month) if tab == "students" else []
-    teacher_cards = teacher_report_cards(teachers, year, month) if tab == "teachers" else []
+    student_cards = (
+        student_report_cards(students, year, month, status_filter)
+        if tab == "students" else []
+    )
+    teacher_cards = (
+        teacher_report_cards(teachers, year, month, status_filter)
+        if tab == "teachers" else []
+    )
     summary = reports_summary(students, teachers, year, month) if sid or students else None
 
     grades = []
@@ -103,6 +116,11 @@ def index():
         student_cards=student_cards,
         teacher_cards=teacher_cards,
         summary=summary,
+        school_name=school_name,
+        status_filter=status_filter,
+        reports_completion_pct=reports_completion_pct,
+        student_count=len(student_cards) if tab == "students" else len(students),
+        teacher_count=len(teacher_cards) if tab == "teachers" else len(teachers),
         show_teachers=show_teachers,
         show_family=show_family,
         is_student_view=is_student_view,
@@ -153,10 +171,18 @@ def attendance_excel(student_id):
     wb = Workbook()
     ws = wb.active
     ws.title = "Attendance"
-    status_map = {k: v["name_ar"] for k, v in get_attendance_status_map(student.school_id).items()}
-    ws.append(["التاريخ", "الحالة", "ملاحظات"])
+    status_map = get_attendance_status_map(student.school_id)
+    from app.services.config_service import get_report_labels
+    report_labels = get_report_labels(student.school_id)
+    ws.append([report_labels.get("date", "التاريخ"), "الفصل", report_labels.get("daily", "الحالة"), "ملاحظات"])
     for r in records:
-        ws.append([str(r.date), status_map.get(r.status, r.status), r.notes or ""])
+        class_name = r.class_.name if r.class_ else "—"
+        ws.append([
+            str(r.date),
+            class_name,
+            status_map.get(r.status, {}).get("name_ar", r.status),
+            r.notes or "",
+        ])
 
     buffer = io.BytesIO()
     wb.save(buffer)

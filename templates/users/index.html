@@ -2,10 +2,10 @@
 {% block title %}المستخدمون - {{ platform_name }}{% endblock %}
 {% block content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
             <h2 class="mb-1"><i class="bi bi-people-fill"></i> إدارة المستخدمين</h2>
-            <p class="text-muted mb-0">إنشاء المستخدمين وتعيين دور المسؤول (مدير المدرسة) حسب الصلاحيات.</p>
+            <p class="text-muted mb-0">إنشاء الحسابات، ربط ملفات المعلم/الطالب، وتعيين الأدوار.</p>
         </div>
         {% if user_can_any('manage_users', 'create_users') %}
         <a href="{{ url_for('users.create') }}" class="btn btn-primary">
@@ -13,41 +13,125 @@
         </a>
         {% endif %}
     </div>
-    <div class="card"><div class="card-body">
-        <table class="table table-hover align-middle">
-            <thead><tr><th>المستخدم</th><th>الاسم</th><th>الدور</th><th>الحالة</th><th></th></tr></thead>
-            <tbody>
-                {% for user in users %}
-                <tr>
-                    <td>{{ user.username }}</td>
-                    <td>{{ user.full_name_ar or user.full_name }}</td>
-                    <td>
-                        {% if is_administrator_role(user.role.name) %}
-                        <span class="badge bg-warning text-dark"><i class="bi bi-shield-check"></i> {{ role_label(user.role) }}</span>
-                        {% else %}
-                        <span class="badge bg-secondary">{{ role_label(user.role) }}</span>
+
+    <form method="GET" class="card mb-4">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small">بحث</label>
+                    <input name="q" class="form-control form-control-sm" value="{{ search }}" placeholder="اسم، مستخدم، بريد">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">الدور</label>
+                    <select name="role_id" class="form-select form-select-sm">
+                        <option value="">الكل</option>
+                        {% for r in roles %}
+                        <option value="{{ r.id }}" {% if selected_role == r.id %}selected{% endif %}>{{ role_label(r) }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if is_platform_admin_view %}
+                <div class="col-md-2">
+                    <label class="form-label small">المدرسة</label>
+                    <select name="school_id" class="form-select form-select-sm">
+                        <option value="">الكل</option>
+                        {% for s in schools %}
+                        <option value="{{ s.id }}" {% if selected_school == s.id %}selected{% endif %}>{{ s.name_ar }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="col-md-2">
+                    <label class="form-label small">الحالة</label>
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">الكل</option>
+                        <option value="active" {% if selected_status == 'active' %}selected{% endif %}>نشط</option>
+                        <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>معطّل</option>
+                        <option value="unverified" {% if selected_status == 'unverified' %}selected{% endif %}>بريد غير مُفعَّل</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary btn-sm w-100">تصفية</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>المستخدم</th>
+                        <th>الاسم</th>
+                        {% if is_platform_admin_view %}<th>المدرسة</th>{% endif %}
+                        <th>الدور</th>
+                        <th>الملفات</th>
+                        <th>الحالة</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <div>{{ user.username }}</div>
+                            <small class="text-muted">{{ user.email }}</small>
+                        </td>
+                        <td>{{ user.full_name_ar or user.full_name }}</td>
+                        {% if is_platform_admin_view %}
+                        <td class="small">{{ user.school.name_ar if user.school else '—' }}</td>
                         {% endif %}
-                    </td>
-                    <td>
-                        {% if user.is_active %}<span class="badge bg-success">{{ ui_labels.active }}</span>
-                        {% else %}<span class="badge bg-danger">{{ ui_labels.inactive }}</span>{% endif %}
-                        {% if not user.email_verified %}<span class="badge bg-warning text-dark">بريد غير مُفعَّل</span>{% endif %}
-                    </td>
-                    <td class="text-nowrap">
-                        <a href="{{ url_for('users.edit', user_id=user.id) }}" class="btn btn-sm btn-outline-primary">تعديل / تعيين دور</a>
-                        {% if user.id != current_user.id %}
-                        <form method="POST" action="{{ url_for('users.toggle_active', user_id=user.id) }}" class="d-inline">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button class="btn btn-sm btn-outline-warning">{% if user.is_active %}تعطيل{% else %}تفعيل{% endif %}</button>
-                        </form>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="5" class="text-center text-muted py-4">لا يوجد مستخدمون.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div></div>
+                        <td>
+                            {% if is_administrator_role(user.role.name) %}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-shield-check"></i> {{ role_label(user.role) }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ role_label(user.role) }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="small">
+                            {% for p in profiles.get(user.id, []) %}
+                            <span class="badge bg-light text-dark border">{{ p }}</span>
+                            {% else %}<span class="text-muted">—</span>{% endfor %}
+                        </td>
+                        <td>
+                            {% if user.is_active %}<span class="badge bg-success">{{ ui_labels.active }}</span>
+                            {% else %}<span class="badge bg-danger">{{ ui_labels.inactive }}</span>{% endif %}
+                            {% if not user.email_verified %}<span class="badge bg-warning text-dark">بريد غير مُفعَّل</span>{% endif %}
+                        </td>
+                        <td class="text-nowrap">
+                            {% if manageable.get(user.id) %}
+                            <a href="{{ url_for('users.edit', user_id=user.id) }}" class="btn btn-sm btn-outline-primary">تعديل</a>
+                            {% if user.id != current_user.id %}
+                            <form method="POST" action="{{ url_for('users.toggle_active', user_id=user.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-sm btn-outline-warning">{% if user.is_active %}تعطيل{% else %}تفعيل{% endif %}</button>
+                            </form>
+                            {% endif %}
+                            {% if not user.email_verified %}
+                            <form method="POST" action="{{ url_for('users.resend_verification', user_id=user.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-sm btn-outline-info">إعادة التفعيل</button>
+                            </form>
+                            {% endif %}
+                            {% if user.id != current_user.id %}
+                            <form method="POST" action="{{ url_for('users.delete_user', user_id=user.id) }}" class="d-inline"
+                                onsubmit="return confirm('حذف المستخدم نهائياً؟');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-sm btn-outline-danger">حذف</button>
+                            </form>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-muted small">عرض فقط</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="{% if is_platform_admin_view %}7{% else %}6{% endif %}" class="text-center text-muted py-4">لا يوجد مستخدمون.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 {% endblock %}

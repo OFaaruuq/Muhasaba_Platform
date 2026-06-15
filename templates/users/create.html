@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% block title %}مستخدم جديد - {{ platform_name }}{% endblock %}
 {% block content %}
-<div class="container">
+<div class="container-fluid">
     <h2 class="mb-4">إنشاء مستخدم</h2>
     {% if can_assign_admin %}
     <div class="alert alert-info py-2">
         <i class="bi bi-shield-check"></i>
-        يمكنك تعيين <strong>دور المسؤول (مدير المدرسة)</strong> لمستخدمين محددين من القائمة أدناه.
+        يمكنك تعيين <strong>دور المسؤول (مدير المدرسة)</strong> لمستخدمين محددين.
     </div>
     {% endif %}
-    <div class="card"><div class="card-body">
+    <div class="card col-lg-9"><div class="card-body">
         <form method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="row g-3">
@@ -27,17 +27,16 @@
                         </option>
                         {% endfor %}
                     </select>
-                    <small class="text-muted">الأدوار بعلامة ★ هي أدوار مسؤول (مدير).</small>
                 </div>
                 {% if schools %}
                 <div class="col-md-6"><label class="form-label">المدرسة</label>
-                    <select name="school_id" class="form-select" required>
+                    <select name="school_id" id="userSchoolSelect" class="form-select" required>
                         <option value="">— اختر —</option>
                         {% for s in schools %}<option value="{{ s.id }}">{{ s.name_ar }}</option>{% endfor %}
                     </select>
                 </div>
                 {% elif default_school_id %}
-                <input type="hidden" name="school_id" value="{{ default_school_id }}">
+                <input type="hidden" name="school_id" id="userSchoolSelect" value="{{ default_school_id }}">
                 {% endif %}
                 <div class="col-md-6 d-flex align-items-end">
                     <div class="form-check">
@@ -46,7 +45,10 @@
                     </div>
                 </div>
             </div>
-            <p class="text-muted small mt-3">يُرسل رابط تفعيل البريد تلقائياً. المستخدم لا يستطيع الدخول قبل تفعيل البريد.</p>
+
+            {% include "users/_user_profile_fields.html" %}
+
+            <p class="text-muted small mt-3">يُرسل رابط تفعيل البريد تلقائياً. لأدوار المعلم/الطالب فعّل الملف المناسب أدناه.</p>
             <button type="submit" class="btn btn-primary mt-2">إنشاء</button>
             <a href="{{ url_for('users.index') }}" class="btn btn-outline-secondary mt-2">إلغاء</a>
         </form>

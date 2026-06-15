@@ -61,11 +61,12 @@ def can_manage_user(actor, target):
         return True
     if is_platform_admin(target):
         return False
+    if role_name(target) in PROTECTED_USER_ROLES:
+        return False
+    if is_platform_admin(actor) and user_has_permission(actor, "manage_users"):
+        return True
     if user_has_permission(actor, "manage_users") and user_has_permission(actor, "manage_school"):
-        return (
-            target.school_id == actor.school_id
-            and role_name(target) not in PROTECTED_USER_ROLES
-        )
+        return target.school_id == actor.school_id
     return False
 
 
