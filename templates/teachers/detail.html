@@ -7,7 +7,7 @@
         <div>
             <h2 class="mb-1">{{ teacher.display_name }}</h2>
             <p class="text-muted mb-0 small">
-                {{ teacher.employee_id }}
+                <code>{{ teacher.platform_uid or '—' }}</code>
                 {% if teacher.is_active %}
                 <span class="badge bg-success">{{ ui_labels.active }}</span>
             {% else %}
@@ -48,7 +48,11 @@
             <div class="card shadow-sm h-100">
                 <div class="card-header">البيانات</div>
                 <div class="card-body">
+                    <p><strong>رقم الهوية:</strong> <code>{{ teacher.platform_uid or '—' }}</code></p>
+                    {% if can_view_person_names %}
+                    <p><strong>الاسم الكامل:</strong> {{ teacher.full_name_ar or teacher.full_name }}</p>
                     <p><strong>الرقم الوظيفي:</strong> {{ teacher.employee_id }}</p>
+                    {% endif %}
                     <p><strong>المادة:</strong>
                         {% set subject_labels = [] %}
                         {% for a in assignments %}

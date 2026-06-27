@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from flask import flash, redirect, render_template, request, url_for, jsonify
+from flask import flash, redirect, render_template, request, url_for, jsonify, send_file
 from app.services.message_service import flash_msg
 from flask_login import login_required, current_user
 
@@ -511,3 +511,70 @@ def update_tenant_license(tenant_id):
     db.session.commit()
     flash_msg("tenant_license_updated", "success")
     return redirect(url_for("super_admin.tenants"))
+
+
+@bp.route("/identities")
+@login_required
+@permission_required("manage_system")
+def identities():
+    from app.services.identity_registry_service import identity_page_context
+
+    school_id = request.args.get("school_id", type=int)
+    person_type = (request.args.get("type") or "").strip() or None
+    missing_only = request.args.get("missing") == "1"
+    ctx = identity_page_context(
+        school_id=school_id,
+        person_type=person_type,
+        missing_only=missing_only,
+    )
+    return render_template("super_admin/identities.html", **ctx)
+
+
+@bp.route("/identities/backfill", methods=["POST"])
+@login_required
+@permission_required("manage_system")
+def identities_backfill():
+    from app.services.identity_registry_service import run_identity_backfill
+
+    result = run_identity_backfill()
+    assigned = result["assigned"]
+    remaining = result["after"]["missing_total"]
+    log_action(
+        "identity_backfill",
+        "identity",
+        f"assigned={assigned} remaining={remaining}",
+    )
+    if assigned:
+        flash_msg("identity_backfill_done", "success", assigned=assigned, remaining=remaining)
+    else:
+        flash_msg("identity_backfill_none", "info")
+    return redirect(url_for("super_admin.identities"))
+
+
+@bp.route("/identities/export")
+@login_required
+@permission_required("manage_system")
+def identities_export():
+    from app.services.identity_registry_service import (
+        build_registry_rows,
+        export_identity_registry_excel,
+    )
+
+    school_id = request.args.get("school_id", type=int)
+    person_type = (request.args.get("type") or "").strip() or None
+    missing_only = request.args.get("missing") == "1"
+    rows = build_registry_rows(
+        school_id=school_id,
+        person_type=person_type,
+        missing_only=missing_only,
+    )
+    buffer = export_identity_registry_excel(rows)
+    log_action("identity_export", "identity", f"rows={len(rows)} school_id={school_id}")
+    db.session.commit()
+    suffix = f"_school{school_id}" if school_id else "_all"
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f"platform_identities{suffix}.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )

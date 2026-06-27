@@ -540,8 +540,26 @@ def upgrade_platform_identity_schema():
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN platform_uid VARCHAR(20)"))
 
     from app.services.identity_service import backfill_platform_identities
-    backfill_platform_identities()
-    db.session.commit()
+
+    needs_backfill = any(
+        "platform_uid" not in {c["name"] for c in inspector.get_columns(table)}
+        for table in ("users", "students", "teachers", "parents")
+        if table in tables
+    )
+    if not needs_backfill:
+        from app.models import User, Student, Teacher, Parent
+        from sqlalchemy import or_
+        missing = (
+            db.session.query(User.id).filter(or_(User.platform_uid.is_(None), User.platform_uid == "")).limit(1).first()
+            or db.session.query(Student.id).filter(or_(Student.platform_uid.is_(None), Student.platform_uid == "")).limit(1).first()
+            or db.session.query(Teacher.id).filter(or_(Teacher.platform_uid.is_(None), Teacher.platform_uid == "")).limit(1).first()
+            or db.session.query(Parent.id).filter(or_(Parent.platform_uid.is_(None), Parent.platform_uid == "")).limit(1).first()
+        )
+        needs_backfill = bool(missing)
+
+    if needs_backfill:
+        backfill_platform_identities()
+        db.session.commit()
 
 
 def apply_schema_upgrades():

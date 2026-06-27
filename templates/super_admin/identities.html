@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}سجل أرقام الهوية - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-fingerprint text-primary"></i> سجل أرقام الهوية</h2>
+            <p class="text-muted mb-0">توليد الأرقام الناقصة وتصدير قائمة رقم الهوية مع الاسم (للمشرف الأعلى فقط)</p>
+        </div>
+        <a href="{{ url_for('super_admin.index') }}" class="btn btn-outline-secondary btn-sm">← لوحة المشرف</a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-success text-white h-100">
+                <div class="card-body py-3 text-center">
+                    <div class="small opacity-75">طلاب</div>
+                    <div class="fs-4 fw-bold">{{ summary.students_total - summary.students_missing }}/{{ summary.students_total }}</div>
+                    {% if summary.students_missing %}
+                    <span class="badge bg-warning text-dark">{{ summary.students_missing }} بدون رقم</span>
+                    {% else %}
+                    <span class="badge bg-light text-success">مكتمل</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-info text-white h-100">
+                <div class="card-body py-3 text-center">
+                    <div class="small opacity-75">معلمون</div>
+                    <div class="fs-4 fw-bold">{{ summary.teachers_total - summary.teachers_missing }}/{{ summary.teachers_total }}</div>
+                    {% if summary.teachers_missing %}
+                    <span class="badge bg-warning text-dark">{{ summary.teachers_missing }} بدون رقم</span>
+                    {% else %}
+                    <span class="badge bg-light text-info">مكتمل</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-secondary text-white h-100">
+                <div class="card-body py-3 text-center">
+                    <div class="small opacity-75">مستخدمون</div>
+                    <div class="fs-4 fw-bold">{{ summary.users_total - summary.users_missing }}/{{ summary.users_total }}</div>
+                    {% if summary.users_missing %}
+                    <span class="badge bg-warning text-dark">{{ summary.users_missing }} بدون رقم</span>
+                    {% else %}
+                    <span class="badge bg-light text-secondary">مكتمل</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-light h-100">
+                <div class="card-body py-3 text-center">
+                    <div class="small text-muted">الرقم التالي</div>
+                    <div class="fs-5 fw-bold"><code>MP-{{ '%08d'|format(summary.counter_next) }}</code></div>
+                    {% if summary.missing_total %}
+                    <span class="badge bg-danger">{{ summary.missing_total }} ناقص إجمالاً</span>
+                    {% else %}
+                    <span class="badge bg-success">لا يوجد ناقص</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-body py-3">
+            <form method="GET" class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small mb-0">المدرسة</label>
+                    <select name="school_id" class="form-select form-select-sm">
+                        <option value="">كل المدارس</option>
+                        {% for s in schools %}
+                        <option value="{{ s.id }}" {% if selected_school == s.id %}selected{% endif %}>{{ s.name_ar }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small mb-0">النوع</label>
+                    <select name="type" class="form-select form-select-sm">
+                        <option value="">الكل</option>
+                        <option value="student" {% if selected_type == 'student' %}selected{% endif %}>طلاب</option>
+                        <option value="teacher" {% if selected_type == 'teacher' %}selected{% endif %}>معلمون</option>
+                        <option value="parent" {% if selected_type == 'parent' %}selected{% endif %}>أولياء أمور</option>
+                        <option value="user" {% if selected_type == 'user' %}selected{% endif %}>مستخدمون (بدون ملف)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" name="missing" value="1" id="missingOnly"
+                            {% if missing_only %}checked{% endif %}>
+                        <label class="form-check-label small" for="missingOnly">بدون رقم فقط</label>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-outline-primary btn-sm w-100"><i class="bi bi-funnel"></i> تصفية</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <form method="POST" action="{{ url_for('super_admin.identities_backfill') }}"
+            onsubmit="return confirm('توليد أرقام الهوية لجميع السجلات الناقصة؟')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-warning btn-sm" {% if not summary.missing_total %}disabled{% endif %}>
+                <i class="bi bi-lightning"></i> توليد الأرقام الناقصة
+            </button>
+        </form>
+        <a href="{{ url_for('super_admin.identities_export', school_id=selected_school, type=selected_type or none, missing=1 if missing_only else none) }}"
+            class="btn btn-success btn-sm">
+            <i class="bi bi-file-earmark-excel"></i> تصدير Excel
+        </a>
+        {% if selected_school or selected_type or missing_only %}
+        <a href="{{ url_for('super_admin.identities') }}" class="btn btn-outline-secondary btn-sm">مسح التصفية</a>
+        {% endif %}
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span class="fw-bold"><i class="bi bi-table"></i> المعاينة</span>
+            <span class="badge bg-secondary">{{ registry_total }} سجل{% if registry_total > preview_limit %} (عرض {{ preview_limit }}){% endif %}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>رقم الهوية</th>
+                        <th>الاسم</th>
+                        <th>النوع</th>
+                        <th>المدرسة</th>
+                        <th>اسم المستخدم</th>
+                        <th>رقم المدرسة / الوظيفي</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in registry_rows %}
+                    <tr class="{% if row.platform_uid == '—' %}table-warning{% endif %}">
+                        <td><code>{{ row.platform_uid }}</code></td>
+                        <td>{{ row.name }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ row.person_type }}</span></td>
+                        <td class="small">{{ row.school_name }}</td>
+                        <td class="small">{{ row.username }}</td>
+                        <td class="small text-muted">{{ row.legacy_id }}</td>
+                        <td class="small">{{ row.status }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="text-center text-muted py-4">لا توجد سجلات مطابقة.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

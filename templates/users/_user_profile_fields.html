@@ -5,6 +5,11 @@
         <p class="small text-muted mb-0">اربط الحساب بملف معلم و/أو طالب ليعمل في الحضور والتقييمات.</p>
     </div>
     <div class="card-body">
+        {% if profile_platform_uid %}
+        <div class="alert alert-light border py-2 mb-3">
+            <strong>رقم الهوية:</strong> <code>{{ profile_platform_uid }}</code>
+        </div>
+        {% endif %}
         <div class="row g-2 mb-3">
             <div class="col-md-6">
                 <div class="form-check">
@@ -42,7 +47,7 @@
             <h6 class="text-success">ملف الطالب</h6>
             <div class="row g-2">
                 <div class="col-md-4">
-                    <label class="form-label">رقم الطالب</label>
+                    <label class="form-label">رقم المدرسة</label>
                     <input name="student_id" class="form-control" value="{{ student_number or '' }}" placeholder="يُولَّد تلقائياً">
                 </div>
                 <div class="col-md-4">

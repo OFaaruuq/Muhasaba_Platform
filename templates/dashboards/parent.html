@@ -12,7 +12,7 @@
             <div class="card">
                 <div class="card-header">{{ item.student.display_name }}</div>
                 <div class="card-body">
-                    <p><strong>الرقم:</strong> {{ item.student.student_id }}</p>
+                    <p><strong>رقم الهوية:</strong> <code>{{ item.student.platform_uid or '—' }}</code></p>
                     <p><strong>الفصل:</strong> {{ item.student.class_.name if item.student.class_ else '-' }}</p>
                     <p><strong>مؤشر الأداء:</strong>
                         <span class="badge bg-primary fs-6">{{ item.overall_kpi }}%</span>

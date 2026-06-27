@@ -16,14 +16,12 @@
             </div>
             {% else %}
             <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle"></i> لا يوجد ترخيص نشط لمؤسستكم. تواصل مع مسؤول المنصة أو
-                <a href="{{ url_for('tenants.license_request') }}">قدّم طلب ترخيص</a>.
+                <i class="bi bi-exclamation-triangle"></i> لا يوجد ترخيص نشط لمؤسستكم. تواصل مع مسؤول المنصة لتفعيل الترخيص.
             </div>
             {% endif %}
             {% else %}
             <div class="alert alert-info">
-                حسابك غير مرتبط بمؤسسة مرخّصة. يمكنك
-                <a href="{{ url_for('tenants.license_request') }}">طلب ترخيص</a>.
+                حسابك غير مرتبط بمؤسسة مرخّصة. تواصل مع مسؤول المنصة.
             </div>
             {% endif %}
             <a href="{{ url_for('dashboards.index') }}" class="btn btn-outline-primary">العودة للوحة التحكم</a>

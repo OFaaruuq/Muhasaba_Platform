@@ -168,6 +168,20 @@ def person_display_label(subject, viewer=None):
     return uid or "—"
 
 
+def student_file_id(student):
+    """Safe filename segment: platform UID preferred over legacy school number."""
+    if not student:
+        return "student"
+    return student.platform_uid or f"student_{student.id}"
+
+
+def teacher_file_id(teacher):
+    """Safe filename segment for teacher exports."""
+    if not teacher:
+        return "teacher"
+    return teacher.platform_uid or f"teacher_{teacher.id}"
+
+
 def backfill_platform_identities():
     from app.models import User, Student, Teacher, Parent
     from app.models.platform_id_counter import PlatformIdCounter
@@ -175,6 +189,15 @@ def backfill_platform_identities():
     if not db.session.get(PlatformIdCounter, 1):
         db.session.add(PlatformIdCounter(id=1, next_value=1))
         db.session.flush()
+
+    missing = (
+        Student.query.filter(or_(Student.platform_uid.is_(None), Student.platform_uid == "")).count()
+        + Teacher.query.filter(or_(Teacher.platform_uid.is_(None), Teacher.platform_uid == "")).count()
+        + Parent.query.filter(or_(Parent.platform_uid.is_(None), Parent.platform_uid == "")).count()
+        + User.query.filter(or_(User.platform_uid.is_(None), User.platform_uid == "")).count()
+    )
+    if missing == 0:
+        return
 
     max_num = 0
     for model in (User, Student, Teacher, Parent):

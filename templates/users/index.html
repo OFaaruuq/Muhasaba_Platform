@@ -19,7 +19,7 @@
             <div class="row g-2 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label small">بحث</label>
-                    <input name="q" class="form-control form-control-sm" value="{{ search }}" placeholder="اسم، مستخدم، بريد">
+                    <input name="q" class="form-control form-control-sm" value="{{ search }}" placeholder="رقم الهوية، اسم، مستخدم، بريد">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small">الدور</label>
@@ -64,6 +64,7 @@
                 <thead>
                     <tr>
                         <th>المستخدم</th>
+                        <th>رقم الهوية</th>
                         <th>الاسم</th>
                         {% if is_platform_admin_view %}<th>المدرسة</th>{% endif %}
                         <th>الدور</th>
@@ -79,7 +80,14 @@
                             <div>{{ user.username }}</div>
                             <small class="text-muted">{{ user.email }}</small>
                         </td>
-                        <td>{{ user.display_name }}</td>
+                        <td><code>{{ user.platform_uid or '—' }}</code></td>
+                        <td>
+                            {% if can_view_person_names %}
+                            {{ user.full_name_ar or user.full_name or '—' }}
+                            {% else %}
+                            {{ user.display_name }}
+                            {% endif %}
+                        </td>
                         {% if is_platform_admin_view %}
                         <td class="small">{{ user.school.name_ar if user.school else '—' }}</td>
                         {% endif %}

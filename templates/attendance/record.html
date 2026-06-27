@@ -77,7 +77,7 @@
                         <tr>
                             <th>#</th>
                             <th>الطالب</th>
-                            <th>الرقم</th>
+                            {% if can_view_person_names %}<th>رقم الهوية</th>{% endif %}
                             {% if time_settings.record_time %}<th>وقت الحضور</th>{% endif %}
                             <th>الحالة</th>
                         </tr>
@@ -101,7 +101,9 @@
                                 </div>
                                 {% endif %}
                             </td>
-                            <td><small class="text-muted">{{ student.student_id }}</small></td>
+                            {% if can_view_person_names %}
+                            <td><code>{{ student.platform_uid or '—' }}</code></td>
+                            {% endif %}
                             {% if time_settings.record_time %}
                             <td>
                                 <input type="time" name="time_{{ student.id }}"

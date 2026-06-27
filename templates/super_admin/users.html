@@ -46,6 +46,7 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
+                        <th>رقم الهوية</th>
                         <th>المستخدم</th>
                         <th>الدور</th>
                         <th>الملفات</th>
@@ -58,8 +59,9 @@
                 <tbody>
                     {% for u in users %}
                     <tr class="{% if not u.is_active %}table-secondary{% endif %}">
+                        <td><code>{{ u.platform_uid or '—' }}</code></td>
                         <td>
-                            <strong>{{ u.display_name }}</strong>
+                            <strong>{{ u.full_name_ar or u.full_name or u.username }}</strong>
                             <br><small class="text-muted">@{{ u.username }} · {{ u.email or '—' }}</small>
                         </td>
                         <td><span class="badge bg-secondary">{{ u.role_name_ar or u.role.name if u.role else '—' }}</span></td>
@@ -108,7 +110,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="7" class="text-center text-muted py-4">لا يوجد مستخدمون مطابقون.</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted py-4">لا يوجد مستخدمون مطابقون.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

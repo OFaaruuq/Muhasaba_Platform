@@ -62,7 +62,10 @@ def list_students_for_reports(user, search_q="", grade_id=None, class_id=None):
         q = search_q.strip().lower()
         students = [
             s for s in students
-            if q in (s.full_name_ar or "").lower() or q in (s.full_name or "").lower()
+            if q in (s.full_name_ar or "").lower()
+            or q in (s.full_name or "").lower()
+            or q in (s.platform_uid or "").lower()
+            or q in (s.student_id or "").lower()
         ]
     return students
 
@@ -75,7 +78,10 @@ def list_teachers_for_reports(user, search_q=""):
         q = search_q.strip().lower()
         teachers = [
             t for t in teachers
-            if q in (t.full_name_ar or "").lower() or q in (t.full_name or "").lower()
+            if q in (t.full_name_ar or "").lower()
+            or q in (t.full_name or "").lower()
+            or q in (t.platform_uid or "").lower()
+            or q in (t.employee_id or "").lower()
         ]
     return teachers
 

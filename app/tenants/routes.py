@@ -1,4 +1,4 @@
-from flask import redirect, render_template, request, url_for
+from flask import abort, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app.services.message_service import flash_msg
@@ -12,7 +12,10 @@ from app.tenants import bp
 
 
 @bp.route("/license-request", methods=["GET", "POST"])
+@login_required
 def license_request():
+    if not current_user.has_permission("manage_system"):
+        abort(404)
     if request.method == "POST":
         org_name = request.form.get("organization_name", "").strip()
         org_name_ar = request.form.get("organization_name_ar", "").strip()

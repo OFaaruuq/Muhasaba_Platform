@@ -63,7 +63,9 @@
                 </div>
             </div>
 
+            {% with profile_platform_uid=user.platform_uid %}
             {% include "users/_user_profile_fields.html" %}
+            {% endwith %}
 
             <button type="submit" class="btn btn-primary mt-4">حفظ</button>
             <a href="{{ url_for('users.index') }}" class="btn btn-outline-secondary mt-4">إلغاء</a>

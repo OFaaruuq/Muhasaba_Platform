@@ -64,6 +64,7 @@ def index():
                 User.email.ilike(like),
                 User.full_name_ar.ilike(like),
                 User.full_name.ilike(like),
+                User.platform_uid.ilike(like),
             )
         )
 
@@ -302,4 +303,5 @@ def edit(user_id):
         employee_id=user.teacher_profile.employee_id if user.teacher_profile else "",
         specialization=user.teacher_profile.specialization if user.teacher_profile else "",
         student_number=user.student_profile.student_id if user.student_profile else "",
+        profile_platform_uid=user.platform_uid,
     )

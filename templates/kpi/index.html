@@ -117,7 +117,7 @@
         {% endif %}
         <div class="col-md-4">
             <label class="form-label">بحث</label>
-            <input name="q" class="form-control form-control-sm" value="{{ search }}" placeholder="اسم الطالب أو الرقم">
+            <input name="q" class="form-control form-control-sm" value="{{ search }}" placeholder="رقم الهوية أو الاسم (للمشرفين)">
         </div>
         <div class="col-md-2">
             <button class="btn btn-sm btn-primary w-100">بحث</button>
@@ -136,7 +136,8 @@
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
-                            <th>الطالب</th>
+                            <th>رقم الهوية</th>
+                            {% if can_view_person_names %}<th>الاسم</th>{% endif %}
                             <th>المؤشر الكلي</th>
                             {% for kpi in kpis %}
                             <th>{{ kpi.name_ar }}</th>
@@ -147,7 +148,10 @@
                     <tbody>
                         {% for row in students_data %}
                         <tr>
-                            <td>{{ row.student.display_name }}</td>
+                            <td><code>{{ row.student.platform_uid or '—' }}</code></td>
+                            {% if can_view_person_names %}
+                            <td>{{ row.student.full_name_ar or row.student.full_name }}</td>
+                            {% endif %}
                             <td>
                                 <span class="badge bg-primary">{{ row.overall }}%</span>
                             </td>

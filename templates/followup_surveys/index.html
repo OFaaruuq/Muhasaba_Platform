@@ -285,6 +285,12 @@
                     <tr>
                         <td>
                             <strong>{{ entry.student.display_name }}</strong>
+                            {% if can_view_person_names %}
+                            <br><small class="text-muted">
+                                <code>{{ entry.student.platform_uid or '—' }}</code>
+                                · {{ entry.student.student_id }}
+                            </small>
+                            {% endif %}
                             {% if entry.survey and entry.survey.family_name %}
                             <br><small class="text-muted">الأسرة: {{ entry.survey.family_name }}</small>
                             {% endif %}
@@ -362,7 +368,15 @@
                 <tbody>
                     {% for entry in entries %}
                     <tr>
-                        <td><strong>{{ entry.student.display_name }}</strong></td>
+                        <td>
+                            <strong>{{ entry.student.display_name }}</strong>
+                            {% if can_view_person_names %}
+                            <br><small class="text-muted">
+                                <code>{{ entry.student.platform_uid or '—' }}</code>
+                                · {{ entry.student.student_id }}
+                            </small>
+                            {% endif %}
+                        </td>
                         <td>
                             <div class="d-flex align-items-center gap-2">
                                 <div class="progress flex-grow-1" style="height:7px">
@@ -455,7 +469,15 @@
                 <tbody>
                     {% for row in teacher_rows %}
                     <tr>
-                        <td><strong>{{ row.teacher.display_name }}</strong></td>
+                        <td>
+                            <strong>{{ row.teacher.display_name }}</strong>
+                            {% if can_view_person_names %}
+                            <br><small class="text-muted">
+                                <code>{{ row.teacher.platform_uid or '—' }}</code>
+                                · {{ row.teacher.employee_id }}
+                            </small>
+                            {% endif %}
+                        </td>
                         <td>
                             <div class="d-flex align-items-center gap-2">
                                 <div class="progress flex-grow-1" style="height:6px">
@@ -526,7 +548,15 @@
                 <tbody>
                     {% for row in program_rows %}
                     <tr>
-                        <td><strong>{{ row.teacher.display_name }}</strong></td>
+                        <td>
+                            <strong>{{ row.teacher.display_name }}</strong>
+                            {% if can_view_person_names %}
+                            <br><small class="text-muted">
+                                <code>{{ row.teacher.platform_uid or '—' }}</code>
+                                · {{ row.teacher.employee_id }}
+                            </small>
+                            {% endif %}
+                        </td>
                         <td>
                             <div class="progress" style="height:6px;width:120px">
                                 <div class="progress-bar bg-{{ row.status_class }}" style="width:{{ row.percent }}%"></div>

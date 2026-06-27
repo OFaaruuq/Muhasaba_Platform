@@ -471,16 +471,34 @@ def provision_school_kpis(school_id):
 
 
 def get_setting(key, school_id=None, default=None):
+    from flask import g, has_request_context
+
+    cache_key = (key, school_id)
+    if has_request_context():
+        cache = g.setdefault("_settings_cache", {})
+        if cache_key in cache:
+            return cache[cache_key]
+
     if school_id:
         s = PlatformSetting.query.filter_by(school_id=school_id, key=key).first()
         if s:
-            return _cast(s.value, s.value_type)
+            value = _cast(s.value, s.value_type)
+            if has_request_context():
+                g._settings_cache[cache_key] = value
+            return value
     s = PlatformSetting.query.filter_by(school_id=None, key=key).first()
     if s:
-        return _cast(s.value, s.value_type)
+        value = _cast(s.value, s.value_type)
+        if has_request_context():
+            g._settings_cache[cache_key] = value
+        return value
     if key in DEFAULT_SETTINGS:
-        return DEFAULT_SETTINGS[key][0]
-    return default
+        value = DEFAULT_SETTINGS[key][0]
+    else:
+        value = default
+    if has_request_context():
+        g._settings_cache[cache_key] = value
+    return value
 
 
 def set_setting(key, value, school_id=None, category="general", label_ar="", value_type=None):
@@ -657,12 +675,25 @@ def get_personal_criterion_codes(school_id=None):
 
 
 def get_config_options(option_type, school_id=None):
+    from flask import g, has_request_context
+
+    cache_key = ("config_options", option_type, school_id)
+    if has_request_context():
+        cache = g.setdefault("_config_options_cache", {})
+        if cache_key in cache:
+            return cache[cache_key]
+
     query = ConfigOption.query.filter_by(option_type=option_type, is_active=True)
     if school_id:
         items = query.filter_by(school_id=school_id).order_by(ConfigOption.order).all()
         if items:
+            if has_request_context():
+                g._config_options_cache[cache_key] = items
             return items
-    return query.filter_by(school_id=None).order_by(ConfigOption.order).all()
+    items = query.filter_by(school_id=None).order_by(ConfigOption.order).all()
+    if has_request_context():
+        g._config_options_cache[cache_key] = items
+    return items
 
 
 def get_config_choices(option_type, school_id=None):

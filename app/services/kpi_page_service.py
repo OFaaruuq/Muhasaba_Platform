@@ -32,7 +32,9 @@ def students_for_kpi_index(user, school_id, class_id=None, search=None):
     if search:
         term = f"%{search.strip()}%"
         query = query.filter(
-            Student.full_name_ar.ilike(term) | Student.student_id.ilike(term)
+            Student.full_name_ar.ilike(term)
+            | Student.platform_uid.ilike(term)
+            | Student.student_id.ilike(term)
         )
     return query.order_by(Student.full_name_ar).all()
 

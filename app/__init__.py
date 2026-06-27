@@ -117,7 +117,6 @@ def create_app(config_class=Config):
 
     LICENSE_EXEMPT_ENDPOINTS = AUTH_PUBLIC_ENDPOINTS | {
         "static",
-        "tenants.license_request",
         "tenants.license_status",
         "auth.logout",
     }

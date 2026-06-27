@@ -207,7 +207,12 @@
                     <tr>
                         <td>
                             <strong>{{ st.display_name }}</strong>
-                            <br><small class="text-muted">{{ st.student_id }}</small>
+                            {% if can_view_person_names %}
+                            <br><small class="text-muted">
+                                <code>{{ st.platform_uid or '—' }}</code>
+                                · {{ st.student_id }}
+                            </small>
+                            {% endif %}
                         </td>
                         <td>
                             <span class="badge bg-light text-dark border">{{ card.grade_name }}</span>
@@ -316,7 +321,12 @@
                     {% set t = card.teacher %}
                     {% set fu = card.followup %}
                     <tr>
-                        <td><strong>{{ t.display_name }}</strong></td>
+                        <td>
+                            <strong>{{ t.display_name }}</strong>
+                            {% if can_view_person_names %}
+                            <br><small class="text-muted"><code>{{ t.platform_uid or '—' }}</code></small>
+                            {% endif %}
+                        </td>
                         <td>
                             <span class="badge bg-{{ fu.teacher_status_class }}">{{ fu.teacher_status }}</span>
                             <small class="text-muted d-block">{{ fu.teacher_answered }}/{{ fu.teacher_total }}</small>

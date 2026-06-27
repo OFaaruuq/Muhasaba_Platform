@@ -99,6 +99,7 @@ AUDIT_ACTION_LABELS = {
     "provision_all_schools": "تهيئة المدارس",
     "reset_global_defaults": "تحديث الإعدادات",
     "save_settings": "حفظ إعدادات",
+    "identity_backfill": "توليد أرقام الهوية",
 }
 
 

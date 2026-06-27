@@ -58,6 +58,7 @@ def students_for_teacher(teacher, *, grade_id=None, class_id=None, search=None, 
             or_(
                 Student.full_name_ar.ilike(term),
                 Student.full_name.ilike(term),
+                Student.platform_uid.ilike(term),
                 Student.student_id.ilike(term),
             )
         )

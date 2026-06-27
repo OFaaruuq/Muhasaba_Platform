@@ -28,6 +28,7 @@ from app.services.followup_survey_service import (
 )
 from app.services.teacher_student_service import students_for_teacher
 from app.services.survey_config_service import get_arabic_month_name, get_education_stage_map
+from app.services.identity_service import person_display_label
 
 
 def iter_periods(end_year, end_month, count=6):
@@ -278,9 +279,7 @@ def student_analytics_row(student, year, month):
         "program_status_class": p_class,
         "grade_name": student.grade.name_ar if student.grade else "—",
         "class_name": student.class_.name if student.class_ else "—",
-        "teacher_name": (
-            (teacher.full_name_ar or teacher.full_name) if teacher else "—"
-        ),
+        "teacher_name": person_display_label(teacher) if teacher else "—",
     }
 
 

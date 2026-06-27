@@ -2,7 +2,8 @@
 {% block title %}تعديل مستخدم - المشرف الأعلى{% endblock %}
 {% block content %}
 <div class="container-fluid">
-    <h2 class="mb-4">تعديل: {{ user.username }}</h2>
+    <h2 class="mb-1">تعديل: {{ user.username }}</h2>
+    <p class="text-muted mb-4"><strong>رقم الهوية:</strong> <code>{{ user.platform_uid or '—' }}</code></p>
     {% if profile_summary %}
     <div class="alert alert-info py-2">
         <strong>الملفات المرتبطة:</strong>
@@ -39,6 +40,7 @@
             {% with
                 create_teacher_checked=user.teacher_profile is not none,
                 create_student_checked=user.student_profile is not none,
+                profile_platform_uid=user.platform_uid,
                 employee_id=user.teacher_profile.employee_id if user.teacher_profile else '',
                 specialization=user.teacher_profile.specialization if user.teacher_profile else '',
                 student_number=user.student_profile.student_id if user.student_profile else '',

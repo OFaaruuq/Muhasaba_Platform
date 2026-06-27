@@ -60,6 +60,7 @@ def index():
             or_(
                 Student.full_name_ar.ilike(like),
                 Student.full_name.ilike(like),
+                Student.platform_uid.ilike(like),
                 Student.student_id.ilike(like),
             )
         )

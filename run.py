@@ -18,7 +18,10 @@ def bootstrap_database():
 
 
 if __name__ == "__main__":
-    bootstrap_database()
+    with app.app_context():
+        from app.models import User
+        if User.query.count() == 0:
+            bootstrap_database()
     port = int(os.environ.get("PORT", 5000))
     debug = app.config.get("FLASK_DEBUG", False)
     app.run(host="127.0.0.1", port=port, debug=debug)

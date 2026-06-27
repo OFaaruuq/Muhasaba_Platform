@@ -54,6 +54,7 @@ def index():
             or_(
                 Teacher.full_name_ar.ilike(like),
                 Teacher.full_name.ilike(like),
+                Teacher.platform_uid.ilike(like),
                 Teacher.employee_id.ilike(like),
                 Teacher.specialization.ilike(like),
             )

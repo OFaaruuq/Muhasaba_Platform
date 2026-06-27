@@ -32,7 +32,11 @@
                     <input name="full_name" class="form-control" value="{{ student.full_name }}">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">رقم الطالب</label>
+                    <label class="form-label">رقم الهوية</label>
+                    <input class="form-control" value="{{ student.platform_uid or '—' }}" readonly disabled>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">رقم المدرسة</label>
                     <input name="student_id" class="form-control" value="{{ student.student_id }}">
                 </div>
                 <div class="col-md-3">

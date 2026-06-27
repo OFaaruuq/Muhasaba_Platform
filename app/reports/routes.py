@@ -36,6 +36,7 @@ from app.services.report_export_service import (
     export_teacher_followup_pdf,
     export_program_followup_pdf,
 )
+from app.services.identity_service import student_file_id, teacher_file_id
 
 
 def _period_from_request():
@@ -152,7 +153,7 @@ def student_kpi_pdf(student_id):
     buffer = export_kpi_pdf(student, scores, overall)
     return send_file(
         buffer, as_attachment=True,
-        download_name=f"kpi_{student.student_id}.pdf",
+        download_name=f"kpi_{student_file_id(student)}.pdf",
         mimetype="application/pdf",
     )
 
@@ -189,7 +190,7 @@ def attendance_excel(student_id):
     buffer.seek(0)
     return send_file(
         buffer, as_attachment=True,
-        download_name=f"attendance_{student.student_id}.xlsx",
+        download_name=f"attendance_{student_file_id(student)}.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
@@ -204,7 +205,7 @@ def evaluation_pdf(student_id):
     buffer = export_evaluation_pdf(student, evaluations)
     return send_file(
         buffer, as_attachment=True,
-        download_name=f"eval_{student.student_id}.pdf",
+        download_name=f"eval_{student_file_id(student)}.pdf",
         mimetype="application/pdf",
     )
 
@@ -221,7 +222,7 @@ def monthly_pdf(student_id):
     buffer = export_monthly_evaluation_pdf(student, evaluation, year, month)
     return send_file(
         buffer, as_attachment=True,
-        download_name=f"monthly_{student.student_id}_{year}_{month}.pdf",
+        download_name=f"monthly_{student_file_id(student)}_{year}_{month}.pdf",
         mimetype="application/pdf",
     )
 
@@ -235,7 +236,7 @@ def family_followup_pdf(student_id):
     buffer = export_family_followup_pdf(student, year, month)
     return send_file(
         buffer, as_attachment=True,
-        download_name=f"family_followup_{student.student_id}_{year}_{month}.pdf",
+        download_name=f"family_followup_{student_file_id(student)}_{year}_{month}.pdf",
         mimetype="application/pdf",
     )
 
@@ -249,7 +250,7 @@ def teacher_followup_pdf(teacher_id):
     buffer = export_teacher_followup_pdf(teacher, year, month)
     return send_file(
         buffer, as_attachment=True,
-        download_name=f"teacher_followup_{teacher.id}_{year}_{month}.pdf",
+        download_name=f"teacher_followup_{teacher_file_id(teacher)}_{year}_{month}.pdf",
         mimetype="application/pdf",
     )
 
@@ -263,6 +264,6 @@ def program_followup_pdf(teacher_id):
     buffer = export_program_followup_pdf(teacher, year, month)
     return send_file(
         buffer, as_attachment=True,
-        download_name=f"program_followup_{teacher.id}_{year}_{month}.pdf",
+        download_name=f"program_followup_{teacher_file_id(teacher)}_{year}_{month}.pdf",
         mimetype="application/pdf",
     )

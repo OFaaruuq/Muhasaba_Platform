@@ -77,7 +77,7 @@ def export_kpi_pdf(student, scores, overall):
     y = height - 80
     c.drawString(50, y, f"{labels['student']}: {person_display_label(student, current_user)}")
     y -= 20
-    c.drawString(50, y, f"{labels['id']}: {student.platform_uid or student.student_id}")
+    c.drawString(50, y, f"{labels['id']}: {student.platform_uid or '—'}")
     y -= 20
     c.drawString(50, y, f"{labels['date']}: {date.today().isoformat()}")
     y -= 30
@@ -127,7 +127,7 @@ def export_monthly_evaluation_pdf(student, evaluation, year, month):
     c.setFont("Helvetica", 11)
     c.drawString(50, y, f"{labels['student']}: {person_display_label(student, current_user)}")
     y -= 18
-    c.drawString(50, y, f"{labels['id']}: {student.student_id} | {labels['period']}: {month}/{year}")
+    c.drawString(50, y, f"{labels['id']}: {student.platform_uid or '—'} | {labels['period']}: {month}/{year}")
     y -= 25
 
     if evaluation:
@@ -177,6 +177,8 @@ def export_family_followup_pdf(student, year, month):
     c.setFont("Helvetica", 11)
     c.drawString(50, y, f"Student: {person_display_label(student, current_user)}")
     y -= 18
+    c.drawString(50, y, f"ID: {student.platform_uid or '—'}")
+    y -= 18
     c.drawString(50, y, f"Period: {period_label(year, month)} | Progress: {answered}/{total}")
     y -= 25
 
@@ -219,6 +221,8 @@ def export_teacher_followup_pdf(teacher, year, month):
     c.setFont("Helvetica", 11)
     c.drawString(50, y, f"Teacher: {person_display_label(teacher, current_user)}")
     y -= 18
+    c.drawString(50, y, f"ID: {teacher.platform_uid or '—'}")
+    y -= 18
     c.drawString(50, y, f"Period: {period_label(year, month)} | Progress: {answered}/{total}")
     y -= 25
 
@@ -254,6 +258,8 @@ def export_program_followup_pdf(teacher, year, month):
     y = height - 75
     c.setFont("Helvetica", 11)
     c.drawString(50, y, f"Teacher: {person_display_label(teacher, current_user)}")
+    y -= 18
+    c.drawString(50, y, f"ID: {teacher.platform_uid or '—'}")
     y -= 18
     c.drawString(50, y, f"Period: {period_label(year, month)} | Progress: {answered}/{total}")
     y -= 25

@@ -34,6 +34,10 @@
                         <input name="full_name" class="form-control" value="{{ teacher.full_name }}">
                     </div>
                     <div class="col-md-4">
+                        <label class="form-label">رقم الهوية</label>
+                        <input class="form-control" value="{{ teacher.platform_uid or '—' }}" readonly disabled>
+                    </div>
+                    <div class="col-md-4">
                         <label class="form-label">الرقم الوظيفي</label>
                         <input name="employee_id" class="form-control" value="{{ teacher.employee_id }}" required>
                     </div>

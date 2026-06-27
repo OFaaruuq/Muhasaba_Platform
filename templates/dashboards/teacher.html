@@ -102,7 +102,12 @@
                     <tr class="{% if row.needs_survey %}table-warning{% endif %}">
                         <td>
                             <strong>{{ row.student.display_name }}</strong>
-                            <br><small class="text-muted">{{ row.student.student_id }}</small>
+                            {% if can_view_person_names %}
+                            <br><small class="text-muted">
+                                <code>{{ row.student.platform_uid or '—' }}</code>
+                                · {{ row.student.student_id }}
+                            </small>
+                            {% endif %}
                         </td>
                         <td>{{ row.class_name }}</td>
                         <td>

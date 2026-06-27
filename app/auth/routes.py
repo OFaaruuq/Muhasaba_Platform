@@ -24,7 +24,6 @@ AUTH_PUBLIC_ENDPOINTS = {
     "auth.resend_verification",
     "auth.api_token",
     "auth.api_verify_otp",
-    "tenants.license_request",
 }
 
 

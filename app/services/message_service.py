@@ -179,6 +179,8 @@ MESSAGES_SEED = {
     "sa_activate_requires_email": "لا يمكن تفعيل الحساب قبل تفعيل البريد الإلكتروني.",
     "sa_cannot_delete_self": "لا يمكن حذف حسابك.",
     "sa_user_deleted": "تم حذف المستخدم.",
+    "identity_backfill_done": "تم توليد {assigned} رقم هوية. المتبقي بدون رقم: {remaining}.",
+    "identity_backfill_none": "جميع السجلات لديها أرقام هوية بالفعل.",
     "sa_permissions_updated": "تم تحديث الصلاحيات.",
     "sa_role_id_invalid": "معرّف الدور يجب أن يبدأ بحرف ويحتوي أحرفاً إنجليزية صغيرة وأرقام و _ فقط.",
     "sa_role_id_reserved": "هذا المعرّف محجوز لدور نظامي.",
@@ -287,7 +289,8 @@ MESSAGE_GROUPS = {
         "sa_role_name_required", "sa_role_id_taken", "sa_role_created",
         "sa_role_system_delete", "sa_role_has_users", "sa_role_deleted",
         "sa_role_name_empty", "sa_role_updated", "sa_school_status_updated",
-        "sa_schools_provisioned", "sa_settings_updated",         "sa_permissions_synced",
+        "sa_schools_provisioned", "sa_settings_updated", "sa_permissions_synced",
+        "identity_backfill_done", "identity_backfill_none",
     ],
     "تسجيل الطلاب — التحقق": [
         "reg_error_name_ar_required", "reg_error_field_required",
