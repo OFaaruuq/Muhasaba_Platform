@@ -47,7 +47,7 @@
                 <div class="col-md-3">
                     <label class="form-label small text-muted mb-0">بحث</label>
                     <input type="search" name="q" class="form-control form-control-sm"
-                        placeholder="الاسم أو رقم الطالب" value="{{ search_q }}">
+                        placeholder="رقم الهوية أو الاسم (للمشرفين)" value="{{ search_q }}">
                 </div>
                 <div class="col-md-2">
                     <div class="form-check mt-3">
@@ -111,8 +111,8 @@
                                     <input type="checkbox" class="form-check-input select-all-class" title="تحديد الكل">
                                 </th>
                                 {% endif %}
-                                <th>الرقم</th>
-                                <th>الاسم</th>
+                                <th>رقم الهوية</th>
+                                {% if can_view_person_names %}<th>الاسم</th>{% endif %}
                                 {% if teacher_tracking %}
                                 <th>مؤشر الأداء</th>
                                 <th>متابعة شهرية</th>
@@ -136,8 +136,10 @@
                                     {% endif %}
                                 </td>
                                 {% endif %}
-                                <td>{{ student.student_id }}</td>
+                                <td><code>{{ student.platform_uid or '—' }}</code></td>
+                                {% if can_view_person_names %}
                                 <td><strong>{{ student.full_name_ar or student.full_name }}</strong></td>
+                                {% endif %}
                                 {% if teacher_tracking %}
                                 <td>
                                     {% if track %}<span class="badge bg-{{ track.perf_color }}">{{ track.overall_kpi }}%</span>{% else %}—{% endif %}

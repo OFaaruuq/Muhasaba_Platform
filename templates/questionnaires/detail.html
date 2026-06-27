@@ -2,7 +2,7 @@
 {% block title %}{{ questionnaire.title_ar }} - {{ platform_name }}{% endblock %}
 {% block content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-start mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-4">
         <div>
             <h2>{{ questionnaire.title_ar or questionnaire.title }}</h2>
             <p class="text-muted mb-1">{{ questionnaire.description or '' }}</p>

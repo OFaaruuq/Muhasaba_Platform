@@ -1,0 +1,141 @@
+{# Bottom navigation for phones/tablets — hidden on lg+ via style.css #}
+<nav class="mobile-bottom-nav d-lg-none" aria-label="التنقل السريع">
+    <a href="{{ url_for('dashboards.index') }}"
+       class="mobile-bottom-nav-item {% if request.endpoint and request.endpoint.startswith('dashboards.') %}active{% endif %}">
+        <i class="bi bi-speedometer2"></i>
+        <span>{{ nav_labels.dashboard }}</span>
+    </a>
+
+    {% if user_can_any('view_students', 'manage_students') %}
+    <a href="{{ url_for('students.index') }}"
+       class="mobile-bottom-nav-item {% if request.endpoint and request.endpoint.startswith('students.') %}active{% endif %}">
+        <i class="bi bi-people"></i>
+        <span>{{ nav_labels.students }}</span>
+    </a>
+    {% elif user_can_any('view_attendance', 'record_attendance') %}
+    <a href="{{ url_for('attendance.index') }}"
+       class="mobile-bottom-nav-item {% if request.endpoint and request.endpoint.startswith('attendance.') %}active{% endif %}">
+        <i class="bi bi-calendar-check"></i>
+        <span>{{ nav_labels.attendance }}</span>
+    </a>
+    {% elif user_can('manage_evaluations') %}
+    <a href="{{ url_for('evaluations.index') }}"
+       class="mobile-bottom-nav-item {% if request.endpoint and request.endpoint.startswith('evaluations.') %}active{% endif %}">
+        <i class="bi bi-clipboard-check"></i>
+        <span>{{ nav_labels.evaluations }}</span>
+    </a>
+    {% else %}
+    <a href="{{ url_for('kpi.index') }}"
+       class="mobile-bottom-nav-item {% if request.endpoint and request.endpoint.startswith('kpi.') %}active{% endif %}">
+        <i class="bi bi-graph-up"></i>
+        <span>{{ nav_labels.kpi }}</span>
+    </a>
+    {% endif %}
+
+    <a href="{{ url_for('notifications.index') }}"
+       class="mobile-bottom-nav-item position-relative {% if request.endpoint and request.endpoint.startswith('notifications.') %}active{% endif %}">
+        <i class="bi bi-bell"></i>
+        {% if unread_notifications %}
+        <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill bg-danger" style="font-size:0.55rem">
+            {{ unread_notifications }}
+        </span>
+        {% endif %}
+        <span>{{ nav_labels.notifications }}</span>
+    </a>
+
+    <button type="button"
+            class="mobile-bottom-nav-item mobile-bottom-nav-menu"
+            data-bs-toggle="offcanvas"
+            data-bs-target="#mobileNavMenu"
+            aria-controls="mobileNavMenu"
+            aria-label="{{ nav_labels.menu }}">
+        <i class="bi bi-list"></i>
+        <span>{{ nav_labels.menu }}</span>
+    </button>
+</nav>
+
+<div class="offcanvas offcanvas-bottom d-lg-none" tabindex="-1" id="mobileNavMenu" aria-labelledby="mobileNavMenuLabel">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title" id="mobileNavMenuLabel">{{ nav_labels.menu }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="إغلاق"></button>
+    </div>
+    <div class="offcanvas-body p-0">
+        <div class="list-group list-group-flush mobile-nav-list">
+            {% if current_user.is_super_admin %}
+            <a href="{{ url_for('super_admin.index') }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-shield-lock text-warning me-2"></i>{{ nav_labels.super_admin }}
+            </a>
+            {% endif %}
+            {% if user_can_any('view_all_schools', 'manage_school') %}
+            <a href="{{ url_for('schools.index') }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-building me-2"></i>{{ nav_labels.schools }}
+            </a>
+            {% endif %}
+            {% if user_can('manage_teachers') %}
+            <a href="{{ url_for('teachers.index') }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-person-workspace me-2"></i>{{ nav_labels.teachers }}
+            </a>
+            {% endif %}
+            {% if user_can_any('view_attendance', 'record_attendance') and not user_can_any('view_students', 'manage_students') %}
+            <a href="{{ url_for('attendance.index') }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-calendar-check me-2"></i>{{ nav_labels.attendance }}
+            </a>
+            {% endif %}
+            {% if user_can('manage_evaluations') %}
+            <a href="{{ url_for('evaluations.index') }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-clipboard-check me-2"></i>{{ nav_labels.evaluations }}
+            </a>
+            {% endif %}
+            {% if user_can('self_assess') %}
+            <a href="{{ url_for('evaluations.self_assess') }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-person-check me-2"></i>{{ nav_labels.self_assess }}
+            </a>
+            {% endif %}
+            <a href="{{ url_for('questionnaires.index') }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-question-circle me-2"></i>{{ nav_labels.questionnaires }}
+            </a>
+            {% if user_can_any('manage_followup_surveys', 'view_followup_surveys') %}
+            <a href="{{ url_for('followup_surveys.index') }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-clipboard-data me-2"></i>{{ nav_labels.followup_surveys }}
+            </a>
+            {% endif %}
+            <a href="{{ url_for('exams.index') }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-journal-text me-2"></i>{{ nav_labels.exams }}
+            </a>
+            <a href="{{ url_for('kpi.index') }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-graph-up me-2"></i>{{ nav_labels.kpi }}
+            </a>
+            {% if user_can('manage_evaluations') %}
+            <a href="{{ url_for('evaluations.reading_index') }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-book me-2"></i>{{ nav_labels.reading }}
+            </a>
+            <a href="{{ url_for('evaluations.behavior_index') }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-emoji-smile me-2"></i>{{ nav_labels.behavior }}
+            </a>
+            {% if user_can('view_ai_assistant') %}
+            <a href="{{ url_for('ai.index') }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-robot me-2"></i>{{ nav_labels.ai_assistant }}
+            </a>
+            {% endif %}
+            {% endif %}
+            {% if user_can('view_reports') or user_can('view_own_kpi') or user_can('view_children_kpi') %}
+            <a href="{{ url_for('reports.index') }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-file-earmark-bar-graph me-2"></i>{{ nav_labels.reports }}
+            </a>
+            {% endif %}
+            {% if user_can_any('manage_platform_config', 'manage_global_config') %}
+            <a href="{{ url_for('admin.index') }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-gear me-2"></i>{{ nav_labels.admin }}
+            </a>
+            {% endif %}
+            {% if user_can('manage_users') %}
+            <a href="{{ url_for('users.index') }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-people-fill me-2"></i>{{ nav_labels.users }}
+            </a>
+            {% endif %}
+            <a href="{{ url_for('auth.logout') }}" class="list-group-item list-group-item-action text-danger">
+                <i class="bi bi-box-arrow-left me-2"></i>{{ nav_labels.logout }}
+            </a>
+        </div>
+    </div>
+</div>

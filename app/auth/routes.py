@@ -1,12 +1,12 @@
 from datetime import datetime, timezone, timedelta
 
-from flask import flash, redirect, render_template, request, session, url_for
+from flask import current_app, redirect, render_template, request, session, url_for
 from app.services.message_service import flash_msg, msg
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_jwt_extended import create_access_token
 
 from app.auth import bp
-from app.extensions import db
+from app.extensions import db, limiter
 from app.models import User, AuditLog
 from app.services.otp_service import verify_otp as verify_otp_code
 from app.services.user_account_service import (
@@ -15,6 +15,7 @@ from app.services.user_account_service import (
     resend_verification_email,
     verify_email_token,
 )
+from app.utils.security import is_safe_url, safe_redirect_target
 
 AUTH_PUBLIC_ENDPOINTS = {
     "auth.login",
@@ -23,6 +24,7 @@ AUTH_PUBLIC_ENDPOINTS = {
     "auth.resend_verification",
     "auth.api_token",
     "auth.api_verify_otp",
+    "tenants.license_request",
 }
 
 
@@ -36,7 +38,26 @@ def _login_flash(reason):
     flash_msg(keys.get(reason, "auth_login_invalid"), "danger")
 
 
+def _login_error_message(reason):
+    keys = {
+        "inactive": "auth_login_inactive",
+        "unverified": "auth_login_unverified",
+        "no_email": "auth_login_no_email",
+        "invalid": "auth_login_invalid",
+    }
+    return msg(keys.get(reason, "auth_login_invalid"))
+
+
+def _rate_limit_login():
+    return current_app.config.get("RATELIMIT_LOGIN", "10 per minute")
+
+
+def _rate_limit_otp():
+    return current_app.config.get("RATELIMIT_OTP", "10 per minute")
+
+
 @bp.route("/login", methods=["GET", "POST"])
+@limiter.limit(_rate_limit_login, methods=["POST"])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for("dashboards.index"))
@@ -65,7 +86,8 @@ def login():
 
         session["pending_login_user_id"] = user.id
         session["pending_remember"] = bool(request.form.get("remember"))
-        session["pending_next"] = request.args.get("next")
+        next_arg = request.args.get("next")
+        session["pending_next"] = next_arg if is_safe_url(next_arg) else None
         flash_msg("auth_otp_sent", "info")
         return redirect(url_for("auth.verify_otp"))
 
@@ -73,6 +95,7 @@ def login():
 
 
 @bp.route("/verify-otp", methods=["GET", "POST"])
+@limiter.limit(_rate_limit_otp, methods=["POST"])
 def verify_otp():
     if current_user.is_authenticated:
         return redirect(url_for("dashboards.index"))
@@ -102,7 +125,9 @@ def verify_otp():
             session.pop("pending_login_user_id", None)
             next_page = session.pop("pending_next", None)
             flash_msg("auth_welcome", "success", name=user.full_name_ar or user.full_name)
-            return redirect(next_page or url_for("dashboards.index"))
+            return redirect(
+                safe_redirect_target(next_page, "dashboards.index")
+            )
         flash_msg("auth_otp_invalid", "danger")
 
     masked_email = user.email
@@ -160,6 +185,7 @@ def logout():
 
 
 @bp.route("/api/token", methods=["POST"])
+@limiter.limit(_rate_limit_login)
 def api_token():
     data = request.get_json(silent=True) or {}
     username = data.get("username", "")
@@ -187,6 +213,7 @@ def api_token():
 
 
 @bp.route("/api/verify-otp", methods=["POST"])
+@limiter.limit(_rate_limit_otp)
 def api_verify_otp():
     from flask_jwt_extended import decode_token
     from flask_jwt_extended.exceptions import JWTDecodeError

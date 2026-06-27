@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}طلب ترخيص - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width: 640px;">
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <h2 class="h4 mb-3"><i class="bi bi-key"></i> طلب ترخيص للمنصة</h2>
+            <p class="text-muted">أرسل طلب ترخيص لمؤسستك. سيتواصل معك فريق الإدارة بعد المراجعة.</p>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="mb-3">
+                    <label class="form-label">اسم المؤسسة (عربي) <span class="text-danger">*</span></label>
+                    <input name="organization_name_ar" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">اسم المؤسسة (إنجليزي) <span class="text-danger">*</span></label>
+                    <input name="organization_name" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">اسم المسؤول <span class="text-danger">*</span></label>
+                    <input name="contact_name" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">البريد الإلكتروني <span class="text-danger">*</span></label>
+                    <input name="email" type="email" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">الهاتف</label>
+                    <input name="phone" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ملاحظات</label>
+                    <textarea name="message" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">إرسال الطلب</button>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -78,6 +78,10 @@
         <a href="{{ url_for('super_admin.schools') }}" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-building"></i> المدارس ({{ schools_count }})
         </a>
+        <a href="{{ url_for('super_admin.tenants') }}" class="btn btn-outline-warning btn-sm">
+            <i class="bi bi-building-gear"></i> {{ nav_labels.tenants }}
+            {% if pending_license_requests %}({{ pending_license_requests }} طلب){% endif %}
+        </a>
         <a href="{{ url_for('super_admin.roles') }}" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-key"></i> الأدوار
         </a>
@@ -216,7 +220,7 @@
                     {% for log in recent_audit %}
                     <tr>
                         <td class="text-nowrap"><small>{{ log.created_at.strftime('%Y-%m-%d %H:%M') if log.created_at else '—' }}</small></td>
-                        <td>{{ log.user.full_name_ar if log.user else '—' }}</td>
+                        <td>{{ log.user.display_name if log.user else '—' }}</td>
                         <td>
                             <span class="badge bg-light text-dark">{{ audit_action_label(log.action) }}</span>
                         </td>

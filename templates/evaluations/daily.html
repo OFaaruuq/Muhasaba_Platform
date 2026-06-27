@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}محاسبة يومية - {{ student.full_name_ar }}{% endblock %}
+{% block title %}محاسبة يومية - {{ student.display_name }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <h2 class="mb-4">محاسبة يومية: {{ student.full_name_ar }} ({{ today }})</h2>
+    <h2 class="mb-4">محاسبة يومية: {{ student.display_name }} ({{ today }})</h2>
 
     <form method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

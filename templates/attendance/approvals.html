@@ -32,7 +32,7 @@
                 <tbody>
                     {% for row in denied_rows %}
                     <tr>
-                        <td>{{ row.student.full_name_ar or row.student.full_name }}</td>
+                        <td>{{ row.student.display_name }}</td>
                         <td>{{ row.class.name if row.class else '—' }}</td>
                         <td>
                             <span class="badge bg-success">{{ row.stats.present }} حاضر</span>

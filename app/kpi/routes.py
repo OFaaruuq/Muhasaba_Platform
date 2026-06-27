@@ -1,4 +1,4 @@
-from flask import flash, redirect, render_template, request, url_for, jsonify
+from flask import flash, redirect, render_template, request, url_for, jsonify, abort
 from app.services.message_service import flash_msg
 from flask_login import login_required, current_user
 
@@ -123,6 +123,8 @@ def manage():
 @login_required
 def student_kpi(student_id):
     student = Student.query.get_or_404(student_id)
+    if not can_access_student_report(current_user, student):
+        abort(403)
     period = request.args.get("period", "term")
     scores, overall, breakdown = get_student_kpi_display(student_id, period)
 
@@ -143,6 +145,8 @@ def student_kpi(student_id):
 @permission_required("manage_kpi", "manage_evaluations")
 def recalculate_one(student_id):
     student = Student.query.get_or_404(student_id)
+    if not can_access_student_report(current_user, student):
+        abort(403)
     period = request.form.get("period", "term")
     recalculate_student_kpis(student_id, period)
     flash_msg("kpi_recalculated", "success", student.school_id)

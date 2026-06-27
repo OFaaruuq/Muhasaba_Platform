@@ -12,7 +12,7 @@
         {% for parent in parents %}
         <option value="{{ parent.id }}"
             {% if survey and survey.parent_id == parent.id %}selected{% endif %}>
-            {{ parent.full_name_ar or parent.full_name }}
+            {{ parent.display_name }}
         </option>
         {% endfor %}
     </select>

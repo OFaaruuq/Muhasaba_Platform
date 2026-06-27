@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
             <h2 class="mb-1"><i class="bi bi-person-plus"></i> تسجيل طالب جديد</h2>
             {% if reg_config.is_concise %}
@@ -218,7 +218,7 @@
                                 {% for t in teachers %}
                                 <option value="{{ t.id }}"
                                     {% if (form.get('responsible_teacher_id')|int if form.get('responsible_teacher_id') else 0) == t.id %}selected{% endif %}>
-                                    {{ t.full_name_ar or t.full_name }}
+                                    {{ t.display_name }}
                                 </option>
                                 {% endfor %}
                             </select>
@@ -420,7 +420,7 @@
             .then((teachers) => {
                 fillSelect(teacherSelect, '— اختر المسؤول —', teachers, (t) => ({
                     value: t.id,
-                    label: t.full_name_ar,
+                    label: t.label || t.platform_uid || t.employee_id,
                 }), selectedId);
             });
     }

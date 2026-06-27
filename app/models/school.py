@@ -7,6 +7,7 @@ class School(db.Model):
     __tablename__ = "schools"
 
     id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey("tenants.id"), nullable=True, index=True)
     name = db.Column(db.String(200), nullable=False)
     name_ar = db.Column(db.String(200), nullable=False)
     code = db.Column(db.String(20), unique=True, nullable=False)

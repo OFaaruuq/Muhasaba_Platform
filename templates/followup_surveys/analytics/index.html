@@ -229,7 +229,7 @@
                 <tbody>
                     {% for row in student_rows %}
                     <tr>
-                        <td><strong>{{ row.student.full_name_ar or row.student.full_name }}</strong></td>
+                        <td><strong>{{ row.student.display_name }}</strong></td>
                         <td><small>{{ row.grade_name }} — {{ row.class_name }}</small></td>
                         <td><small>{{ row.teacher_name }}</small></td>
                         <td>
@@ -299,7 +299,7 @@
                 <tbody>
                     {% for row in teacher_rows %}
                     <tr>
-                        <td><strong>{{ row.teacher.full_name_ar or row.teacher.full_name }}</strong></td>
+                        <td><strong>{{ row.teacher.display_name }}</strong></td>
                         <td>
                             <span class="badge bg-{{ row.teacher_status_class }}">{{ row.teacher_status }}</span>
                             <small class="text-muted">{{ row.teacher_answered }}/{{ row.teacher_total }}</small>

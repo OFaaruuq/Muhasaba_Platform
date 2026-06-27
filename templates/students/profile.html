@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}{{ student.full_name_ar }} - {{ platform_name }}{% endblock %}
+{% block title %}{{ student.display_name }} - {{ platform_name }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
-            <h2 class="mb-1">{{ student.full_name_ar or student.full_name }}</h2>
+            <h2 class="mb-1">{{ student.display_name }}</h2>
             {% if student.is_active %}
             <span class="badge bg-success">{{ ui_labels.active }}</span>
         {% else %}
@@ -51,10 +51,14 @@
             <div class="card">
                 <div class="card-header">المعلومات الأساسية</div>
                 <div class="card-body">
-                    <p><strong>الرقم:</strong> {{ student.student_id }}</p>
+                    <p><strong>رقم الهوية:</strong> <code>{{ student.platform_uid or '—' }}</code></p>
+                    {% if can_view_person_names %}
+                    <p><strong>الاسم الكامل:</strong> {{ student.full_name_ar or student.full_name }}</p>
+                    <p><strong>رقم المدرسة:</strong> {{ student.student_id }}</p>
+                    {% endif %}
                     <p><strong>المستوى:</strong> {{ student.grade.name_ar if student.grade else '-' }}</p>
                     <p><strong>المجموعة:</strong> {{ student.class_.name if student.class_ else '-' }}</p>
-                    <p><strong>المسؤول:</strong> {{ student.responsible_teacher.full_name_ar if student.responsible_teacher else '—' }}</p>
+                    <p><strong>المسؤول:</strong> {{ student.responsible_teacher.display_name if student.responsible_teacher else '—' }}</p>
                     <p><strong>الجنس:</strong> {{ get_gender_label(student.gender, student.school_id) }}</p>
                     <p><strong>المعدل:</strong> {{ student.gpa }}</p>
                     {% if student.phone %}<p><strong>الهاتف:</strong> {{ student.phone }}</p>{% endif %}
@@ -67,7 +71,7 @@
                     <ul class="list-group list-group-flush mb-3">
                         {% for p in student.parents %}
                         <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                            <span>{{ p.full_name_ar or p.full_name }}
+                            <span>{{ p.display_name }}
                                 {% if p.relationship_type %}
                                 <small class="text-muted">({{ relationship_labels.get(p.relationship_type, p.relationship_type) }})</small>
                                 {% endif %}
@@ -92,7 +96,7 @@
                                 <option value="">— اختر ولي أمر —</option>
                                 {% for p in parents_available %}
                                 {% if p not in student.parents %}
-                                <option value="{{ p.id }}">{{ p.full_name_ar or p.full_name }}</option>
+                                <option value="{{ p.id }}">{{ p.display_name }}</option>
                                 {% endif %}
                                 {% endfor %}
                             </select>

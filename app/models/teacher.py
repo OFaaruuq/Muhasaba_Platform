@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 
+from app.models.identity_mixin import PlatformIdentityMixin
 from app.extensions import db
 
 
-class Teacher(db.Model):
+class Teacher(PlatformIdentityMixin, db.Model):
     __tablename__ = "teachers"
 
     id = db.Column(db.Integer, primary_key=True)

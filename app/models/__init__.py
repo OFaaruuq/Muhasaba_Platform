@@ -1,4 +1,5 @@
 from app.models.user import Role, User, Permission, role_permissions
+from app.models.tenant import Tenant, TenantLicense, LicenseRequest
 from app.models.school import School, AcademicYear, Grade, Class, Subject, ClassSubject
 from app.models.student import Student, Parent, parent_student
 from app.models.teacher import Teacher, TeacherClass
@@ -28,6 +29,7 @@ from app.models.settings import (
     ConfigOption,
 )
 from app.models.auth_token import LoginOtp
+from app.models.platform_id_counter import PlatformIdCounter
 from app.models.seed import seed_database
 
 __all__ = [
@@ -35,6 +37,9 @@ __all__ = [
     "User",
     "Permission",
     "role_permissions",
+    "Tenant",
+    "TenantLicense",
+    "LicenseRequest",
     "School",
     "AcademicYear",
     "Grade",
@@ -76,5 +81,6 @@ __all__ = [
     "AttendanceStatusConfig",
     "ConfigOption",
     "LoginOtp",
+    "PlatformIdCounter",
     "seed_database",
 ]

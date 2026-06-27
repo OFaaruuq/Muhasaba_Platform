@@ -476,12 +476,83 @@ def upgrade_kpi_data_sources():
         ensure_school_defaults(school.id)
 
 
+def upgrade_tenant_schema():
+    """Multi-tenant tables and school.tenant_id backfill."""
+    from app.models.tenant import Tenant, TenantLicense, LicenseRequest
+
+    inspector = inspect(db.engine)
+    tables = inspector.get_table_names()
+
+    if "tenants" not in tables:
+        Tenant.__table__.create(db.engine)
+    if "tenant_licenses" not in tables:
+        TenantLicense.__table__.create(db.engine)
+    if "license_requests" not in tables:
+        LicenseRequest.__table__.create(db.engine)
+
+    if "schools" in tables:
+        columns = {c["name"] for c in inspector.get_columns("schools")}
+        if "tenant_id" not in columns:
+            with db.engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE schools ADD COLUMN tenant_id INTEGER"
+                ))
+
+    from app.services.tenant_service import (
+        ensure_platform_owner_tenant,
+        assign_schools_to_platform_owner,
+    )
+
+    ensure_platform_owner_tenant()
+    assign_schools_to_platform_owner()
+    db.session.commit()
+
+
+def upgrade_otp_attempts_schema():
+    """Track failed OTP attempts for lockout."""
+    inspector = inspect(db.engine)
+    if "login_otps" not in inspector.get_table_names():
+        return
+    columns = {c["name"] for c in inspector.get_columns("login_otps")}
+    if "failed_attempts" not in columns:
+        with db.engine.begin() as conn:
+            conn.execute(text(
+                "ALTER TABLE login_otps ADD COLUMN failed_attempts INTEGER DEFAULT 0"
+            ))
+
+
+def upgrade_platform_identity_schema():
+    """Global platform_uid on all person tables."""
+    from app.models.platform_id_counter import PlatformIdCounter
+
+    inspector = inspect(db.engine)
+    tables = inspector.get_table_names()
+
+    if "platform_id_counter" not in tables:
+        PlatformIdCounter.__table__.create(db.engine)
+
+    for table in ("users", "students", "teachers", "parents"):
+        if table not in tables:
+            continue
+        columns = {c["name"] for c in inspector.get_columns(table)}
+        if "platform_uid" not in columns:
+            with db.engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN platform_uid VARCHAR(20)"))
+
+    from app.services.identity_service import backfill_platform_identities
+    backfill_platform_identities()
+    db.session.commit()
+
+
 def apply_schema_upgrades():
     """Idempotent schema patches for existing databases (safe on every startup)."""
     if not inspect(db.engine).get_table_names():
         return
 
     # Structural patches first — data seeding below uses full ORM models.
+    upgrade_tenant_schema()
+    upgrade_otp_attempts_schema()
+    upgrade_platform_identity_schema()
     upgrade_user_email_optional()
     upgrade_auth_schema()
     upgrade_student_schema()

@@ -5,7 +5,7 @@ from flask import Flask
 from flask_wtf.csrf import CSRFProtect
 
 from config import Config
-from app.extensions import db, migrate, login_manager, jwt
+from app.extensions import db, migrate, login_manager, jwt, limiter
 
 csrf = CSRFProtect()
 
@@ -24,6 +24,8 @@ def create_app(config_class=Config):
         static_folder=os.path.join(basedir, "static"),
     )
     app.config.from_object(config_class)
+    from config import finalize_app_config
+    finalize_app_config(app)
 
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
     os.makedirs(app.config["REPORTS_FOLDER"], exist_ok=True)
@@ -33,6 +35,9 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     jwt.init_app(app)
     csrf.init_app(app)
+
+    limiter.enabled = app.config.get("RATELIMIT_ENABLED", True) and not app.config.get("TESTING")
+    limiter.init_app(app)
 
     if not app.config.get("TESTING"):
         with app.app_context():
@@ -83,6 +88,7 @@ def create_app(config_class=Config):
     from app.followup_surveys import bp as followup_surveys_bp
     from app.ai import bp as ai_bp
     from app.academic import bp as academic_bp
+    from app.tenants import bp as tenants_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(schools_bp, url_prefix="/schools")
@@ -102,18 +108,26 @@ def create_app(config_class=Config):
     app.register_blueprint(followup_surveys_bp, url_prefix="/followup-surveys")
     app.register_blueprint(ai_bp, url_prefix="/ai")
     app.register_blueprint(academic_bp, url_prefix="/academic/api")
+    app.register_blueprint(tenants_bp)
 
     csrf.exempt(app.view_functions["auth.api_token"])
     csrf.exempt(app.view_functions["auth.api_verify_otp"])
 
     from app.auth.routes import AUTH_PUBLIC_ENDPOINTS
 
+    LICENSE_EXEMPT_ENDPOINTS = AUTH_PUBLIC_ENDPOINTS | {
+        "static",
+        "tenants.license_request",
+        "tenants.license_status",
+        "auth.logout",
+    }
+
     @app.before_request
     def enforce_active_verified_users():
-        from flask import request, redirect, url_for, flash
+        from flask import request, redirect, url_for
         from flask_login import current_user, logout_user
 
-        if request.endpoint in AUTH_PUBLIC_ENDPOINTS or request.endpoint == "static":
+        if request.endpoint in LICENSE_EXEMPT_ENDPOINTS:
             return None
         if current_user.is_authenticated:
             if not current_user.is_active or not current_user.email_verified:
@@ -121,6 +135,32 @@ def create_app(config_class=Config):
                 from app.services.message_service import flash_msg
                 flash_msg("auth_account_inactive", "danger")
                 return redirect(url_for("auth.login"))
+        return None
+
+    @app.before_request
+    def enforce_tenant_license():
+        from flask import request, redirect, url_for
+        from flask_login import current_user
+        from app.services.tenant_service import (
+            get_user_tenant, tenant_has_active_license, get_platform_owner_tenant,
+        )
+        from app.services.message_service import flash_msg
+
+        if request.endpoint in LICENSE_EXEMPT_ENDPOINTS:
+            return None
+        if not current_user.is_authenticated:
+            return None
+        if current_user.has_permission("manage_system"):
+            return None
+        tenant = get_user_tenant(current_user)
+        if not tenant:
+            return None
+        owner = get_platform_owner_tenant()
+        if owner and tenant.id == owner.id:
+            return None
+        if not tenant_has_active_license(tenant):
+            flash_msg("license_expired", "warning")
+            return redirect(url_for("tenants.license_status"))
         return None
 
     import json as _json
@@ -154,6 +194,28 @@ def create_app(config_class=Config):
             return redirect(url_for("dashboards.index"))
         return redirect(url_for("auth.login"))
 
+    @app.after_request
+    def set_security_headers(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        if not app.config.get("FLASK_DEBUG"):
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        csp = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "font-src 'self' https://cdn.jsdelivr.net; "
+            "img-src 'self' data:; "
+            "connect-src 'self'; "
+            "frame-ancestors 'self'; "
+            "base-uri 'self'; "
+            "form-action 'self'"
+        )
+        response.headers["Content-Security-Policy"] = csp
+        return response
+
     @app.context_processor
     def inject_globals():
         from flask import session
@@ -174,6 +236,7 @@ def create_app(config_class=Config):
         )
         from app.services.survey_config_service import get_education_stage_field_map
         from app.utils.school_context import get_active_school_id, get_schools_for_picker
+        from app.services.tenant_service import get_user_tenant, get_active_license, tenant_has_active_license
 
         unread = 0
         sid = None
@@ -188,9 +251,23 @@ def create_app(config_class=Config):
         name = get_setting("platform_name_ar", sid) or app.config["PLATFORM_NAME"]
         tagline = get_setting("platform_tagline_ar", sid) or app.config["PLATFORM_TAGLINE"]
 
+        current_tenant = None
+        tenant_license = None
+        if current_user.is_authenticated:
+            current_tenant = get_user_tenant(current_user)
+            if current_tenant:
+                if current_tenant.platform_name_ar:
+                    name = current_tenant.platform_name_ar
+                if current_tenant.platform_tagline_ar:
+                    tagline = current_tenant.platform_tagline_ar
+                tenant_license = get_active_license(current_tenant)
+
         return {
             "platform_name": name,
             "platform_tagline": tagline,
+            "current_tenant": current_tenant,
+            "tenant_license": tenant_license,
+            "tenant_has_license": tenant_has_active_license(current_tenant) if current_tenant else True,
             "unread_notifications": unread,
             "active_school_id": sid,
             "schools_picker": schools_picker,
@@ -203,7 +280,7 @@ def create_app(config_class=Config):
             "true_false_choices": get_config_choices("true_false", sid),
             "yes_no_choices": get_config_choices("yes_no", sid),
             "rating_scale_choices": get_monthly_rating_choices(sid),
-            "show_demo_logins": str(get_setting("show_demo_logins", sid, "true")).lower() in ("true", "1", "yes"),
+            "show_demo_logins": str(get_setting("show_demo_logins", sid, "false")).lower() in ("true", "1", "yes"),
             "perf_thresholds": get_performance_thresholds(sid),
             "exam_type_labels": get_config_map("exam_type", sid),
             "criterion_category_labels": get_criterion_category_labels(sid),
@@ -215,7 +292,7 @@ def create_app(config_class=Config):
             "questionnaire_category_labels": _cfg_map("questionnaire_category", sid),
             "monthly_scale_summary": get_monthly_scale_summary(sid),
             "bool_choices": get_bool_choices(sid),
-            "demo_accounts": get_demo_accounts(sid) if str(get_setting("show_demo_logins", sid, "true")).lower() in ("true", "1", "yes") else [],
+            "demo_accounts": get_demo_accounts(sid) if str(get_setting("show_demo_logins", sid, "false")).lower() in ("true", "1", "yes") else [],
             "report_labels": get_report_labels(sid),
             "unspecified_label": get_unspecified_label(sid),
             "kpi_period_choices": get_kpi_period_choices(sid),
@@ -233,6 +310,8 @@ def create_app(config_class=Config):
                 if current_user.is_authenticated else False
             ),
             "dashboard_mode": session.get("dashboard_mode") if current_user.is_authenticated else None,
+            "person_label": _person_label,
+            "can_view_person_names": _can_view_person_names,
         }
 
     return app
@@ -250,3 +329,15 @@ def _user_can_any(*permission_names):
     if not current_user.is_authenticated:
         return False
     return current_user.has_any_permission(*permission_names)
+
+
+def _person_label(subject):
+    from flask_login import current_user
+    from app.services.identity_service import person_display_label
+    return person_display_label(subject, current_user)
+
+
+def _can_view_person_names():
+    from flask_login import current_user
+    from app.services.identity_service import can_view_person_names
+    return can_view_person_names(current_user)

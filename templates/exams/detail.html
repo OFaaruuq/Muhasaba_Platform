@@ -21,7 +21,7 @@
                     <tbody>
                         {% for r in results %}
                         <tr>
-                            <td>{{ r.student.full_name_ar if r.student else '-' }}</td>
+                            <td>{{ r.student.display_name if r.student else '-' }}</td>
                             <td>{{ r.score }}</td>
                             <td>{{ r.percentage }}%</td>
                         </tr>

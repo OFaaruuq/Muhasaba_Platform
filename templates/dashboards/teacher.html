@@ -7,7 +7,7 @@
 
     {% if tracking %}
     <div class="row g-4 mb-4">
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card stat-card">
                 <div class="card-body text-center">
                     <h3>{{ tracking.student_count }}</h3>
@@ -15,7 +15,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card stat-card border-success">
                 <div class="card-body text-center">
                     <h3 class="text-success">{{ tracking.family_complete }}</h3>
@@ -23,7 +23,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card stat-card border-warning">
                 <div class="card-body text-center">
                     <h3 class="text-warning">{{ tracking.family_pending + tracking.family_partial }}</h3>
@@ -31,7 +31,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card stat-card">
                 <div class="card-body text-center">
                     <h3>{{ tracking.completion_pct }}%</h3>
@@ -101,7 +101,7 @@
                     {% for row in tracking.rows %}
                     <tr class="{% if row.needs_survey %}table-warning{% endif %}">
                         <td>
-                            <strong>{{ row.student.full_name_ar or row.student.full_name }}</strong>
+                            <strong>{{ row.student.display_name }}</strong>
                             <br><small class="text-muted">{{ row.student.student_id }}</small>
                         </td>
                         <td>{{ row.class_name }}</td>

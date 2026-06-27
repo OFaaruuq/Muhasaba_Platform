@@ -14,6 +14,7 @@ class LoginOtp(db.Model):
     purpose = db.Column(db.String(20), default="login", index=True)
     expires_at = db.Column(db.DateTime, nullable=False)
     used = db.Column(db.Boolean, default=False)
+    failed_attempts = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     ip_address = db.Column(db.String(45))
 

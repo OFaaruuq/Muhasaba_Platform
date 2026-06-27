@@ -14,9 +14,9 @@
     </p>
     <p class="text-muted mb-2">
         {% if admin_entry %}
-        المعلم: {{ teacher.full_name_ar or teacher.full_name }} — إدخال إداري
+        المعلم: {{ teacher.display_name }} — إدخال إداري
         {% else %}
-        {{ teacher.full_name_ar or teacher.full_name }}
+        {{ teacher.display_name }}
         {% endif %}
         | {{ period_month }}/{{ period_year }}
     </p>
@@ -110,7 +110,7 @@
                 <ul class="list-group list-group-flush">
                     {% for s in teacher_students %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>{{ s.full_name_ar or s.full_name }}</span>
+                        <span>{{ s.display_name }}</span>
                         <a class="btn btn-sm btn-outline-primary"
                             href="{{ url_for('followup_surveys.family_form', student_id=s.id, year=period_year, month=period_month) }}">
                             تعبئة

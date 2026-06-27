@@ -15,10 +15,12 @@ def app():
 
     class TestConfig(Config):
         TESTING = True
+        FLASK_DEBUG = True
         SECRET_KEY = "test-secret"
         JWT_SECRET_KEY = "test-jwt-secret"
         SQLALCHEMY_DATABASE_URI = f"sqlite:///{db_path}"
         WTF_CSRF_ENABLED = False
+        RATELIMIT_ENABLED = False
 
     application = create_app(TestConfig)
 
@@ -40,14 +42,20 @@ def app():
         upgrade_followup_survey_schema()
         upgrade_auth_schema()
         upgrade_user_permissions_schema()
-        from app.utils.db_upgrade import upgrade_permissions
+        from app.utils.db_upgrade import upgrade_permissions, upgrade_tenant_schema, upgrade_otp_attempts_schema, upgrade_platform_identity_schema
         upgrade_permissions()
+        upgrade_tenant_schema()
+        upgrade_otp_attempts_schema()
+        upgrade_platform_identity_schema()
         ensure_school_defaults(None)
         seed_database()
         from app.models import School
         for school in School.query.filter_by(is_active=True).all():
             ensure_school_defaults(school.id)
         ensure_super_admin_role()
+        from app.services.identity_service import backfill_platform_identities
+        backfill_platform_identities()
+        db.session.commit()
         yield application
         db.session.remove()
         db.drop_all()

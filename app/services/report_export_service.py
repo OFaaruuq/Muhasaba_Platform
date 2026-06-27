@@ -5,6 +5,7 @@ from datetime import date
 
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+from flask_login import current_user
 
 from app.models import (
     FamilyFollowupSurvey,
@@ -12,6 +13,7 @@ from app.models import (
     EducationalProgramFollowupSurvey,
 )
 from app.services.config_service import get_setting, get_report_labels
+from app.services.identity_service import person_display_label
 from app.services.followup_analytics_service import (
     teacher_survey_report_rows,
     program_survey_report_sections,
@@ -73,9 +75,9 @@ def export_kpi_pdf(student, scores, overall):
     c.drawString(50, height - 50, f"{platform} - {labels['kpi_title']}")
     c.setFont("Helvetica", 12)
     y = height - 80
-    c.drawString(50, y, f"{labels['student']}: {student.full_name_ar or student.full_name}")
+    c.drawString(50, y, f"{labels['student']}: {person_display_label(student, current_user)}")
     y -= 20
-    c.drawString(50, y, f"{labels['id']}: {student.student_id}")
+    c.drawString(50, y, f"{labels['id']}: {student.platform_uid or student.student_id}")
     y -= 20
     c.drawString(50, y, f"{labels['date']}: {date.today().isoformat()}")
     y -= 30
@@ -98,7 +100,7 @@ def export_evaluation_pdf(student, evaluations, school_id=None):
 
     cat_labels = get_criterion_category_labels(student.school_id)
     c.setFont("Helvetica-Bold", 14)
-    c.drawString(50, height - 50, f"{labels['eval_title']} - {student.full_name_ar or student.full_name}")
+    c.drawString(50, height - 50, f"{labels['eval_title']} - {person_display_label(student, current_user)}")
     y = height - 90
     acad = cat_labels.get("academic", "academic")
     beh = cat_labels.get("behavior", "behavior")
@@ -123,7 +125,7 @@ def export_monthly_evaluation_pdf(student, evaluation, year, month):
     c.drawString(50, y, labels["monthly_title"])
     y -= 25
     c.setFont("Helvetica", 11)
-    c.drawString(50, y, f"{labels['student']}: {student.full_name_ar or student.full_name}")
+    c.drawString(50, y, f"{labels['student']}: {person_display_label(student, current_user)}")
     y -= 18
     c.drawString(50, y, f"{labels['id']}: {student.student_id} | {labels['period']}: {month}/{year}")
     y -= 25
@@ -173,7 +175,7 @@ def export_family_followup_pdf(student, year, month):
     c.drawString(50, height - 50, f"{platform} - Family Follow-up Report")
     y = height - 75
     c.setFont("Helvetica", 11)
-    c.drawString(50, y, f"Student: {student.full_name_ar or student.full_name}")
+    c.drawString(50, y, f"Student: {person_display_label(student, current_user)}")
     y -= 18
     c.drawString(50, y, f"Period: {period_label(year, month)} | Progress: {answered}/{total}")
     y -= 25
@@ -215,7 +217,7 @@ def export_teacher_followup_pdf(teacher, year, month):
     c.drawString(50, height - 50, f"{platform} - Teacher Follow-up Report")
     y = height - 75
     c.setFont("Helvetica", 11)
-    c.drawString(50, y, f"Teacher: {teacher.full_name_ar or teacher.full_name}")
+    c.drawString(50, y, f"Teacher: {person_display_label(teacher, current_user)}")
     y -= 18
     c.drawString(50, y, f"Period: {period_label(year, month)} | Progress: {answered}/{total}")
     y -= 25
@@ -251,7 +253,7 @@ def export_program_followup_pdf(teacher, year, month):
     c.drawString(50, height - 50, f"{platform} - Educational Program Report")
     y = height - 75
     c.setFont("Helvetica", 11)
-    c.drawString(50, y, f"Teacher: {teacher.full_name_ar or teacher.full_name}")
+    c.drawString(50, y, f"Teacher: {person_display_label(teacher, current_user)}")
     y -= 18
     c.drawString(50, y, f"Period: {period_label(year, month)} | Progress: {answered}/{total}")
     y -= 25

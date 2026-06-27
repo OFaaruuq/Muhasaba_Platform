@@ -14,7 +14,7 @@
                 class="btn btn-outline-secondary btn-sm">← رجوع</a>
         </div>
     </div>
-    <p class="text-muted">{{ student.full_name_ar or student.full_name }} — {{ period_month }}/{{ period_year }}</p>
+    <p class="text-muted">{{ student.display_name }} — {{ period_month }}/{{ period_year }}</p>
 
     {% for code, title, subtitle, fields in program_sections %}
     <div class="card mb-3">

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}المستأجرون والتراخيص - {{ platform_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2><i class="bi bi-building-gear"></i> {{ nav_labels.tenants }}</h2>
+        <a href="{{ url_for('super_admin.index') }}" class="btn btn-outline-secondary btn-sm">العودة</a>
+    </div>
+
+    {% if pending_requests %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-warning-subtle fw-bold">طلبات ترخيص معلّقة</div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0 align-middle">
+                <thead><tr><th>المؤسسة</th><th>المسؤول</th><th>البريد</th><th>التاريخ</th><th></th></tr></thead>
+                <tbody>
+                {% for req in pending_requests %}
+                <tr>
+                    <td>{{ req.organization_name_ar }}</td>
+                    <td>{{ req.contact_name }}</td>
+                    <td>{{ req.email }}</td>
+                    <td>{{ req.created_at.strftime('%Y-%m-%d') if req.created_at else '' }}</td>
+                    <td class="text-nowrap">
+                        <form method="POST" action="{{ url_for('super_admin.approve_license_request', request_id=req.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn-success btn-sm" type="submit">موافقة</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('super_admin.reject_license_request_route', request_id=req.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn-outline-danger btn-sm" type="submit">رفض</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr><th>المؤسسة</th><th>الرمز</th><th>المدارس</th><th>المستخدمون</th><th>الترخيص</th><th></th></tr>
+                </thead>
+                <tbody>
+                {% for tenant in tenants %}
+                {% set stats = stats_map.get(tenant.id, {}) %}
+                <tr>
+                    <td>
+                        {{ tenant.name_ar }}
+                        {% if tenant.is_platform_owner %}<span class="badge bg-dark">المالك</span>{% endif %}
+                    </td>
+                    <td><code>{{ tenant.slug }}</code></td>
+                    <td>{{ stats.schools or 0 }}</td>
+                    <td>{{ stats.users or 0 }}</td>
+                    <td>
+                        {% if stats.has_license %}
+                        <span class="badge bg-success">نشط</span>
+                        {% else %}
+                        <span class="badge bg-secondary">غير نشط</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not tenant.is_platform_owner %}
+                        <form method="POST" action="{{ url_for('super_admin.update_tenant_license', tenant_id=tenant.id) }}" class="d-flex flex-wrap gap-1">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="status" value="active">
+                            <input name="duration_days" type="number" class="form-control form-control-sm" style="width:5rem" value="365" title="المدة بالأيام">
+                            <button class="btn btn-outline-primary btn-sm" type="submit">تجديد</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-muted text-center py-4">لا توجد مؤسسات.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

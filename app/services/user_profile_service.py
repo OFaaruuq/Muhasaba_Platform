@@ -98,6 +98,8 @@ def create_teacher_profile_for_user(user, *, school_id, form):
     )
     db.session.add(teacher)
     db.session.flush()
+    from app.services.identity_service import ensure_identity_for_teacher
+    ensure_identity_for_teacher(teacher)
 
     class_ids = _parse_class_ids(form)
     for class_id in class_ids:
@@ -153,6 +155,8 @@ def create_student_profile_for_user(user, *, school_id, form):
     )
     db.session.add(student)
     db.session.flush()
+    from app.services.identity_service import ensure_identity_for_student
+    ensure_identity_for_student(student)
     return student
 
 
@@ -261,7 +265,9 @@ def school_structure_payload(school_id):
             {
                 "id": t.id,
                 "full_name_ar": t.full_name_ar or t.full_name,
+                "platform_uid": t.platform_uid,
                 "employee_id": t.employee_id,
+                "label": t.platform_uid or t.employee_id,
             }
             for t in teachers
         ],

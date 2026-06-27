@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% from "followup_surveys/_macros.html" import frequency_rating %}
 {% from "followup_surveys/_checklist.html" import survey_checklist %}
-{% block title %}{{ page_labels.hub_title | plabel(month=period_month, year=period_year) }} — {{ teacher.full_name_ar }}{% endblock %}
+{% block title %}{{ page_labels.hub_title | plabel(month=period_month, year=period_year) }} — {{ teacher.display_name }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <h2 class="mb-2"><i class="bi bi-clipboard-data"></i> {{ page_labels.hub_title | plabel(month=period_month, year=period_year) }}</h2>
     <p class="text-muted mb-1">
-        {% if admin_entry %}المعلم: {{ teacher.full_name_ar or teacher.full_name }} (إدخال إداري){% else %}
-        {{ teacher.full_name_ar or teacher.full_name }}{% endif %}
+        {% if admin_entry %}المعلم: {{ teacher.display_name }} (إدخال إداري){% else %}
+        {{ teacher.display_name }}{% endif %}
     </p>
     <p class="text-muted mb-3">
         {{ page_labels.hub_includes | plabel(teacher_n=teacher_total_questions, family_n=family_total_questions, program_n=program_total_questions) }}
@@ -127,7 +127,7 @@
             <h2 class="accordion-header">
                 <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button"
                     data-bs-toggle="collapse" data-bs-target="#fam{{ entry.student.id }}">
-                    {{ entry.student.full_name_ar or entry.student.full_name }}
+                    {{ entry.student.display_name }}
                     <span class="badge bg-{{ entry.status_class }} ms-2">{{ entry.status_text }}</span>
                 </button>
             </h2>
@@ -165,7 +165,7 @@
             <h2 class="accordion-header">
                 <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button"
                     data-bs-toggle="collapse" data-bs-target="#prog{{ entry.student.id }}">
-                    {{ entry.student.full_name_ar or entry.student.full_name }}
+                    {{ entry.student.display_name }}
                     <span class="badge bg-{{ entry.status_class }} ms-2">{{ entry.status_text }}</span>
                 </button>
             </h2>

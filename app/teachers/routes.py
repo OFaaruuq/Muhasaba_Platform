@@ -93,6 +93,9 @@ def create():
             hire_date=date.today(),
         )
         db.session.add(teacher)
+        db.session.flush()
+        from app.services.identity_service import ensure_identity_for_teacher
+        ensure_identity_for_teacher(teacher)
         db.session.commit()
         flash_msg("teacher_registered", "success", sid)
         return redirect(url_for("teachers.detail", teacher_id=teacher.id))

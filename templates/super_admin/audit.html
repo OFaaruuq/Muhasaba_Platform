@@ -15,7 +15,7 @@
                 {% for log in logs %}
                 <tr>
                     <td><small>{{ log.created_at.strftime('%Y-%m-%d %H:%M') if log.created_at else '—' }}</small></td>
-                    <td>{{ log.user.full_name_ar if log.user else '—' }}</td>
+                    <td>{{ log.user.display_name if log.user else '—' }}</td>
                     <td>{{ log.module or '—' }}</td>
                     <td><span class="badge bg-light text-dark">{{ audit_action_label(log.action) }}</span></td>
                     <td>{{ log.details or '—' }}</td>

@@ -59,7 +59,7 @@
                     {% for u in users %}
                     <tr class="{% if not u.is_active %}table-secondary{% endif %}">
                         <td>
-                            <strong>{{ u.full_name_ar or u.full_name }}</strong>
+                            <strong>{{ u.display_name }}</strong>
                             <br><small class="text-muted">@{{ u.username }} · {{ u.email or '—' }}</small>
                         </td>
                         <td><span class="badge bg-secondary">{{ u.role_name_ar or u.role.name if u.role else '—' }}</span></td>

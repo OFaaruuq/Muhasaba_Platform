@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <h2>مؤشرات الأداء الديناميكية: <span class="badge bg-primary fs-4">{{ overall }}%</span></h2>
         <div class="btn-group">
             {% for code, label in kpi_period_choices %}

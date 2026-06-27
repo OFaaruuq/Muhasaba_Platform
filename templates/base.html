@@ -9,7 +9,7 @@
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
-<body>
+<body class="{% if current_user.is_authenticated %}has-mobile-nav{% endif %}">
     {% if current_user.is_authenticated %}
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div class="container-fluid">
@@ -30,21 +30,21 @@
                     {% if dual_teacher_student %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="bi bi-arrow-left-right"></i> عرض الحساب
+                            <i class="bi bi-arrow-left-right"></i> {{ nav_labels.account_view }}
                         </a>
                         <ul class="dropdown-menu">
                             <li>
                                 <form method="POST" action="{{ url_for('dashboards.switch_mode') }}" class="px-3 py-1">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="mode" value="teacher">
-                                    <button class="dropdown-item {% if dashboard_mode != 'student' %}active{% endif %}" type="submit">كمعلم</button>
+                                    <button class="dropdown-item {% if dashboard_mode != 'student' %}active{% endif %}" type="submit">{{ nav_labels.as_teacher }}</button>
                                 </form>
                             </li>
                             <li>
                                 <form method="POST" action="{{ url_for('dashboards.switch_mode') }}" class="px-3 py-1">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="mode" value="student">
-                                    <button class="dropdown-item {% if dashboard_mode == 'student' %}active{% endif %}" type="submit">كطالب</button>
+                                    <button class="dropdown-item {% if dashboard_mode == 'student' %}active{% endif %}" type="submit">{{ nav_labels.as_student }}</button>
                                 </form>
                             </li>
                         </ul>
@@ -145,14 +145,14 @@
                     {% if user_can_any('manage_platform_config', 'manage_global_config') %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('admin.index') }}">
-                            <i class="bi bi-gear"></i> الإعدادات
+                            <i class="bi bi-gear"></i> {{ nav_labels.admin }}
                         </a>
                     </li>
                     {% endif %}
                     {% if user_can('manage_users') %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('users.index') }}">
-                            <i class="bi bi-people-fill"></i> المستخدمون
+                            <i class="bi bi-people-fill"></i> {{ nav_labels.users }}
                         </a>
                     </li>
                     {% endif %}
@@ -167,17 +167,17 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-truncate" href="#" data-bs-toggle="dropdown" style="max-width:12rem">
                             <i class="bi bi-person-circle"></i>
-                            <span class="d-none d-sm-inline">{{ current_user.full_name_ar or current_user.full_name }}</span>
-                            <span class="d-inline d-sm-none">حسابي</span>
+                            <span class="d-none d-sm-inline">{{ current_user.display_name }}</span>
+                            <span class="d-inline d-sm-none">{{ nav_labels.my_account }}</span>
                             <span class="badge bg-light text-primary ms-1">{{ current_user.role_name_ar }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-start">
                             <li><a class="dropdown-item" href="{{ url_for('notifications.index') }}">
-                                <i class="bi bi-bell"></i> الإشعارات
+                                <i class="bi bi-bell"></i> {{ nav_labels.notifications }}
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
-                                <i class="bi bi-box-arrow-left"></i> تسجيل الخروج
+                                <i class="bi bi-box-arrow-left"></i> {{ nav_labels.logout }}
                             </a></li>
                         </ul>
                     </li>
@@ -205,6 +205,7 @@
     </main>
 
     {% if current_user.is_authenticated %}
+    {% include 'includes/mobile_nav.html' %}
     <footer class="footer mt-auto py-3 bg-light border-top">
         <div class="container text-center text-muted">
             <small>{{ platform_tagline }}</small>
@@ -213,6 +214,20 @@
     {% endif %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% if current_user.is_authenticated %}
+    <script>
+    document.querySelectorAll('[data-bs-target="#navbarNav"]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            setTimeout(function () {
+                var nav = document.getElementById('navbarNav');
+                if (nav && nav.classList.contains('show')) {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            }, 200);
+        });
+    });
+    </script>
+    {% endif %}
     {% block scripts %}{% endblock %}
 </body>
 </html>

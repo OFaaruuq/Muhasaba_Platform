@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "followup_surveys/_macros.html" import family_field %}
 {% from "followup_surveys/_checklist.html" import survey_checklist %}
-{% block title %}{{ page_labels.family_form_subtitle_prefix }} - {{ student.full_name_ar }}{% endblock %}
+{% block title %}{{ page_labels.family_form_subtitle_prefix }} - {{ student.display_name }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -10,7 +10,7 @@
         {{ page_labels.family_form_header }}
     </h2>
     <p class="text-muted mb-2">
-        {{ page_labels.family_form_subtitle_prefix }} — {{ student.full_name_ar or student.full_name }}
+        {{ page_labels.family_form_subtitle_prefix }} — {{ student.display_name }}
         — {{ period_month }}/{{ period_year }}
     </p>
     <div class="alert alert-warning border mb-3">
@@ -38,7 +38,7 @@
                         {% for parent in parents %}
                         <option value="{{ parent.id }}"
                             {% if survey and survey.parent_id == parent.id %}selected{% endif %}>
-                            {{ parent.full_name_ar or parent.full_name }}
+                            {{ parent.display_name }}
                         </option>
                         {% endfor %}
                     </select>

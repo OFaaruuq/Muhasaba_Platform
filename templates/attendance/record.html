@@ -87,7 +87,7 @@
                         <tr data-student-id="{{ student.id }}" class="{% if student_contexts[student.id].denied %}table-danger{% endif %}">
                             <td>{{ loop.index }}</td>
                             <td>
-                                {{ student.full_name_ar or student.full_name }}
+                                {{ student.display_name }}
                                 {% set ctx = student_contexts[student.id] %}
                                 {% if ctx.denied %}
                                 <span class="badge bg-danger ms-1">منع الدخول</span>

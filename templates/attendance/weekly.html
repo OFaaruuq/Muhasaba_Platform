@@ -2,7 +2,7 @@
 {% block title %}الحضور الأسبوعي - {{ platform_name }}{% endblock %}
 {% block content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <h2><i class="bi bi-calendar-week"></i> متابعة الحضور الأسبوعي</h2>
         <a href="{{ url_for('attendance.index') }}" class="btn btn-outline-secondary">الحضور اليومي</a>
     </div>

@@ -148,7 +148,7 @@
                 <tbody>
                     {% for record in records %}
                     <tr>
-                        <td>{{ record.student.full_name_ar if record.student else '-' }}</td>
+                        <td>{{ record.student.display_name if record.student else '-' }}</td>
                         <td>{{ record.class_.name if record.class_ else '-' }}</td>
                         {% if time_settings.record_time %}
                         <td>

@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}تقرير متابعة — {{ report.student.full_name_ar }}{% endblock %}
+{% block title %}تقرير متابعة — {{ report.student.display_name }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    {% set hub_subtitle = report.student.full_name_ar ~ ' — ' ~ period_label %}
+    {% set hub_subtitle = report.student.display_name ~ ' — ' ~ period_label %}
     {% set active_page = 'analytics' %}
     {% include 'followup_surveys/_hub_header.html' %}
 

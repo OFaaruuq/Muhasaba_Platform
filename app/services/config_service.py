@@ -27,7 +27,7 @@ DEFAULT_SETTINGS = {
     "perf_yellow_min": ("60", "performance", "حد اللون الأصفر %"),
     "monthly_strength_min": ("4", "performance", "حد نقاط القوة (1-5)"),
     "monthly_weakness_max": ("2", "performance", "حد نقاط الضعف (1-5)"),
-    "show_demo_logins": ("true", "general", "عرض حسابات تجريبية في الدخول"),
+    "show_demo_logins": ("false", "general", "عرض حسابات تجريبية في الدخول"),
     "perf_label_success": ("ممتاز", "performance", "تسمية الأداء الأخضر"),
     "perf_label_warning": ("متوسط", "performance", "تسمية الأداء الأصفر"),
     "perf_label_danger": ("يحتاج متابعة", "performance", "تسمية الأداء الأحمر"),

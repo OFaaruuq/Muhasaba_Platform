@@ -84,4 +84,7 @@ def init_database(seed=True):
             ensure_school_defaults(school.id)
         ensure_super_admin_role()
 
+    from app.services.identity_service import backfill_platform_identities
+    backfill_platform_identities()
+
     db.session.commit()

@@ -418,3 +418,96 @@ def audit():
         since=since,
         audit_action_label=audit_action_label,
     )
+
+
+@bp.route("/tenants")
+@login_required
+@permission_required("manage_system")
+def tenants():
+    from app.models import Tenant, LicenseRequest
+    from app.services.tenant_service import tenant_stats
+    tenants_list = Tenant.query.order_by(Tenant.is_platform_owner.desc(), Tenant.name_ar).all()
+    stats_map = {t.id: tenant_stats(t) for t in tenants_list}
+    pending_requests = LicenseRequest.query.filter_by(
+        status=LicenseRequest.STATUS_PENDING
+    ).order_by(LicenseRequest.created_at.desc()).all()
+    return render_template(
+        "super_admin/tenants.html",
+        tenants=tenants_list,
+        stats_map=stats_map,
+        pending_requests=pending_requests,
+    )
+
+
+@bp.route("/license-requests/<int:request_id>/approve", methods=["POST"])
+@login_required
+@permission_required("manage_system")
+def approve_license_request(request_id):
+    from app.services.tenant_service import approve_license_request as approve_req
+    try:
+        tenant = approve_req(
+            request_id,
+            current_user.id,
+            plan_name=request.form.get("plan_name", "standard"),
+            max_schools=int(request.form.get("max_schools", 5)),
+            max_users=int(request.form.get("max_users", 100)),
+            duration_days=int(request.form.get("duration_days", 365)),
+            admin_notes=request.form.get("admin_notes"),
+        )
+        log_action("approve_license", "tenant", f"Approved license for {tenant.slug}")
+        flash_msg("license_approved", "success")
+    except ValueError as exc:
+        flash(str(exc), "danger")
+    return redirect(url_for("super_admin.tenants"))
+
+
+@bp.route("/license-requests/<int:request_id>/reject", methods=["POST"])
+@login_required
+@permission_required("manage_system")
+def reject_license_request_route(request_id):
+    from app.services.tenant_service import reject_license_request
+    try:
+        reject_license_request(
+            request_id,
+            current_user.id,
+            admin_notes=request.form.get("admin_notes"),
+        )
+        log_action("reject_license", "tenant", f"Rejected request {request_id}")
+        flash_msg("license_rejected", "info")
+    except ValueError as exc:
+        flash(str(exc), "danger")
+    return redirect(url_for("super_admin.tenants"))
+
+
+@bp.route("/tenants/<int:tenant_id>/license", methods=["POST"])
+@login_required
+@permission_required("manage_system")
+def update_tenant_license(tenant_id):
+    from app.models import Tenant, TenantLicense
+    from datetime import datetime, timezone, timedelta
+    tenant = Tenant.query.get_or_404(tenant_id)
+    if tenant.is_platform_owner:
+        flash_msg("tenant_updated", "info")
+        return redirect(url_for("super_admin.tenants"))
+
+    status = request.form.get("status", TenantLicense.STATUS_ACTIVE)
+    lic = tenant.licenses.order_by(TenantLicense.created_at.desc()).first()
+    if not lic:
+        lic = TenantLicense(tenant_id=tenant.id)
+        db.session.add(lic)
+
+    lic.status = status
+    lic.plan_name = request.form.get("plan_name", lic.plan_name or "standard")
+    lic.max_schools = int(request.form.get("max_schools", lic.max_schools or 5))
+    lic.max_users = int(request.form.get("max_users", lic.max_users or 100))
+    duration = int(request.form.get("duration_days", 365))
+    lic.starts_at = datetime.now(timezone.utc)
+    lic.expires_at = lic.starts_at + timedelta(days=duration) if duration else None
+    lic.notes = request.form.get("notes")
+    lic.approved_by_id = current_user.id
+    lic.approved_at = datetime.now(timezone.utc)
+    tenant.is_active = status == TenantLicense.STATUS_ACTIVE
+    log_action("update_tenant_license", "tenant", f"Updated license for {tenant.slug}")
+    db.session.commit()
+    flash_msg("tenant_license_updated", "success")
+    return redirect(url_for("super_admin.tenants"))

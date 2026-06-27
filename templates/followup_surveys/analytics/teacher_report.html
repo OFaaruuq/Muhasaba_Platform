@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}تقرير متابعة — {{ report.teacher.full_name_ar }}{% endblock %}
+{% block title %}تقرير متابعة — {{ report.teacher.display_name }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    {% set hub_subtitle = (report.teacher.full_name_ar or report.teacher.full_name) ~ ' — ' ~ period_label %}
+    {% set hub_subtitle = report.teacher.display_name ~ ' — ' ~ period_label %}
     {% set active_page = 'analytics' %}
     {% include 'followup_surveys/_hub_header.html' %}
 
@@ -193,7 +193,7 @@
                 <tbody>
                     {% for entry in report.family_entries %}
                     <tr>
-                        <td>{{ entry.student.full_name_ar or entry.student.full_name }}</td>
+                        <td>{{ entry.student.display_name }}</td>
                         <td><small>{{ entry.grade_name }} — {{ entry.class_name }}</small></td>
                         <td>
                             <div class="progress" style="height:6px;width:100px">

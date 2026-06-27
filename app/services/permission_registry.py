@@ -32,6 +32,7 @@ SYSTEM_ROLE_DEFINITIONS = {
 PERMISSIONS = {
     # System / platform
     "manage_system": ("إدارة النظام الكاملة", "system"),
+    "manage_tenants": ("إدارة المستأجرين والتراخيص", "system"),
     "manage_roles": ("إدارة الأدوار والصلاحيات", "system"),
     "view_audit_logs": ("عرض سجل التدقيق", "system"),
     "manage_global_config": ("إدارة الإعدادات العامة", "system"),

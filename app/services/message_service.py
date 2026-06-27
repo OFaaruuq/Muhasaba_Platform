@@ -36,6 +36,15 @@ MESSAGES_SEED = {
     "auth_logout": "تم تسجيل الخروج بنجاح.",
     "auth_account_inactive": "حسابك غير مفعّل أو البريد غير مُحقَّق. تواصل مع المشرف الأعلى.",
     "auth_no_student_profile": "لا يوجد ملف طالب مرتبط بحسابك. يرجى التواصل مع مدير المدرسة لربط الحساب.",
+    # Tenants / licenses
+    "license_request_missing_fields": "يرجى تعبئة جميع الحقول المطلوبة.",
+    "license_request_submitted": "تم إرسال طلب الترخيص. سيتواصل معك فريق نيتريش قريباً.",
+    "license_expired": "انتهت صلاحية ترخيص مؤسستكم. تواصل مع مسؤول المنصة أو اطلب تجديد الترخيص.",
+    "license_suspended": "تم تعليق ترخيص مؤسستكم. تواصل مع مسؤول المنصة.",
+    "license_approved": "تمت الموافقة على طلب الترخيص.",
+    "license_rejected": "تم رفض طلب الترخيص.",
+    "tenant_updated": "تم تحديث بيانات المستأجر.",
+    "tenant_license_updated": "تم تحديث الترخيص.",
     # Admin
     "admin_school_selected": "تم اختيار المدرسة.",
     "admin_settings_saved": "تم حفظ الإعدادات.",

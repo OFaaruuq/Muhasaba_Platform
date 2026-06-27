@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% from "includes/subject_select.html" import subject_create_modal, subject_scripts %}
-{% block title %}{{ teacher.full_name_ar }} - {{ platform_name }}{% endblock %}
+{% block title %}{{ teacher.display_name }} - {{ platform_name }}{% endblock %}
 {% block content %}
 <div class="container-fluid">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
-            <h2 class="mb-1">{{ teacher.full_name_ar or teacher.full_name }}</h2>
+            <h2 class="mb-1">{{ teacher.display_name }}</h2>
             <p class="text-muted mb-0 small">
                 {{ teacher.employee_id }}
                 {% if teacher.is_active %}

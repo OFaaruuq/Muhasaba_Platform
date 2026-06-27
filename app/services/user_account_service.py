@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from flask import url_for
 
@@ -52,6 +52,8 @@ def create_user_by_super_admin(
     user.set_password(password)
     db.session.add(user)
     db.session.flush()
+    from app.services.identity_service import ensure_identity_for_user
+    ensure_identity_for_user(user)
 
     if send_verification:
         verify_url = url_for("auth.verify_email", token=token, _external=True)
@@ -153,9 +155,19 @@ def resend_verification_email(user):
 
 
 def verify_email_token(token):
+    from flask import current_app
+
     user = User.query.filter_by(email_verification_token=token).first()
     if not user:
         return None, "invalid"
+    sent_at = user.email_verification_sent_at
+    if sent_at:
+        hours = int(current_app.config.get("EMAIL_VERIFICATION_EXPIRY_HOURS", 48))
+        expires = sent_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) > expires + timedelta(hours=hours):
+            return None, "expired"
     user.email_verified = True
     user.email_verification_token = None
     db.session.commit()

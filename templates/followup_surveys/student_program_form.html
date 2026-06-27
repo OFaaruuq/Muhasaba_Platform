@@ -6,8 +6,8 @@
 <div class="container-fluid">
     <h2 class="mb-2"><i class="bi bi-journal-check"></i> متابعة البرنامج التربوي — طالب</h2>
     <p class="text-muted mb-1">
-        {% if admin_entry %}الطالب: {{ student.full_name_ar or student.full_name }} — إدخال إداري{% else %}
-        {{ student.full_name_ar or student.full_name }}{% endif %}
+        {% if admin_entry %}الطالب: {{ student.display_name }} — إدخال إداري{% else %}
+        {{ student.display_name }}{% endif %}
     </p>
     <p class="text-muted mb-3">{{ period_ctx.period_label }} — {{ program_total_questions }} سؤالاً</p>
 

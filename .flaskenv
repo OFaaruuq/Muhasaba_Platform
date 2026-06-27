@@ -1,2 +1,2 @@
 FLASK_APP=run:app
-FLASK_DEBUG=true
+FLASK_DEBUG=false

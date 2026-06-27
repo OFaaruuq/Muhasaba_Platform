@@ -79,7 +79,7 @@
                             <div>{{ user.username }}</div>
                             <small class="text-muted">{{ user.email }}</small>
                         </td>
-                        <td>{{ user.full_name_ar or user.full_name }}</td>
+                        <td>{{ user.display_name }}</td>
                         {% if is_platform_admin_view %}
                         <td class="small">{{ user.school.name_ar if user.school else '—' }}</td>
                         {% endif %}

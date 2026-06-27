@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from app.models.identity_mixin import PlatformIdentityMixin
 from app.extensions import db
 
 role_permissions = db.Table(
@@ -43,7 +44,7 @@ class Permission(db.Model):
         return f"<Permission {self.name}>"
 
 
-class User(UserMixin, db.Model):
+class User(UserMixin, PlatformIdentityMixin, db.Model):
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)

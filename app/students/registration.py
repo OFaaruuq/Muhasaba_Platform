@@ -149,6 +149,8 @@ def process_registration(form, register_url):
     )
     db.session.add(student)
     db.session.flush()
+    from app.services.identity_service import ensure_identity_for_student
+    ensure_identity_for_student(student)
 
     db.session.commit()
     sync_kpis_for_student(student.id)

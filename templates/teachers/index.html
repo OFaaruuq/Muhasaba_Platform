@@ -46,8 +46,8 @@
                 <table class="table table-hover mb-0 align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>الرقم الوظيفي</th>
-                            <th>الاسم</th>
+                            <th>رقم الهوية</th>
+                            {% if can_view_person_names %}<th>الاسم</th>{% endif %}
                             <th>المادة</th>
                             <th>المجموعة / الفصل</th>
                             <th>المدرسة</th>
@@ -59,8 +59,10 @@
                         {% for teacher in teachers %}
                         {% set summary = teacher_summaries.get(teacher.id, {}) %}
                         <tr class="{% if not teacher.is_active %}table-secondary{% endif %}">
-                            <td>{{ teacher.employee_id }}</td>
+                            <td><code>{{ teacher.platform_uid or '—' }}</code></td>
+                            {% if can_view_person_names %}
                             <td><strong>{{ teacher.full_name_ar or teacher.full_name }}</strong></td>
+                            {% endif %}
                             <td>
                                 {% if summary.subjects %}
                                 {{ summary.subjects | join('، ') }}

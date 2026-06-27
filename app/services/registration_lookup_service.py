@@ -156,6 +156,9 @@ def create_teacher(school_id, *, full_name_ar, full_name=None, employee_id=None)
         is_active=True,
     )
     db.session.add(teacher)
+    db.session.flush()
+    from app.services.identity_service import ensure_identity_for_teacher
+    ensure_identity_for_teacher(teacher)
     db.session.commit()
     return teacher
 

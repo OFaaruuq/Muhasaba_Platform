@@ -190,9 +190,17 @@ NAV_LABELS_SEED = {
     "ai_assistant": "المساعد الذكي",
     "reports": "التقارير",
     "admin": "إعدادات النظام",
+    "users": "المستخدمون",
     "notifications": "الإشعارات",
     "logout": "تسجيل الخروج",
     "profile": "الملف الشخصي",
+    "my_account": "حسابي",
+    "account_view": "عرض الحساب",
+    "as_teacher": "كمعلم",
+    "as_student": "كطالب",
+    "menu": "القائمة",
+    "license_request": "طلب ترخيص",
+    "tenants": "المستأجرون",
 }
 
 REGISTRATION_SECTION_LABELS_SEED = {

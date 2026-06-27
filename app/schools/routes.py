@@ -13,6 +13,7 @@ from app.services.school_service import (
     can_delete_subject,
 )
 from app.utils import permission_required
+from app.utils.security import safe_redirect_target, is_safe_url
 
 
 def _school_access(school_id):
@@ -75,7 +76,13 @@ def detail(school_id):
 @permission_required("view_all_schools")
 def create():
     if request.method == "POST":
+        from app.services.tenant_service import get_platform_owner_tenant
+        tenant_id = request.form.get("tenant_id", type=int)
+        if not tenant_id:
+            owner = get_platform_owner_tenant()
+            tenant_id = owner.id if owner else None
         school = School(
+            tenant_id=tenant_id,
             name=request.form["name"],
             name_ar=request.form["name_ar"],
             code=request.form["code"],
@@ -124,10 +131,21 @@ def edit_school(school_id):
             school.code = request.form["code"]
         db.session.commit()
         flash_msg("school_updated", "success", school.id)
-        next_url = request.form.get("next") or url_for("schools.detail", school_id=school.id)
-        return redirect(next_url)
+        return redirect(
+            safe_redirect_target(
+                request.form.get("next"),
+                "schools.detail",
+                school_id=school.id,
+            )
+        )
 
-    return render_template("schools/edit.html", school=school)
+    safe_back = safe_redirect_target(
+        request.args.get("next"),
+        "schools.detail",
+        school_id=school.id,
+    )
+    safe_next = request.args.get("next") if is_safe_url(request.args.get("next")) else ""
+    return render_template("schools/edit.html", school=school, safe_back=safe_back, safe_next=safe_next)
 
 
 @bp.route("/<int:school_id>/toggle", methods=["POST"])

@@ -3,11 +3,11 @@
 
 {% block content %}
 <div class="container-fluid">
-    <h2 class="mb-4"><i class="bi bi-person"></i> {{ page_labels.dashboard_student_greeting }}{% if student %} {{ student.full_name_ar }}{% endif %}</h2>
+    <h2 class="mb-4"><i class="bi bi-person"></i> {{ page_labels.dashboard_student_greeting }}{% if student %} {{ student.display_name }}{% endif %}</h2>
 
     {% if student %}
     <div class="row g-4 mb-4">
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card stat-card bg-primary text-white">
                 <div class="card-body text-center">
                     <h2>{{ overall_kpi }}%</h2>
@@ -15,7 +15,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card stat-card">
                 <div class="card-body text-center">
                     <h2>{{ attendance_pct }}%</h2>
@@ -23,7 +23,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card stat-card">
                 <div class="card-body text-center">
                     <h2>{{ student.gpa }}</h2>
@@ -31,7 +31,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card stat-card">
                 <div class="card-body text-center">
                     <h2>{{ student.class_.name if student.class_ else '-' }}</h2>

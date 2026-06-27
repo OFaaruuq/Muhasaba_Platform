@@ -13,12 +13,15 @@ def _mail_configured():
 
 def _dev_email_fallback(to_address, subject, body_text, reason):
     """Log email to console when SMTP is unavailable (dev/test only)."""
+    safe_body = body_text
+    if "رمز التحقق" in (body_text or "") or "OTP" in (body_text or "").upper():
+        safe_body = "[REDACTED OTP]"
     logger.info(
         "Email not sent (%s) — to %s | subject: %s | body: %s",
         reason,
         to_address,
         subject,
-        body_text,
+        safe_body,
     )
     if current_app.config.get("FLASK_DEBUG") or current_app.config.get("TESTING"):
         current_app.logger.warning(
@@ -26,7 +29,7 @@ def _dev_email_fallback(to_address, subject, body_text, reason):
             reason,
             to_address,
             subject,
-            body_text,
+            safe_body,
         )
 
 

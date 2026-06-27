@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from app.models.identity_mixin import PlatformIdentityMixin
 from app.extensions import db
 
 parent_student = db.Table(
@@ -9,7 +10,7 @@ parent_student = db.Table(
 )
 
 
-class Student(db.Model):
+class Student(PlatformIdentityMixin, db.Model):
     __tablename__ = "students"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -46,7 +47,7 @@ class Student(db.Model):
         return f"<Student {self.full_name_ar or self.full_name}>"
 
 
-class Parent(db.Model):
+class Parent(PlatformIdentityMixin, db.Model):
     __tablename__ = "parents"
 
     id = db.Column(db.Integer, primary_key=True)

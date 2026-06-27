@@ -2,7 +2,7 @@
 {% block title %}نتائج الاستبيان - {{ platform_name }}{% endblock %}
 {% block content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
             <h2>نتائج: {{ questionnaire.title_ar or questionnaire.title }}</h2>
             <p class="text-muted mb-0">{{ category_labels.get(questionnaire.category, '') }} — {{ summary.completed }}/{{ summary.eligible }} طالب أكمل ({{ summary.rate }}%)</p>
@@ -21,7 +21,7 @@
                         <tbody>
                             {% for row in student_status %}
                             <tr>
-                                <td>{{ row.student.full_name_ar or row.student.full_name }}</td>
+                                <td>{{ row.student.display_name }}</td>
                                 <td>
                                     {% if row.completion.complete %}<span class="badge bg-success">{{ ui_labels.complete }}</span>
                                     {% elif row.completion.answered %}<span class="badge bg-warning text-dark">{{ row.completion.percent }}%</span>
@@ -92,7 +92,7 @@
                     <tbody>
                         {% for row in item.rows %}
                         <tr>
-                            <td>{{ row.student.full_name_ar if row.student else '—' }}</td>
+                            <td>{{ row.student.display_name if row.student else '—' }}</td>
                             <td>{{ row.display }}</td>
                         </tr>
                         {% else %}

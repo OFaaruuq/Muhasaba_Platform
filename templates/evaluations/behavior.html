@@ -9,7 +9,7 @@
                 {% for student in students %}
                 <form method="POST" action="{{ url_for('evaluations.behavior_record', student_id=student.id) }}" class="border-bottom py-3">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <strong>{{ student.full_name_ar }}</strong>
+                    <strong>{{ student.display_name }}</strong>
                     <div class="row g-2 mt-2">
                         <div class="col-6">
                             <select name="behavior_type" class="form-select form-select-sm behavior-type-select">
@@ -41,7 +41,7 @@
                     <tbody>
                         {% for r in records %}
                         <tr>
-                            <td>{{ r.student.full_name_ar if r.student else '-' }}</td>
+                            <td>{{ r.student.display_name if r.student else '-' }}</td>
                             <td>{{ behavior_type_labels.get(r.behavior_type, r.behavior_type) }}</td>
                             <td>{{ category_labels.get(r.category, r.category or '-') }}</td>
                             <td>{{ r.date }}</td>

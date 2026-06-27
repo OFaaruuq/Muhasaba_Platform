@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone
 
-from flask import flash, redirect, render_template, request, url_for
+from flask import flash, redirect, render_template, request, url_for, abort
 from app.services.message_service import flash_msg
 from flask_login import login_required, current_user
 
@@ -18,6 +18,44 @@ from app.services.config_service import (
 from app.utils.school_context import get_active_school_id
 from app.services.audit_service import log_action
 from app.utils.student_context import require_linked_student
+
+
+def _can_view_exam(exam):
+    if current_user.is_super_admin:
+        return True
+    if current_user.is_student and current_user.student_profile:
+        student = current_user.student_profile
+        return (
+            exam.is_published
+            and exam.class_id == student.class_id
+            and exam.school_id == student.school_id
+        )
+    if current_user.has_permission("manage_exams"):
+        if current_user.is_platform_admin:
+            sid = get_active_school_id() or current_user.school_id
+            return not sid or exam.school_id == sid
+        return exam.school_id == current_user.school_id
+    return False
+
+
+def _can_take_exam(exam, student):
+    return (
+        exam.is_published
+        and student
+        and exam.class_id == student.class_id
+        and exam.school_id == student.school_id
+    )
+
+
+def _can_manage_exam(exam):
+    if current_user.is_super_admin:
+        return True
+    if not current_user.has_permission("manage_exams"):
+        return False
+    if current_user.is_platform_admin:
+        sid = get_active_school_id() or current_user.school_id
+        return not sid or exam.school_id == sid
+    return exam.school_id == current_user.school_id
 
 
 def _auto_grade(question, answer):
@@ -133,6 +171,8 @@ def create():
 @login_required
 def detail(exam_id):
     exam = Exam.query.get_or_404(exam_id)
+    if not _can_view_exam(exam):
+        abort(403)
     questions = exam.questions.order_by(ExamQuestion.order).all()
     results = exam.results.all() if not current_user.is_student else []
     sid = exam.school_id
@@ -154,6 +194,8 @@ def take(exam_id):
     student, redirect_resp = require_linked_student()
     if redirect_resp:
         return redirect_resp
+    if not _can_take_exam(exam, student):
+        abort(403)
     if not exam.is_published:
         flash_msg("exam_not_published", "danger")
         return redirect(url_for("exams.index"))
@@ -220,8 +262,12 @@ def take(exam_id):
 @login_required
 @permission_required("manage_exams")
 def grade_essay(exam_id, result_id):
-    result = ExamResult.query.get_or_404(result_id)
     exam = Exam.query.get_or_404(exam_id)
+    if not _can_manage_exam(exam):
+        abort(403)
+    result = ExamResult.query.get_or_404(result_id)
+    if result.exam_id != exam.id:
+        abort(404)
     essay_score = float(request.form.get("essay_score", 0))
     result.score = (result.score or 0) + essay_score
     result.percentage = round(result.score / exam.total_marks * 100, 1)

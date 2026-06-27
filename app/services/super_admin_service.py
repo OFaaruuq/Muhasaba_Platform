@@ -46,6 +46,7 @@ def role_user_counts():
 
 
 def build_dashboard_context():
+    from app.models import Tenant, LicenseRequest
     schools = School.query.order_by(School.name_ar).all()
     active_schools = sum(1 for s in schools if s.is_active)
     inactive_schools = len(schools) - active_schools
@@ -68,6 +69,10 @@ def build_dashboard_context():
         "schools_count": len(schools),
         "active_schools": active_schools,
         "inactive_schools": inactive_schools,
+        "tenants_count": Tenant.query.count(),
+        "pending_license_requests": LicenseRequest.query.filter_by(
+            status=LicenseRequest.STATUS_PENDING
+        ).count(),
         "users_count": users_count,
         "active_users": active_users,
         "inactive_users": inactive_users,

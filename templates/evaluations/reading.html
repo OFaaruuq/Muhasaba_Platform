@@ -9,7 +9,7 @@
                 {% for student in students %}
                 <form method="POST" action="{{ url_for('evaluations.reading_record', student_id=student.id) }}" class="border-bottom py-3">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <strong>{{ student.full_name_ar }}</strong>
+                    <strong>{{ student.display_name }}</strong>
                     <div class="form-check mt-2"><input type="checkbox" name="read_lesson" class="form-check-input"><label>{{ ui_labels.read_lesson }}</label></div>
                     <div class="row g-2 mt-1">
                         {% for field, label in reading_aspects %}
@@ -36,7 +36,7 @@
                     <tbody>
                         {% for row in records %}
                         <tr>
-                            <td>{{ row.record.student.full_name_ar if row.record.student else '—' }}</td>
+                            <td>{{ row.record.student.display_name if row.record.student else '—' }}</td>
                             <td>{{ row.record.date }}</td>
                             <td>{{ row.overall_display }}</td>
                         </tr>

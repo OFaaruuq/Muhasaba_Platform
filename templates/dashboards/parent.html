@@ -10,7 +10,7 @@
         {% for item in children_data %}
         <div class="col-md-6">
             <div class="card">
-                <div class="card-header">{{ item.student.full_name_ar }}</div>
+                <div class="card-header">{{ item.student.display_name }}</div>
                 <div class="card-body">
                     <p><strong>الرقم:</strong> {{ item.student.student_id }}</p>
                     <p><strong>الفصل:</strong> {{ item.student.class_.name if item.student.class_ else '-' }}</p>
